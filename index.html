@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title> · YLY Dakahlia</title>
+<title>تيم ميتر · TeamMeter</title>
 <style>
 :root{--bg:#f4f6fb;--card:#fff;--tx:#141a2e;--mu:#69708a;--bd:#e2e6f0;--pr:#4f46e5;--ok:#10b981;--bad:#ef4444;--warn:#f59e0b}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b1020;--card:#151b30;--tx:#eef1fb;--mu:#8e96b5;--bd:#262e4a;--pr:#818cf8}}
@@ -50,7 +50,7 @@ const SUPABASE_ANON_KEY="sb_publishable_SCBl9-EXW9bkG8vyXNwezg_UOorLfa_";
 // ===============================================================
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 const MO=["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
-const KEYS=[["sh","النزولات الميدانية"],["tk","التاسكات"],["se","السيشنات "],["mt","الاجتماعات "]];
+const KEYS=[["sh","النزولات الميدانية"],["tk","التاسكات"],["se","السيشنات والورش"],["mt","الاجتماعات الدورية"]];
 let D={members:[]},S={tab:"members",modal:null,auth:"in",msg:""},session=null,me=null;
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -98,7 +98,7 @@ function chart(m){
 }
 function breakdown(m){
   const k=last(m);if(!k)return'<p class="mu">لا توجد تقييمات بعد.</p>';const r=m.rec[k];
-  return KEYS.map(([id,l])=>{const a=r[id]||[0,0],p=pct(a);return`<div style="margin:9px 0"><div class="row" style="justify-content:space-between"><span>${l}</span><span class="mu">${a[0]} / ${a[1]} · ${p}%</span></div><div class="bar"><i style="width:${p}%"></i></div></div>`}).join("")+`<p class="mu">الاعتذارات المسجلة هذا الشهر: <b>${r.ex||0}</b></p>${r.man!=null?'<p class="mu">الدرجة دي مُدخلة يدوياً من الأدمن.</p>':""}`;
+  return KEYS.map(([id,l])=>{const a=r[id]||[0,0],p=pct(a);return`<div style="margin:9px 0"><div class="row" style="justify-content:space-between"><span>${l}</span><span class="mu">${a[0]} / ${a[1]} · ${p}%</span></div><div class="bar"><i style="width:${p}%"></i></div>${logs(r,id)}</div>`}).join("")+`<p class="mu">الاعتذارات المسجلة هذا الشهر: <b>${r.ex||0}</b></p>${r.man!=null?'<p class="mu">الدرجة دي مُدخلة يدوياً من الأدمن.</p>':""}`;
 }
 function memberView(m){
   const rk=rankIn(m),pos=rk.findIndex(x=>x.id===m.id)+1,top=rk.slice(0,3);
@@ -112,7 +112,7 @@ function memberView(m){
 }
 function loginView(){
   const su=S.auth==="up";
-  return`<div class="top"><span class="logo">YLY Dakahlia · </span><button class="g" onclick="theme()">🌓</button></div>
+  return`<div class="top"><span class="logo">TeamMeter · تيم ميتر</span><button class="g" onclick="theme()">🌓</button></div>
   <div class="card"><b>${su?"إنشاء حساب":"تسجيل الدخول"}</b>
   <label>الإيميل</label><input id="ae" type="email" autocomplete="email" dir="ltr">
   <label>الباسورد</label><input id="ap" type="password" autocomplete="${su?"new-password":"current-password"}" dir="ltr" onkeydown="if(event.key==='Enter')doAuth(${su})">
@@ -130,7 +130,7 @@ function adminView(){
   :S.tab==="committees"?comms().map(c=>{const r=D.members.filter(m=>m.committee===c).sort((a,b)=>score(b)-score(a)),a=Math.round(r.reduce((s,m)=>s+score(m),0)/r.length);return`<div class="card"><div class="row" style="justify-content:space-between"><b>لجنة ${esc(c)}</b><span class="mu">${r.length} أعضاء · متوسط ${a}%</span></div>${r.map((m,i)=>`<div class="lb"><span>${i+1}</span><span style="flex:1">${esc(m.name)}</span><b>${score(m)}</b></div>`).join("")}</div>`}).join("")||'<p class="mu">أضف أعضاء أولاً.</p>'
   :`<div class="card"><b>🏆 أفضل 5 في الفريق</b>${[...D.members].sort((a,b)=>score(b)-score(a)).slice(0,5).map((m,i)=>`<div class="lb"><span>${i+1}</span><span style="flex:1">${esc(m.name)} <span class="mu">· ${esc(m.committee)}</span></span>${trend(delta(m))}<b>${score(m)}</b></div>`).join("")}</div>
   <div class="card"><b>⚠️ يحتاجون متابعة (أقل من 75 أو في النازل)</b>${D.members.filter(m=>score(m)<75||delta(m)<=-5).map(m=>`<div class="lb"><span style="flex:1">${esc(m.name)}</span>${trend(delta(m))}<b>${score(m)}</b></div>`).join("")||'<p class="mu">لا أحد 👏</p>'}</div>`;
-  return`<div class="top"><span class="logo">YLY Dakahlia · Admin</span><div class="row"><button onclick="S.modal={t:'mem'};render()">+ عضو</button><button class="g" onclick="theme()">🌓</button><button class="g" onclick="logout()">خروج</button></div></div>
+  return`<div class="top"><span class="logo">TeamMeter · لوحة الأدمن</span><div class="row"><button onclick="S.modal={t:'mem'};render()">+ عضو</button><button class="g" onclick="theme()">🌓</button><button class="g" onclick="logout()">خروج</button></div></div>
   <div class="tabs">${tabs.map(t=>`<button class="${S.tab===t[0]?"on":""}" onclick="S.tab='${t[0]}';render()">${t[1]}</button>`).join("")}</div>${sub}`;
 }
 function modal(){
@@ -140,12 +140,16 @@ function modal(){
   <label>الإيميل (هيسجل بيه)</label><input id="me" type="email" dir="ltr" value="${esc(m?.email)}"><label>الاسم</label><input id="mn" value="${esc(m?.name)}"><label>الدور</label><input id="mr" value="${esc(m?.role)}"><label>اللجنة</label><input id="mc" list="cl" value="${esc(m?.committee)}"><datalist id="cl">${comms().map(c=>`<option value="${esc(c)}">`).join("")}</datalist>
   <p class="err" id="mm"></p><div class="row" style="margin-top:12px"><button onclick="saveMem('${m?.id||""}')">حفظ</button><button class="g" onclick="S.modal=null;render()">إلغاء</button>${m&&m.id!==me?.id?`<button class="d" onclick="delMem('${m.id}')">حذف</button>`:""}</div></div></div>`;
   const now=new Date().toISOString().slice(0,7);
-  return`<div class="ov"><div class="card"><b>تقييم شهر: ${esc(m.name)}</b><label>الشهر</label><input id="rm" type="month" value="${now}">
-  ${KEYS.map(([id,l])=>`<label>${l} (المنجز / المطلوب)</label><div class="row"><input id="${id}a" type="number" min="0" placeholder="منجز"><input id="${id}b" type="number" min="0" placeholder="مطلوب"></div>`).join("")}
+  return`<div class="ov"><div class="card"><b>تقييم شهر: ${esc(m.name)}</b><label>الشهر</label><input id="rm" type="month" value="${now}" onchange="fillRec('${m.id}')">
+  ${KEYS.map(([id,l])=>`<label>${l} (المنجز / المطلوب)</label><div class="row"><input id="${id}a" type="number" min="0" placeholder="منجز"><input id="${id}b" type="number" min="0" placeholder="مطلوب"></div><div id="lg_${id}"></div><button type="button" class="g" style="margin-top:6px" onclick="addLog('${id}')">+ إضافة تاريخ</button>`).join("")}
   <label>عدد الاعتذارات</label><input id="rx" type="number" min="0" value="0">
   <label>درجة يدوية من 0 إلى 100 (اختياري، لو كتبتها بتحل محل الحساب التلقائي)</label><input id="rmn" type="number" min="0" max="100" placeholder="سيبها فاضية للحساب التلقائي">
   <p class="err" id="mm"></p><div class="row" style="margin-top:12px"><button onclick="saveRec('${m.id}')">حفظ التقييم</button><button class="g" onclick="S.modal=null;render()">إلغاء</button></div></div></div>`;
 }
+function addLog(i,d,n){const e=document.createElement("div");e.className="row";e.style.marginTop="6px";e.innerHTML=`<input type="date" class="ld" value="${esc(d||"")}" style="flex:1"><input class="ln" placeholder="ملاحظة (اختياري)" value="${esc(n||"")}" style="flex:2"><button type="button" class="g" onclick="this.parentNode.remove();syncCnt('${i}')">×</button>`;$("#lg_"+i).appendChild(e);syncCnt(i)}
+function syncCnt(i){const n=$("#lg_"+i).children.length;if(n)$("#"+i+"a").value=n}
+function fillRec(id){const m=D.members.find(x=>x.id===id),r=(m.rec||{})[$("#rm").value]||{};KEYS.forEach(([i])=>{const a=r[i]||["",""];$("#lg_"+i).innerHTML="";((r.log||{})[i]||[]).forEach(x=>addLog(i,x.d,x.n));$("#"+i+"a").value=a[0];$("#"+i+"b").value=a[1]});$("#rx").value=r.ex||0;$("#rmn").value=r.man??""}
+const logs=(r,id)=>((r.log||{})[id]||[]).length?'<div class="mu" style="margin-top:4px">'+r.log[id].map(x=>esc(x.d.slice(5).split("-").reverse().join("/"))+(x.n?" ("+esc(x.n)+")":"")).join(" · ")+'</div>':"";
 async function saveMem(id){
   const v=s=>$(s).value.trim(),row={email:v("#me").toLowerCase(),name:v("#mn"),role:v("#mr")||"عضو",committee:v("#mc")};
   if(!row.email||!row.name||!row.committee){$("#mm").textContent="الإيميل والاسم واللجنة مطلوبين";return}
@@ -157,7 +161,7 @@ async function delMem(id){if(!confirm("حذف العضو وكل تقييماته
 async function saveRec(id){
   const k=$("#rm").value;if(!k)return;const r={};
   KEYS.forEach(([i])=>r[i]=[+$("#"+i+"a").value||0,+$("#"+i+"b").value||0]);r.ex=+$("#rx").value||0;
-  const mv=$("#rmn").value.trim();if(mv!=="")r.man=Math.max(0,Math.min(100,+mv));
+  const lg={};KEYS.forEach(([i])=>{const L=[...$("#lg_"+i).children].map(e=>({d:e.querySelector(".ld").value,n:e.querySelector(".ln").value.trim()})).filter(x=>x.d).sort((a,b)=>a.d.localeCompare(b.d));if(L.length)lg[i]=L});if(Object.keys(lg).length)r.log=lg;const mv=$("#rmn").value.trim();if(mv!=="")r.man=Math.max(0,Math.min(100,+mv));
   const x=await sb.from("records").upsert({member_id:id,month:k,data:r},{onConflict:"member_id,month"});
   if(x.error){$("#mm").textContent=x.error.message;return}
   S.modal=null;await load();render();
@@ -166,9 +170,10 @@ function render(){
   let h;
   if(!session)h=loginView();
   else if(me&&me.is_admin)h=adminView();
-  else if(me)h=`<div class="top"><span class="logo">YLY Dakahlia</span><div class="row"><button class="g" onclick="theme()">🌓</button><button class="g" onclick="logout()">خروج</button></div></div>`+memberView(me);
-  else h=`<div class="top"><span class="logo">YLY Dakahlia</span><button class="g" onclick="logout()">خروج</button></div><div class="card"><p>${S.msg?esc(S.msg):"الإيميل ده مش مسجل عند الأدمن. كلّمه عشان يضيفك ثم سجل دخول تاني."}</p></div>`;
+  else if(me)h=`<div class="top"><span class="logo">TeamMeter</span><div class="row"><button class="g" onclick="theme()">🌓</button><button class="g" onclick="logout()">خروج</button></div></div>`+memberView(me);
+  else h=`<div class="top"><span class="logo">TeamMeter</span><button class="g" onclick="logout()">خروج</button></div><div class="card"><p>${S.msg?esc(S.msg):"الإيميل ده مش مسجل عند الأدمن. كلّمه عشان يضيفك ثم سجل دخول تاني."}</p></div>`;
   $("#app").innerHTML=h+(S.modal&&me&&me.is_admin?modal():"");
+  if(S.modal&&S.modal.t==="rec"&&me&&me.is_admin)fillRec(S.modal.id);
 }
 boot();
 </script>
