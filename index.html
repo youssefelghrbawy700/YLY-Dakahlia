@@ -50,7 +50,7 @@ const SUPABASE_ANON_KEY="sb_publishable_SCBl9-EXW9bkG8vyXNwezg_UOorLfa_";
 // ===============================================================
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 const MO=["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
-const KEYS=[["sh","النزولات الميدانية"],["tk","التاسكات"],["se","السيشنات والورش"],["mt","الاجتماعات الدورية"]];
+const KEYS=[["sh","النزولات الميدانية"],["tk","التاسكات"],["se","السيشنات "],["mt","الاجتماعات الدورية"]];
 let D={members:[]},S={tab:"members",modal:null,auth:"in",msg:""},session=null,me=null;
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
