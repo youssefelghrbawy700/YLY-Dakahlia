@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>تيم ميتر · YLY Dakahlia</title>
+<title> · YLY Dakahlia</title>
 <style>
 :root{--bg:#f4f6fb;--card:#fff;--tx:#141a2e;--mu:#69708a;--bd:#e2e6f0;--pr:#4f46e5;--ok:#10b981;--bad:#ef4444;--warn:#f59e0b}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b1020;--card:#151b30;--tx:#eef1fb;--mu:#8e96b5;--bd:#262e4a;--pr:#818cf8}}
@@ -133,7 +133,7 @@ function memberView(m){
 }
 function loginView(){
   const su=S.auth==="up";
-  return`<div class="top"><span class="logo">YLY Dakahlia · تيم ميتر</span><button class="g" onclick="theme()">🌓</button></div>
+  return`<div class="top"><span class="logo">YLY Dakahlia · </span><button class="g" onclick="theme()">🌓</button></div>
   <div class="card"><b>${su?"إنشاء حساب":"تسجيل الدخول"}</b>
   <label>الإيميل</label><input id="ae" type="email" autocomplete="email" dir="ltr">
   <label>الباسورد</label><input id="ap" type="password" autocomplete="${su?"new-password":"current-password"}" dir="ltr" onkeydown="if(event.key==='Enter')doAuth(${su})">
