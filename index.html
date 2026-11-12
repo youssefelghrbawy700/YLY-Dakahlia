@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>YLY Dakahlia · تيم ميتر</title>
+<title>YLY Dakahlia </title>
 <style>
 :root{--card:rgba(15,21,46,.74);--tx:#f1f4ff;--mu:#a6aecd;--bd:rgba(255,255,255,.13);--pr:#5b7cff;--pr2:#7c5cff;--ok:#34d399;--bad:#f87171;--warn:#fbbf24;--inp:rgba(255,255,255,.07);--bg:#0b1020;--o1:rgba(7,12,34,.80);--o2:rgba(7,12,34,.93)}
 :root[data-theme="light"]{--card:rgba(255,255,255,.9);--tx:#131a33;--mu:#59628a;--bd:rgba(19,26,51,.12);--pr:#2f4fdc;--pr2:#5b3fd6;--ok:#10b981;--bad:#ef4444;--warn:#d97706;--inp:#fff;--bg:#eef1fb;--o1:rgba(238,241,251,.80);--o2:rgba(238,241,251,.93)}
@@ -53,7 +53,7 @@ svg{max-width:100%}.err{color:var(--bad);font-size:13px;min-height:18px;margin:6
 .chips span{font-size:12px;padding:4px 10px;border-radius:99px;background:var(--inp);border:1px solid var(--bd);color:var(--mu)}
 .seg{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px}
 .lnk{color:var(--pr);text-decoration:none;font-size:14px}
-#rpt{display:none;--card:#fff;--tx:#141a2e;--mu:#59628a;--bd:#dfe3f0;--pr:#2f4fdc;--pr2:#5b3fd6;--ok:#10b981;--bad:#ef4444;--warn:#d97706;--inp:#fff;background:#fff;color:#141a2e}
+#rpt{display:none;--card:#fff;--tx:#800517;--mu:#59628a;--bd:#dfe3f0;--pr:#2f4fdc;--pr2:#5b3fd6;--ok:#10b981;--bad:#ef4444;--warn:#d97706;--inp:#fff;background:#fff;color:#141a2e}
 #rpt .card{-webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:none;background:#fff;break-inside:avoid}
 .rh{display:flex;justify-content:space-between;align-items:center;background:linear-gradient(135deg,#2f4fdc,#5b3fd6);color:#fff;padding:16px 18px;border-radius:14px;margin-bottom:14px}
 table.rt{width:100%;border-collapse:collapse;margin-top:6px}.rt td,.rt th{padding:6px 8px;border-bottom:1px solid var(--bd);text-align:right}
@@ -77,7 +77,7 @@ const SUPABASE_ANON_KEY="sb_publishable_SCBl9-EXW9bkG8vyXNwezg_UOorLfa_";
 // ===============================================================
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 const MO=["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
-const KEYS=[["sh","النزولات الميدانية"],["tk","التاسكات"],["se","السيشنات والورش"],["mt","الاجتماعات الدورية"]];
+const KEYS=[["sh","النزولات الميدانية"],["tk","التاسكات"],["se","السيشنات "],["mt","الاجتماعات "]];
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const pct=a=>a&&a[1]?Math.min(100,Math.round(a[0]/a[1]*100)):0;
