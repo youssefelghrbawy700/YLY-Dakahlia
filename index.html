@@ -233,6 +233,19 @@ const COM4=COM.filter(c=>c!=="Board");
 const myBoard=()=>me?D.board.filter(b=>b.member_id===me.id):[];
 const myBCom=()=>[...new Set(myBoard().flatMap(bCom))];
 const isBoardAcc=()=>!!(me&&!me.is_admin&&myBCom().length);
+const roleOpts=cur=>{const b=["Member","Board"];if(cur&&!["عضو","Member","Board"].includes(cur))b.push(cur);return b};
+const roleSel=cur=>cur==="Board"?"Board":(!cur||cur==="عضو"||cur==="Member")?"Member":cur;
+const comOpts=cur=>[...COM4,...(cur&&!COM4.includes(cur)?[cur]:[])];
+const chipsHtml=(sel,cid)=>`<div class="row" id="${cid}">${COM4.map(c=>`<button type="button" class="g chip bcm ${sel.includes(c)?"on":""}" data-c="${c}" onclick="this.classList.toggle('on');draftSave()">${c}</button>`).join("")}</div>`;
+const chipsVal=cid=>[...document.querySelectorAll("#"+cid+" .bcm.on")].map(x=>x.dataset.c);
+const bPhoto=b=>b.photo_url||((D.members.find(x=>x.id===b.member_id)||{}).avatar_url)||null;
+async function syncBoard(mid,name,isB,cs,pos){
+  const ex=D.board.find(b=>b.member_id===mid);
+  if(!isB){if(!ex)return null;return(await sb.from("board").delete().eq("member_id",mid)).error}
+  const row={name,position:pos||(ex&&ex.position)||"Board",committees:cs,committee:cs.length===1?cs[0]:null,member_id:mid};
+  return(ex?await sb.from("board").update(row).eq("id",ex.id):await sb.from("board").insert(row)).error;
+}
+function togRole(){const w=document.getElementById("bdw"),r=document.getElementById("mr");if(w&&r)w.style.display=r.value==="Board"?"block":"none"}
 const isMgr=()=>!!(me&&!me.is_admin&&D.follows.some(f=>f.manager_id===me.id));
 const curMonth=()=>new Date().toISOString().slice(0,7);
 const ago=t=>{if(!t)return"لم يدخل بعد";const s=(Date.now()-new Date(t))/1000;if(s<90)return"دلوقتي";if(s<3600)return"من "+Math.round(s/60)+" دقيقة";if(s<86400)return"من "+Math.round(s/3600)+" ساعة";return"من "+Math.round(s/86400)+" يوم"};
@@ -315,7 +328,7 @@ function memberCard(m,adm){
   <button class="g" onclick="S.modal={t:'rec',id:'${m.id}'};render()">+ تقييم شهر</button><button class="g" onclick="S.modal={t:'hist',id:'${m.id}'};render()">الشهور</button><button class="g" onclick="S.modal={t:'view',id:'${m.id}'};render()">عرض</button>
   ${adm?`<button class="g" onclick="S.modal={t:'warn',id:'${m.id}'};render()">إنذار</button><button class="g" onclick="S.modal={t:'mem',id:'${m.id}'};render()">تعديل</button>`:""}</div></div>`;
 }
-const boardCard=(b,adm)=>`<div class="card" style="text-align:center">${b.photo_url?`<img src="${esc(b.photo_url)}" alt="" style="width:96px;height:96px;border-radius:24px;object-fit:cover">`:`<div class="av lg" style="margin:0 auto;width:96px;height:96px;font-size:36px">${esc((b.name||"?")[0])}</div>`}<div style="margin-top:8px"><b>${esc(nm(b.name))}</b></div><div class="mu">${esc(b.position)}</div><div class="mu">${(()=>{const c=bCom(b);return!c.length||c.length>=COM4.length?"كل اللجان":"لجنة "+c.map(esc).join(" + ")})()}</div>${adm&&b.member_id?`<div class="mu" style="font-size:12px">🔑 ${esc(nm((D.members.find(x=>x.id===b.member_id)||{}).name||"حساب"))} · يشوف تقييمات لجنته أول بأول</div>`:""}${adm?`<div class="row" style="justify-content:center;margin-top:8px"><button class="g" onclick="bFile=null;S.modal={t:'brd',id:'${b.id}'};render()">تعديل</button><button class="g" onclick="delBoard('${b.id}')">حذف</button></div>`:""}</div>`;
+const boardCard=(b,adm)=>`<div class="card" style="text-align:center">${bPhoto(b)?`<img src="${esc(bPhoto(b))}" alt="" style="width:96px;height:96px;border-radius:24px;object-fit:cover">`:`<div class="av lg" style="margin:0 auto;width:96px;height:96px;font-size:36px">${esc((b.name||"?")[0])}</div>`}<div style="margin-top:8px"><b>${esc(nm(b.name))}</b></div><div class="mu">${esc(b.position)}</div><div class="mu">${(()=>{const c=bCom(b);return!c.length||c.length>=COM4.length?"كل اللجان":"لجنة "+c.map(esc).join(" + ")})()}</div>${adm&&b.member_id?`<div class="mu" style="font-size:12px">🔑 ${esc(nm((D.members.find(x=>x.id===b.member_id)||{}).name||"حساب"))} · يشوف تقييمات لجنته أول بأول</div>`:""}${adm?`<div class="row" style="justify-content:center;margin-top:8px"><button class="g" onclick="bFile=null;S.modal={t:'brd',id:'${b.id}'};render()">تعديل</button><button class="g" onclick="delBoard('${b.id}')">حذف</button></div>`:""}</div>`;
 function bcomView(){
   const cs=myBCom();
   if(!cs.length)return'<div class="card"><p class="mu" style="margin:0">لم تُحدد لك لجنة بعد.</p></div>';
@@ -337,8 +350,9 @@ function reqView(){
   const P=D.signups.filter(s=>s.status==="pending"),R=D.signups.filter(s=>s.status==="rejected");
   return`<div class="card"><b>🆕 طلبات التسجيل</b><p class="mu" style="margin:4px 0 0">أكّد الإيميل واكتب بيانات العضو ثم اضغط قبول.</p></div>`+
   (P.map(s=>`<div class="card"><div class="row" style="justify-content:space-between"><b dir="ltr">${esc(s.email)}</b><span class="mu">${new Date(s.created_at).toLocaleDateString("ar-EG")}</span></div>
-  <label>الاسم</label><input id="sn_${s.user_id}" value="${esc(s.full_name||"")}"><label>الدور</label><input id="sr_${s.user_id}" value="عضو">
-  <label>اللجنة</label><select id="sc_${s.user_id}" onchange="document.getElementById('fw_${s.user_id}').style.display=this.value==='HR'?'block':'none'">${COM.map(c=>`<option>${c}</option>`).join("")}</select>
+  <label>الاسم</label><input id="sn_${s.user_id}" value="${esc(s.full_name||"")}"><label>المنصب</label><select id="sr_${s.user_id}" onchange="document.getElementById('sbw_${s.user_id}').style.display=this.value==='Board'?'block':'none'"><option>Member</option><option>Board</option></select>
+  <div id="sbw_${s.user_id}" style="display:none"><label>مسؤول في لجنة إيه؟</label>${chipsHtml([],"sbcs_"+s.user_id)}<label>المنصب في البورد (اختياري)</label><input id="sbp_${s.user_id}" placeholder="مثال: Vice President"></div>
+  <label>اللجنة</label><select id="sc_${s.user_id}" onchange="document.getElementById('fw_${s.user_id}').style.display=this.value==='HR'?'block':'none'">${COM4.map(c=>`<option>${c}</option>`).join("")}</select>
   <div id="fw_${s.user_id}" style="display:none"><label>الأعضاء اللي هيضيفهم ويعدّل تقييمهم</label><div style="max-height:170px;overflow:auto">${D.members.map(x=>`<label style="display:flex;gap:6px;align-items:center;margin:2px 0;color:var(--tx)"><input type="checkbox" class="fp_${s.user_id}" value="${x.id}" style="width:auto">${esc(nm(x.name))} <span class="mu">${esc(x.committee)}</span></label>`).join("")}</div></div>
   <p class="err" id="se_${s.user_id}"></p><div class="row"><button onclick="approve('${s.user_id}')">✓ قبول</button><button class="d" onclick="setReq('${s.user_id}','rejected')">رفض</button></div></div>`).join("")||'<div class="card"><p class="mu" style="margin:0">لا توجد طلبات جديدة.</p></div>')+
   (R.length?`<div class="card"><b>المرفوضة</b>${R.map(s=>`<div class="lb"><span style="flex:1" dir="ltr">${esc(s.email)}</span><button class="g" onclick="setReq('${s.user_id}','pending')">إعادة</button></div>`).join("")}</div>`:"");
@@ -346,8 +360,10 @@ function reqView(){
 async function approve(uid){
   const s=D.signups.find(x=>x.user_id===uid),v=i=>$("#"+i+"_"+uid).value.trim(),name=v("sn");
   if(!name){$("#se_"+uid).textContent="اكتب الاسم";return}
-  const r=await sb.from("members").insert({email:s.email.toLowerCase(),name,role:v("sr")||"عضو",committee:v("sc"),user_id:uid}).select("id").single();
+  if(v("sr")==="Board"&&!chipsVal("sbcs_"+uid).length){$("#se_"+uid).textContent="اختار هو مسؤول في لجنة إيه";return}
+  const r=await sb.from("members").insert({email:s.email.toLowerCase(),name,role:v("sr")||"Member",committee:v("sc"),user_id:uid}).select("id").single();
   if(r.error){$("#se_"+uid).textContent=r.error.message;return}
+  if(v("sr")==="Board"){const bs=chipsVal("sbcs_"+uid);if(bs.length){const be=await syncBoard(r.data.id,name,true,bs,v("sbp"));if(be){$("#se_"+uid).textContent="اتقبل العضو لكن البورد ما اتحفظش: "+be.message;await load();return}}}
   if(v("sc")==="HR"){const picks=[...document.querySelectorAll(".fp_"+uid+":checked")].map(x=>x.value);
     if(picks.length){const f=await sb.from("follows").insert(picks.map(p=>({manager_id:r.data.id,member_id:p})));if(f.error){$("#se_"+uid).textContent="اتقبل العضو لكن المتابعات ما اتحفظتش: "+f.error.message;await load();return}}}
   await sb.from("signups").delete().eq("user_id",uid);await load();render();
@@ -387,7 +403,7 @@ function boardAdminView(){
 }
 function photosView(){
   const g=COM.includes(S.pg)?S.pg:COM[0],grp=c=>D.members.filter(m=>m.committee===c);
-  PH=grp(g).map(m=>({n:m.name,u:m.avatar_url})).concat(g==="Board"?D.board.map(b=>({n:b.name,u:b.photo_url})):[]);
+  PH=grp(g).map(m=>({n:m.name,u:m.avatar_url})).concat(g==="Board"?D.board.filter(b=>!grp("Board").some(m=>m.id===b.member_id)).map(b=>({n:b.name,u:bPhoto(b)})):[]);
   return`<div class="tabs">${COM.map(c=>`<button class="${c===g?"on":""}" onclick="S.pg='${c}';render()">${c} (${grp(c).filter(m=>m.avatar_url).length}/${grp(c).length})</button>`).join("")}</div>
   <div class="grid3">${PH.map((x,i)=>`<div class="card" style="padding:8px;text-align:center;cursor:${x.u?"pointer":"default"}" ${x.u?`onclick="S.modal={t:'photo',i:${i}};render()"`:""}>${x.u?`<img src="${esc(x.u)}" alt="" loading="lazy" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px">`:`<div class="av" style="width:100%;height:auto;aspect-ratio:1;border-radius:12px;font-size:28px">${esc((x.n||"?")[0])}</div>`}<div style="font-size:12px;margin-top:6px">${esc(nm(x.n))}</div></div>`).join("")||'<p class="mu">لا يوجد.</p>'}</div>`;
 }
@@ -431,8 +447,9 @@ function modal(){
   if(t.t==="mem"){
     const fl=D.follows.filter(f=>f.manager_id===m?.id).map(f=>f.member_id);
     return`<div class="ov"><div class="card"><b>${m?"تعديل عضو":"إضافة عضو"}</b> <span class="mu" id="ds"></span>
-    <label>الإيميل (هيسجل بيه)</label><input id="me" type="email" dir="ltr" value="${esc(m?.email)}"><label>الاسم</label><input id="mn" value="${esc(m?.name)}"><label>الدور</label><input id="mr" value="${esc(m?.role)}">
-    <label>اللجنة</label><select id="mc" onchange="togFl()">${[...new Set([...COM,m?.committee].filter(Boolean))].map(c=>`<option ${c===m?.committee?"selected":""}>${esc(c)}</option>`).join("")}</select>
+    <label>الإيميل (هيسجل بيه)</label><input id="me" type="email" dir="ltr" value="${esc(m?.email)}"><label>الاسم</label><input id="mn" value="${esc(m?.name)}"><label>المنصب</label><select id="mr" onchange="togRole()">${roleOpts(m?.role).map(r=>`<option ${r===roleSel(m?.role)?"selected":""}>${esc(r)}</option>`).join("")}</select>
+    <label>اللجنة</label><select id="mc" onchange="togFl()">${comOpts(m?.committee).map(c=>`<option ${c===(m?.committee||"PR")?"selected":""}>${esc(c)}</option>`).join("")}</select>
+    ${(()=>{const be=m?D.board.find(b=>b.member_id===m.id):null;return`<div id="bdw" style="display:${roleSel(m?.role)==="Board"?"block":"none"}"><label>مسؤول في لجنة إيه؟ (دوس على واحدة أو أكتر)</label>${chipsHtml(be?bCom(be):[],"mbcs")}<label>المنصب في البورد (اختياري)</label><input id="mbp" value="${esc(be?.position)}" placeholder="مثال: Vice President"></div>`})()}
     <div id="flw" style="display:${(m?.committee||"PR")==="HR"?"block":"none"}"><label>الأعضاء اللي هيضيفهم ويعدّل تقييمهم (هو بس يشوفهم)</label><input placeholder="بحث بالاسم..." oninput="filterFl(this.value)">
     <div style="max-height:170px;overflow:auto;margin-top:6px">${D.members.filter(x=>x.id!==m?.id).map(x=>`<label class="fli" data-n="${esc(x.name)} ${esc(x.committee)}" style="display:flex;gap:6px;align-items:center;margin:2px 0;color:var(--tx)"><input type="checkbox" class="fl" value="${x.id}" style="width:auto" ${fl.includes(x.id)?"checked":""}>${esc(nm(x.name))} <span class="mu">${esc(x.committee)}</span></label>`).join("")}</div></div>
     <p class="err" id="mm"></p><div class="row" style="margin-top:12px"><button onclick="saveMem('${m?.id||""}')">حفظ</button><button class="g" onclick="closeM(true)">إلغاء</button>${m&&m.id!==me?.id?`<button class="d" onclick="delMem('${m.id}')">حذف</button>`:""}</div></div></div>`;}
@@ -454,14 +471,16 @@ function modal(){
 function togFl(){const w=document.getElementById("flw"),c=$("#mc");if(w&&c)w.style.display=c.value==="HR"?"block":"none"}
 function filterFl(q){q=q.trim();document.querySelectorAll(".fli").forEach(e=>e.style.display=(!q||e.dataset.n.includes(q))?"flex":"none")}
 async function saveMem(id){
-  const v=s=>$(s).value.trim(),row={email:v("#me").toLowerCase(),name:v("#mn"),role:v("#mr")||"عضو",committee:v("#mc")};
+  const v=s=>$(s).value.trim(),row={email:v("#me").toLowerCase(),name:v("#mn"),role:v("#mr")||"Member",committee:v("#mc")},isB=row.role==="Board",bcs=chipsVal("mbcs");
   if(!row.email||!row.name||!row.committee){$("#mm").textContent="الإيميل والاسم واللجنة مطلوبين";return}
+  if(isB&&!bcs.length){$("#mm").textContent="اختار هو مسؤول في لجنة إيه (واحدة على الأقل)";return}
   let mid=id;
   if(id){const r=await sb.from("members").update(row).eq("id",id);if(r.error){$("#mm").textContent=r.error.message;return}}
   else{const r=await sb.from("members").insert(row).select("id").single();if(r.error){$("#mm").textContent=r.error.message;return}mid=r.data.id}
   const picks=row.committee==="HR"?[...document.querySelectorAll(".fl:checked")].map(x=>x.value):[];
   const d=await sb.from("follows").delete().eq("manager_id",mid);if(d.error){$("#mm").textContent=d.error.message;return}
   if(picks.length){const f=await sb.from("follows").insert(picks.map(p=>({manager_id:mid,member_id:p})));if(f.error){$("#mm").textContent=f.error.message;return}}
+  const be=await syncBoard(mid,row.name,isB,bcs,v("#mbp"));if(be){$("#mm").textContent="اتحفظ العضو لكن البورد ما اتحفظش: "+be.message;await load();return}
   try{localStorage.removeItem("tm-draft:mem:"+(id||"new"))}catch(e){}
   S.modal=null;await load();render();
 }
@@ -518,11 +537,11 @@ function applyDraft(id){
     const ds=document.getElementById("ds");if(ds)ds.textContent="↺ تم استرجاع مسودتك";
   }catch(e){}
 }
-function memDraftCollect(){return{me:$("#me").value,mn:$("#mn").value,mr:$("#mr").value,mc:$("#mc").value,fl:[...document.querySelectorAll(".fl:checked")].map(x=>x.value)}}
+function memDraftCollect(){return{me:$("#me").value,mn:$("#mn").value,mr:$("#mr").value,mc:$("#mc").value,fl:[...document.querySelectorAll(".fl:checked")].map(x=>x.value),bc:chipsVal("mbcs"),bp:($("#mbp")||{}).value||""}}
 function applyMemDraft(){
   let raw=null;try{raw=localStorage.getItem("tm-draft:mem:"+(S.modal.id||"new"))}catch(e){}
   if(!raw)return;
-  try{const o=JSON.parse(raw).data;["me","mn","mr","mc"].forEach(k=>{if(o[k]!=null&&$("#"+k))$("#"+k).value=o[k]});document.querySelectorAll(".fl").forEach(x=>x.checked=o.fl.includes(x.value));togFl();const ds=document.getElementById("ds");if(ds)ds.textContent="↺ تم استرجاع مسودتك"}catch(e){}
+  try{const o=JSON.parse(raw).data;["me","mn","mr","mc"].forEach(k=>{if(o[k]!=null&&$("#"+k))$("#"+k).value=o[k]});document.querySelectorAll(".fl").forEach(x=>x.checked=o.fl.includes(x.value));document.querySelectorAll("#mbcs .bcm").forEach(x=>x.classList.toggle("on",(o.bc||[]).includes(x.dataset.c)));if($("#mbp")&&o.bp!=null)$("#mbp").value=o.bp;togFl();togRole();const ds=document.getElementById("ds");if(ds)ds.textContent="↺ تم استرجاع مسودتك"}catch(e){}
 }
 function draftSave(e){
   if(!S.modal||!me||(e&&e.target&&e.target.id==="rm"))return;
