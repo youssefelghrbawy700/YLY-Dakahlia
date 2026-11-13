@@ -242,7 +242,7 @@ async function load(){
   D.members=a.data;D.warn=w.data||[];D.ann=(n.data||[]).map(x=>x.month);D.signups=su.data||[];D.follows=fo.data||[];D.board=bd.data||[];
   me=D.members.find(m=>m.user_id===session.user.id)||null;
   const c=await sb.rpc("my_warning_count");myWarn=c.data||0;
-  if(me){if(!touched){touched=true;sb.rpc("touch_seen")}}
+  if(me&&!touched){touched=true;startPing()}
   else{const st=await sb.rpc("my_signup_status");S.signup=st.data||null}
   const AT=["members","req","committees","dash","announce","seen","hr","board","photos"];
   if(isAdm()&&!AT.includes(S.tab))S.tab="members";
@@ -334,10 +334,22 @@ async function approve(uid){
   await sb.from("signups").delete().eq("user_id",uid);await load();render();
 }
 async function setReq(uid,st){const r=await sb.from("signups").update({status:st}).eq("user_id",uid);if(r.error)return alert(r.error.message);await load();render()}
+async function ping(){
+  if(!me||document.visibilityState==="hidden")return;
+  let r=await sb.rpc("ping_seen");
+  if(r.error)r=await sb.rpc("touch_seen");
+  S.seenErr=r.error?r.error.message:null;
+}
+function startPing(){ping();setInterval(ping,45000);document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")ping()})}
+async function refreshSeen(){await load();render()}
+const dur=sec=>{sec=Math.round(+sec||0);if(sec<60)return sec>0?"أقل من دقيقة":"—";const h=Math.floor(sec/3600),m=Math.round((sec%3600)/60);return h?h+" س"+(m?" "+m+" د":""):m+" د"};
 function seenView(){
   const L=[...D.members].sort((a,b)=>(b.last_seen||"").localeCompare(a.last_seen||"")),age=m=>m.last_seen?Date.now()-new Date(m.last_seen):Infinity;
-  return`<div class="grid3"><div class="card"><div class="mu">آخر 24 ساعة</div><div class="big">${L.filter(m=>age(m)<864e5).length}</div></div><div class="card"><div class="mu">آخر أسبوع</div><div class="big">${L.filter(m=>age(m)<6048e5).length}</div></div><div class="card"><div class="mu">لم يدخلوا</div><div class="big">${L.filter(m=>!m.last_seen).length}</div></div></div>
-  <div class="card" style="margin-top:12px">${L.map(m=>`<div class="lb">${avatar(m)}<span style="flex:1">${esc(nm(m.name))} <span class="mu">· ${esc(m.committee)}</span></span><span class="pill ${m.last_seen?(age(m)<864e5?"up":"st"):"dn"}">${ago(m.last_seen)}</span></div>`).join("")||'<p class="mu">لا يوجد أعضاء.</p>'}</div>`;
+  const on=L.filter(m=>age(m)<12e4).length;
+  const err=S.seenErr?`<div class="card"><b style="color:var(--bad)">تسجيل الدخول مش شغال</b><p class="mu" style="margin:6px 0 0">شغّل ملف setup.sql في Supabase (SQL Editor) عشان اللوحة دي تشتغل. تفاصيل الخطأ: ${esc(S.seenErr)}</p></div>`:"";
+  return err+`<div class="row" style="margin-bottom:12px"><span class="pill up">🟢 متصل الآن: ${on}</span><span style="flex:1"></span><button class="g" onclick="refreshSeen()">↻ تحديث</button></div>
+  <div class="grid3"><div class="card"><div class="mu">آخر 24 ساعة</div><div class="big">${L.filter(m=>age(m)<864e5).length}</div></div><div class="card"><div class="mu">آخر أسبوع</div><div class="big">${L.filter(m=>age(m)<6048e5).length}</div></div><div class="card"><div class="mu">لم يدخلوا</div><div class="big">${L.filter(m=>!m.last_seen).length}</div></div></div>
+  <div class="card" style="margin-top:12px">${L.map(m=>{const live=age(m)<12e4;return`<div class="lb" style="align-items:flex-start">${avatar(m)}<span style="flex:1">${esc(nm(m.name))} <span class="mu">· ${esc(m.committee)}</span>${m.last_seen?`<div class="mu" style="font-size:12px">${m.session_seconds!=null?`آخر جلسة: ${dur(m.session_seconds)} · `:""}${m.total_seconds!=null?`إجمالي: ${dur(m.total_seconds)} · `:""}${m.visits!=null?`${m.visits} زيارة`:""}</div>`:""}</span><span class="pill ${m.last_seen?(live?"up":age(m)<864e5?"up":"st"):"dn"}">${live?"🟢 متصل الآن":ago(m.last_seen)}</span></div>`}).join("")||'<p class="mu">لا يوجد أعضاء.</p>'}</div>`;
 }
 function hrView(){
   const mo=S.hm||curMonth(),mg=D.members.filter(m=>D.follows.some(f=>f.manager_id===m.id)),opts=[...new Set([curMonth(),...D.members.flatMap(m=>months(m))])].sort().reverse();
