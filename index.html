@@ -66,6 +66,7 @@ body{background:#fff!important}
 *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
 .ft{text-align:center;direction:ltr;font-size:12px;letter-spacing:.3px;color:var(--mu);opacity:.85;padding:18px 12px 26px}@media print{.ft{display:none}}
+.chip{padding:8px 16px;border-radius:999px;font-weight:700}.chip.on{background:linear-gradient(135deg,var(--pr),var(--pr2));color:#fff;border-color:transparent}
 </style>
 </head>
 <body>
@@ -422,7 +423,7 @@ function modal(){
   if(t.t==="photo"){const x=PH[t.i];if(!x)return"";return`<div class="ov" onclick="if(event.target===this)closeM()"><div class="card" style="text-align:center"><img src="${esc(x.u)}" alt="" style="max-width:100%;max-height:60vh;border-radius:14px"><p><b>${esc(nm(x.n))}</b></p><div class="row" style="justify-content:center"><button onclick="dlPhoto(${t.i})">⬇ تحميل بجودة كاملة</button><button class="g" onclick="closeM()">إغلاق</button></div></div></div>`}
   if(t.t==="brd"){const b=D.board.find(x=>x.id===t.id);return`<div class="ov"><div class="card"><b>${b?"تعديل":"إضافة"} عضو بورد</b>
     <label>الاسم</label><input id="bn" value="${esc(b?.name)}"><label>المنصب</label><input id="bp" value="${esc(b?.position)}" placeholder="مثال: Vice President">
-    <label>مسؤول عن اللجان (اختار واحدة أو أكتر)</label><div class="row" style="gap:14px">${COM4.map(c=>`<label style="display:flex;gap:6px;align-items:center;margin:0;color:var(--tx)"><input type="checkbox" class="bcm" value="${c}" style="width:auto" ${b&&bCom(b).includes(c)?"checked":""}>${c}</label>`).join("")}</div>
+    <label>مسؤول في لجنة إيه؟ (دوس على واحدة أو أكتر)</label><div class="row" id="bcs">${COM4.map(c=>`<button type="button" class="g chip bcm ${b&&bCom(b).includes(c)?"on":""}" data-c="${c}" onclick="this.classList.toggle('on')">${c}</button>`).join("")}<button type="button" class="g chip" onclick="document.querySelectorAll('#bcs .bcm').forEach(x=>x.classList.add('on'))">كل اللجان</button><button type="button" class="g chip" onclick="document.querySelectorAll('#bcs .bcm').forEach(x=>x.classList.remove('on'))">مسح</button></div>
     <label>حساب المسؤول (اختياري)</label><select id="bm"><option value="">بدون حساب (عرض فقط في صفحة المسؤولين)</option>${[...D.members].sort((x,y)=>nm(x.name).localeCompare(nm(y.name),"ar")).map(x=>`<option value="${x.id}" ${b?.member_id===x.id?"selected":""}>${esc(nm(x.name))} · ${esc(x.committee)}</option>`).join("")}</select>
     <p class="mu" style="font-size:12px;margin:4px 0 0">لو اخترت حساب: صاحبه هيشوف تقييمات اللجان المختارة كلها أول بأول حتى قبل الإعلان (عرض فقط).</p>
     <label>الصورة</label><input type="file" accept="image/*" onchange="bFile=this.files[0]">${b?.photo_url?'<p class="mu">سيب الصورة فاضية للإبقاء على الحالية.</p>':""}
@@ -465,7 +466,7 @@ async function saveMem(id){
   S.modal=null;await load();render();
 }
 async function saveBoard(id){
-  const v=s=>$(s).value.trim(),cs=[...document.querySelectorAll(".bcm:checked")].map(x=>x.value),row={name:v("#bn"),position:v("#bp"),committees:cs,committee:cs.length===1?cs[0]:null,member_id:v("#bm")||null};
+  const v=s=>$(s).value.trim(),cs=[...document.querySelectorAll("#bcs .bcm.on")].map(x=>x.dataset.c),row={name:v("#bn"),position:v("#bp"),committees:cs,committee:cs.length===1?cs[0]:null,member_id:v("#bm")||null};
   if(!row.name||!row.position){$("#mm").textContent="الاسم والمنصب مطلوبين";return}
   if(row.member_id&&!cs.length){$("#mm").textContent="اختار لجنة واحدة على الأقل لحساب المسؤول";return}
   try{
