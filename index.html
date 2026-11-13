@@ -5,15 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>YLY Dakahlia · تيم ميتر</title>
 <style>
-:root{--card:rgba(15,21,46,.42);--tx:#f1f4ff;--mu:#a6aecd;--bd:rgba(255,255,255,.13);--pr:#5b7cff;--pr2:#7c5cff;--ok:#34d399;--bad:#f87171;--warn:#fbbf24;--inp:rgba(255,255,255,.07);--bg:#0b1020;--o1:rgba(7,12,34,.3);--o2:rgba(7,12,34,.55)}
-:root[data-theme="light"]{--card:rgba(255,255,255,.62);--tx:#131a33;--mu:#59628a;--bd:rgba(19,26,51,.12);--pr:#2f4fdc;--pr2:#5b3fd6;--ok:#10b981;--bad:#ef4444;--warn:#d97706;--inp:#fff;--bg:#eef1fb;--o1:rgba(238,241,251,.28);--o2:rgba(238,241,251,.5)}
+:root{--card:rgba(15,21,46,.5);--tx:#f1f4ff;--mu:#a6aecd;--bd:rgba(255,255,255,.13);--pr:#5b7cff;--pr2:#7c5cff;--ok:#34d399;--bad:#f87171;--warn:#fbbf24;--inp:rgba(255,255,255,.07);--bg:#0b1020;--o1:rgba(7,12,34,.5);--o2:rgba(7,12,34,.72)}
+:root[data-theme="light"]{--card:rgba(255,255,255,.72);--tx:#131a33;--mu:#59628a;--bd:rgba(19,26,51,.12);--pr:#2f4fdc;--pr2:#5b3fd6;--ok:#10b981;--bad:#ef4444;--warn:#d97706;--inp:#fff;--bg:#eef1fb;--o1:rgba(238,241,251,.45);--o2:rgba(238,241,251,.66)}
 *{box-sizing:border-box}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 body{margin:0;min-height:100vh;color:var(--tx);font-family:"Segoe UI",Tahoma,"Noto Sans Arabic",sans-serif;line-height:1.5;background:linear-gradient(var(--o1),var(--o2)),url(bg.jpg) center/cover fixed no-repeat var(--bg)}
 .w{max-width:780px;margin:0 auto;padding:max(14px,env(safe-area-inset-top)) 14px 24px}
 .top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px;flex-wrap:wrap}
 .logo{font-weight:800;font-size:18px}
-.card{background:var(--card);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);border:1px solid var(--bd);border-radius:18px;padding:16px;margin-bottom:12px;box-shadow:0 8px 30px rgba(0,0,0,.18)}
+.card{background:var(--card);-webkit-backdrop-filter:blur(5px);backdrop-filter:blur(5px);border:1px solid var(--bd);border-radius:18px;padding:16px;margin-bottom:12px;box-shadow:0 8px 30px rgba(0,0,0,.18)}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
 .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
@@ -199,7 +199,7 @@ function exportPDF(id){
   const el=document.createElement("div");el.id="rpt";
   el.innerHTML=`<div dir="rtl" style="font-family:'Segoe UI',Tahoma,'Noto Sans Arabic',sans-serif">
   <div class="rh"><div><div style="font-size:20px;font-weight:800">YLY Dakahlia</div><div style="opacity:.85;font-size:13px">تقرير تقييم الأداء · TeamMeter</div></div><div style="font-size:13px">${new Date().toLocaleDateString("ar-EG")}</div></div>
-  <div class="card"><div class="row">${avatar(m,1)}<div style="flex:1"><b style="font-size:20px">${esc(nm(m.name))}</b><div class="mu">${esc(m.role||"عضو")} · لجنة ${esc(m.committee)}</div></div>${ms.length?gpill(m):""}</div></div>
+  <div class="card"><div class="row">${avatar(m,1)}<div style="flex:1"><b style="font-size:20px">${esc(m.name)}</b><div class="mu">${esc(m.role||"عضو")} · لجنة ${esc(m.committee)}</div></div>${ms.length?gpill(m):""}</div></div>
   ${ms.length?`<div class="grid3"><div class="card"><div class="mu">التقييم الحالي</div><div class="big">${score(m)}<span class="mu">/${mx}</span></div></div><div class="card"><div class="mu">الترتيب في اللجنة</div><div class="big">${pos}<span class="mu">/${rk.length}</span></div></div><div class="card"><div class="mu">الإنذارات</div><div class="big">${w}</div></div></div>
   <div class="card" style="margin-top:12px"><b>تطور الأداء</b>${chart(m)}</div>
   <div class="card"><b>الدرجات الشهرية</b><table class="rt"><tr><th>الشهر</th><th>الدرجة</th></tr>${ms.map(k=>`<tr><td>${ml(k)}</td><td>${mscore(m.rec[k],m.committee)} / ${mx}</td></tr>`).join("")}</table></div>
@@ -310,18 +310,15 @@ function reqView(){
   return`<div class="card"><b>🆕 طلبات التسجيل</b><p class="mu" style="margin:4px 0 0">أكّد الإيميل واكتب بيانات العضو ثم اضغط قبول.</p></div>`+
   (P.map(s=>`<div class="card"><div class="row" style="justify-content:space-between"><b dir="ltr">${esc(s.email)}</b><span class="mu">${new Date(s.created_at).toLocaleDateString("ar-EG")}</span></div>
   <label>الاسم</label><input id="sn_${s.user_id}" value="${esc(s.full_name||"")}"><label>الدور</label><input id="sr_${s.user_id}" value="عضو">
-  <label>اللجنة</label><select id="sc_${s.user_id}" onchange="document.getElementById('fw_${s.user_id}').style.display=this.value==='HR'?'block':'none'">${COM.map(c=>`<option>${c}</option>`).join("")}</select>
-  <div id="fw_${s.user_id}" style="display:none"><label>الأعضاء اللي هيضيفهم ويعدّل تقييمهم</label><div style="max-height:170px;overflow:auto">${D.members.map(x=>`<label style="display:flex;gap:6px;align-items:center;margin:2px 0;color:var(--tx)"><input type="checkbox" class="fp_${s.user_id}" value="${x.id}" style="width:auto">${esc(nm(x.name))} <span class="mu">${esc(x.committee)}</span></label>`).join("")}</div></div>
+  <label>اللجنة</label><select id="sc_${s.user_id}">${COM.map(c=>`<option>${c}</option>`).join("")}</select>
   <p class="err" id="se_${s.user_id}"></p><div class="row"><button onclick="approve('${s.user_id}')">✓ قبول</button><button class="d" onclick="setReq('${s.user_id}','rejected')">رفض</button></div></div>`).join("")||'<div class="card"><p class="mu" style="margin:0">لا توجد طلبات جديدة.</p></div>')+
   (R.length?`<div class="card"><b>المرفوضة</b>${R.map(s=>`<div class="lb"><span style="flex:1" dir="ltr">${esc(s.email)}</span><button class="g" onclick="setReq('${s.user_id}','pending')">إعادة</button></div>`).join("")}</div>`:"");
 }
 async function approve(uid){
   const s=D.signups.find(x=>x.user_id===uid),v=i=>$("#"+i+"_"+uid).value.trim(),name=v("sn");
   if(!name){$("#se_"+uid).textContent="اكتب الاسم";return}
-  const r=await sb.from("members").insert({email:s.email.toLowerCase(),name,role:v("sr")||"عضو",committee:v("sc"),user_id:uid}).select("id").single();
+  const r=await sb.from("members").insert({email:s.email.toLowerCase(),name,role:v("sr")||"عضو",committee:v("sc"),user_id:uid});
   if(r.error){$("#se_"+uid).textContent=r.error.message;return}
-  if(v("sc")==="HR"){const picks=[...document.querySelectorAll(".fp_"+uid+":checked")].map(x=>x.value);
-    if(picks.length){const f=await sb.from("follows").insert(picks.map(p=>({manager_id:r.data.id,member_id:p})));if(f.error){$("#se_"+uid).textContent="اتقبل العضو لكن المتابعات ما اتحفظتش: "+f.error.message;await load();return}}}
   await sb.from("signups").delete().eq("user_id",uid);await load();render();
 }
 async function setReq(uid,st){const r=await sb.from("signups").update({status:st}).eq("user_id",uid);if(r.error)return alert(r.error.message);await load();render()}
@@ -380,7 +377,7 @@ function mgrView(){
 /* ---------- النوافذ ---------- */
 function modal(){
   const t=S.modal,m=D.members.find(x=>x.id===t.id);
-  if(t.t==="photo"){const x=PH[t.i];if(!x)return"";return`<div class="ov" onclick="if(event.target===this)closeM()"><div class="card" style="text-align:center"><img src="${esc(x.u)}" alt="" style="max-width:100%;max-height:60vh;border-radius:14px"><p><b>${esc(nm(x.n))}</b></p><div class="row" style="justify-content:center"><button onclick="dlPhoto(${t.i})">⬇ تحميل بجودة كاملة</button><button class="g" onclick="closeM()">إغلاق</button></div></div></div>`}
+  if(t.t==="photo"){const x=PH[t.i];if(!x)return"";return`<div class="ov" onclick="if(event.target===this)closeM()"><div class="card" style="text-align:center"><img src="${esc(x.u)}" alt="" style="max-width:100%;max-height:60vh;border-radius:14px"><p><b>${esc(x.n)}</b></p><div class="row" style="justify-content:center"><button onclick="dlPhoto(${t.i})">⬇ تحميل بجودة كاملة</button><button class="g" onclick="closeM()">إغلاق</button></div></div></div>`}
   if(t.t==="brd"){const b=D.board.find(x=>x.id===t.id);return`<div class="ov"><div class="card"><b>${b?"تعديل":"إضافة"} عضو بورد</b>
     <label>الاسم</label><input id="bn" value="${esc(b?.name)}"><label>المنصب</label><input id="bp" value="${esc(b?.position)}" placeholder="مثال: Vice President">
     <label>مسؤول عن لجنة</label><select id="bc"><option value="">كل اللجان</option>${COM.map(c=>`<option ${b?.committee===c?"selected":""}>${c}</option>`).join("")}</select>
@@ -390,14 +387,14 @@ function modal(){
     const fl=D.follows.filter(f=>f.manager_id===m?.id).map(f=>f.member_id);
     return`<div class="ov"><div class="card"><b>${m?"تعديل عضو":"إضافة عضو"}</b> <span class="mu" id="ds"></span>
     <label>الإيميل (هيسجل بيه)</label><input id="me" type="email" dir="ltr" value="${esc(m?.email)}"><label>الاسم</label><input id="mn" value="${esc(m?.name)}"><label>الدور</label><input id="mr" value="${esc(m?.role)}">
-    <label>اللجنة</label><select id="mc" onchange="togFl()">${[...new Set([...COM,m?.committee].filter(Boolean))].map(c=>`<option ${c===m?.committee?"selected":""}>${esc(c)}</option>`).join("")}</select>
-    <div id="flw" style="display:${(m?.committee||"PR")==="HR"?"block":"none"}"><label>الأعضاء اللي هيضيفهم ويعدّل تقييمهم (هو بس يشوفهم)</label><input placeholder="بحث بالاسم..." oninput="filterFl(this.value)">
-    <div style="max-height:170px;overflow:auto;margin-top:6px">${D.members.filter(x=>x.id!==m?.id).map(x=>`<label class="fli" data-n="${esc(x.name)} ${esc(x.committee)}" style="display:flex;gap:6px;align-items:center;margin:2px 0;color:var(--tx)"><input type="checkbox" class="fl" value="${x.id}" style="width:auto" ${fl.includes(x.id)?"checked":""}>${esc(nm(x.name))} <span class="mu">${esc(x.committee)}</span></label>`).join("")}</div></div>
+    <label>اللجنة</label><select id="mc">${[...new Set([...COM,m?.committee].filter(Boolean))].map(c=>`<option ${c===m?.committee?"selected":""}>${esc(c)}</option>`).join("")}</select>
+    <label>الأعضاء اللي بيتابعهم ويسجل تقييمهم (لأعضاء HR، اختياري)</label><input placeholder="بحث بالاسم..." oninput="filterFl(this.value)">
+    <div style="max-height:170px;overflow:auto;margin-top:6px">${D.members.filter(x=>x.id!==m?.id).map(x=>`<label class="fli" data-n="${esc(x.name)} ${esc(x.committee)}" style="display:flex;gap:6px;align-items:center;margin:2px 0;color:var(--tx)"><input type="checkbox" class="fl" value="${x.id}" style="width:auto" ${fl.includes(x.id)?"checked":""}>${esc(nm(x.name))} <span class="mu">${esc(x.committee)}</span></label>`).join("")}</div>
     <p class="err" id="mm"></p><div class="row" style="margin-top:12px"><button onclick="saveMem('${m?.id||""}')">حفظ</button><button class="g" onclick="closeM(true)">إلغاء</button>${m&&m.id!==me?.id?`<button class="d" onclick="delMem('${m.id}')">حذف</button>`:""}</div></div></div>`;}
   if(!m)return"";
   if(t.t==="view")return`<div class="ov" onclick="if(event.target===this)closeM()"><div class="card">${memberView(m,false)}<button class="g" onclick="closeM()">إغلاق</button></div></div>`;
   if(t.t==="hist"){const ms=months(m).sort().reverse(),mx=maxS(m.committee);
-    return`<div class="ov"><div class="card"><b>سجل تقييمات: ${esc(nm(m.name))}</b>${ms.map(k=>{const sc=mscore(m.rec[k],m.committee),g=grade(sc);return`<div class="lb" style="flex-wrap:wrap"><span style="flex:1"><b>${ml(k)}</b> <span class="mu">${sc} / ${mx}</span> ${g?`<span class="pill up">${g}</span>`:""} ${D.ann.includes(k)?'<span class="pill up">معلن</span>':'<span class="pill st">غير معلن</span>'}</span>${isAdm()?`<button class="g" onclick="S.modal={t:'rec',id:'${m.id}',mo:'${k}'};render()">تعديل</button><button class="g" onclick="editTotal('${m.id}','${k}')">الإجمالي</button><button class="g" onclick="delRec('${m.id}','${k}')">×</button>`:""}</div>`}).join("")||'<p class="mu">لا توجد تقييمات.</p>'}<div class="row" style="margin-top:12px"><button class="g" onclick="closeM()">إغلاق</button></div></div></div>`;}
+    return`<div class="ov"><div class="card"><b>سجل تقييمات: ${esc(nm(m.name))}</b>${ms.map(k=>{const sc=mscore(m.rec[k],m.committee),g=grade(sc);return`<div class="lb" style="flex-wrap:wrap"><span style="flex:1"><b>${ml(k)}</b> <span class="mu">${sc} / ${mx}</span> ${g?`<span class="pill up">${g}</span>`:""} ${D.ann.includes(k)?'<span class="pill up">معلن</span>':'<span class="pill st">غير معلن</span>'}</span><button class="g" onclick="S.modal={t:'rec',id:'${m.id}',mo:'${k}'};render()">تعديل</button><button class="g" onclick="editTotal('${m.id}','${k}')">الإجمالي</button><button class="g" onclick="delRec('${m.id}','${k}')">×</button></div>`}).join("")||'<p class="mu">لا توجد تقييمات.</p>'}<div class="row" style="margin-top:12px"><button class="g" onclick="closeM()">إغلاق</button></div></div></div>`;}
   if(t.t==="warn"){const L=D.warn.filter(x=>x.member_id===m.id).sort((a,b)=>b.d.localeCompare(a.d));
     return`<div class="ov"><div class="card"><b>إنذارات: ${esc(nm(m.name))}</b> <span class="pill dn">${L.length}</span>${L.map(x=>`<div class="lb"><span class="mu">${esc(x.d)}</span><span style="flex:1">${esc(x.reason||"—")}</span><button class="g" onclick="delWarn('${x.id}')">×</button></div>`).join("")}
     <label>تاريخ الإنذار</label><input id="wd" type="date" value="${today()}"><label>السبب</label><input id="wr"><p class="err" id="mm"></p>
@@ -409,7 +406,6 @@ function modal(){
   <label>درجة إجمالية يدوية من 0 إلى ${maxS(m.committee)} (اختياري، لو كتبتها بتحل محل الحساب التلقائي)</label><input id="rmn" type="number" min="0" max="${maxS(m.committee)}" placeholder="سيبها فاضية للحساب التلقائي">
   <p class="err" id="mm"></p><div class="row" style="margin-top:12px"><button onclick="saveRec('${m.id}')">حفظ التقييم</button><button class="g" onclick="closeM(true)">إلغاء</button></div></div></div>`;
 }
-function togFl(){const w=document.getElementById("flw"),c=$("#mc");if(w&&c)w.style.display=c.value==="HR"?"block":"none"}
 function filterFl(q){q=q.trim();document.querySelectorAll(".fli").forEach(e=>e.style.display=(!q||e.dataset.n.includes(q))?"flex":"none")}
 async function saveMem(id){
   const v=s=>$(s).value.trim(),row={email:v("#me").toLowerCase(),name:v("#mn"),role:v("#mr")||"عضو",committee:v("#mc")};
@@ -417,7 +413,7 @@ async function saveMem(id){
   let mid=id;
   if(id){const r=await sb.from("members").update(row).eq("id",id);if(r.error){$("#mm").textContent=r.error.message;return}}
   else{const r=await sb.from("members").insert(row).select("id").single();if(r.error){$("#mm").textContent=r.error.message;return}mid=r.data.id}
-  const picks=row.committee==="HR"?[...document.querySelectorAll(".fl:checked")].map(x=>x.value):[];
+  const picks=[...document.querySelectorAll(".fl:checked")].map(x=>x.value);
   const d=await sb.from("follows").delete().eq("manager_id",mid);if(d.error){$("#mm").textContent=d.error.message;return}
   if(picks.length){const f=await sb.from("follows").insert(picks.map(p=>({manager_id:mid,member_id:p})));if(f.error){$("#mm").textContent=f.error.message;return}}
   try{localStorage.removeItem("tm-draft:mem:"+(id||"new"))}catch(e){}
@@ -437,7 +433,7 @@ async function saveBoard(id){
 async function delBoard(id){if(!confirm("حذف من البورد؟"))return;const r=await sb.from("board").delete().eq("id",id);if(r.error)return alert(r.error.message);await load();render()}
 async function dlPhoto(i){
   const x=PH[i];if(!x)return;
-  try{const b=await (await fetch(x.u)).blob(),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=nm(x.n||"photo")+".jpg";a.click()}
+  try{const b=await (await fetch(x.u)).blob(),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=(x.n||"photo")+".jpg";a.click()}
   catch(e){window.open(x.u,"_blank")}
 }
 async function editTotal(id,k){
@@ -479,7 +475,7 @@ function memDraftCollect(){return{me:$("#me").value,mn:$("#mn").value,mr:$("#mr"
 function applyMemDraft(){
   let raw=null;try{raw=localStorage.getItem("tm-draft:mem:"+(S.modal.id||"new"))}catch(e){}
   if(!raw)return;
-  try{const o=JSON.parse(raw).data;["me","mn","mr","mc"].forEach(k=>{if(o[k]!=null&&$("#"+k))$("#"+k).value=o[k]});document.querySelectorAll(".fl").forEach(x=>x.checked=o.fl.includes(x.value));togFl();const ds=document.getElementById("ds");if(ds)ds.textContent="↺ تم استرجاع مسودتك"}catch(e){}
+  try{const o=JSON.parse(raw).data;["me","mn","mr","mc"].forEach(k=>{if(o[k]!=null&&$("#"+k))$("#"+k).value=o[k]});document.querySelectorAll(".fl").forEach(x=>x.checked=o.fl.includes(x.value));const ds=document.getElementById("ds");if(ds)ds.textContent="↺ تم استرجاع مسودتك"}catch(e){}
 }
 function draftSave(e){
   if(!S.modal||!me||(e&&e.target&&e.target.id==="rm"))return;
