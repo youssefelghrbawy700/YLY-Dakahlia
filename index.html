@@ -5,15 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>YLY Dakahlia · تيم ميتر</title>
 <style>
-:root{--card:rgba(15,21,46,.74);--tx:#f1f4ff;--mu:#a6aecd;--bd:rgba(255,255,255,.13);--pr:#5b7cff;--pr2:#7c5cff;--ok:#34d399;--bad:#f87171;--warn:#fbbf24;--inp:rgba(255,255,255,.07);--bg:#0b1020;--o1:rgba(7,12,34,.80);--o2:rgba(7,12,34,.93)}
-:root[data-theme="light"]{--card:rgba(255,255,255,.9);--tx:#131a33;--mu:#59628a;--bd:rgba(19,26,51,.12);--pr:#2f4fdc;--pr2:#5b3fd6;--ok:#10b981;--bad:#ef4444;--warn:#d97706;--inp:#fff;--bg:#eef1fb;--o1:rgba(238,241,251,.80);--o2:rgba(238,241,251,.93)}
+:root{--card:rgba(15,21,46,.42);--tx:#f1f4ff;--mu:#a6aecd;--bd:rgba(255,255,255,.13);--pr:#5b7cff;--pr2:#7c5cff;--ok:#34d399;--bad:#f87171;--warn:#fbbf24;--inp:rgba(255,255,255,.07);--bg:#0b1020;--o1:rgba(7,12,34,.3);--o2:rgba(7,12,34,.55)}
+:root[data-theme="light"]{--card:rgba(255,255,255,.62);--tx:#131a33;--mu:#59628a;--bd:rgba(19,26,51,.12);--pr:#2f4fdc;--pr2:#5b3fd6;--ok:#10b981;--bad:#ef4444;--warn:#d97706;--inp:#fff;--bg:#eef1fb;--o1:rgba(238,241,251,.28);--o2:rgba(238,241,251,.5)}
 *{box-sizing:border-box}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 body{margin:0;min-height:100vh;color:var(--tx);font-family:"Segoe UI",Tahoma,"Noto Sans Arabic",sans-serif;line-height:1.5;background:linear-gradient(var(--o1),var(--o2)),url(bg.jpg) center/cover fixed no-repeat var(--bg)}
 .w{max-width:780px;margin:0 auto;padding:max(14px,env(safe-area-inset-top)) 14px 24px}
 .top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px;flex-wrap:wrap}
 .logo{font-weight:800;font-size:18px}
-.card{background:var(--card);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border:1px solid var(--bd);border-radius:18px;padding:16px;margin-bottom:12px;box-shadow:0 8px 30px rgba(0,0,0,.18)}
+.card{background:var(--card);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);border:1px solid var(--bd);border-radius:18px;padding:16px;margin-bottom:12px;box-shadow:0 8px 30px rgba(0,0,0,.18)}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
 .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
@@ -65,10 +65,12 @@ body{background:#fff!important}
 #rpt{display:block!important}
 *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
+.ft{text-align:center;direction:ltr;font-size:12px;letter-spacing:.3px;color:var(--mu);opacity:.85;padding:18px 12px 26px}@media print{.ft{display:none}}
 </style>
 </head>
 <body>
 <div class="w" id="app"><p class="mu">جاري التحميل…</p></div>
+<footer class="ft">Developed by Mr. Yousef El-Gharbawy</footer>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
 // ===== غيّر القيمتين دول من Supabase: Project Settings > API =====
@@ -109,7 +111,7 @@ const score=m=>{const k=last(m);return k?mscore(m.rec[k],m.committee):0};
 const delta=m=>{const k=months(m);return k.length<2?0:mscore(m.rec[k[k.length-1]],m.committee)-mscore(m.rec[k[k.length-2]],m.committee)};
 const comms=()=>[...new Set(D.members.map(m=>m.committee).filter(Boolean))];
 const rankIn=m=>D.members.filter(x=>x.committee===m.committee).sort((a,b)=>score(b)-score(a));
-const trend=d=>d>=5?'<span class="pill up">↗ +'+d+'%</span>':d<=-5?'<span class="pill dn">↘ '+d+'%</span>':'<span class="pill st">➡ مستقر</span>';
+const trend=d=>!isAdm()?"":d>=5?'<span class="pill up">↗ +'+d+'%</span>':d<=-5?'<span class="pill dn">↘ '+d+'%</span>':'<span class="pill st">➡ مستقر</span>';
 function theme(){const r=document.documentElement;r.dataset.theme=r.dataset.theme==="light"?"dark":"light";try{localStorage.setItem("tm-theme",r.dataset.theme)}catch(e){}}
 {const t=localStorage.getItem("tm-theme");if(t)document.documentElement.dataset.theme=t}
 function chart(m){
@@ -129,7 +131,7 @@ const hasQ=(c,k)=>cfg(c).g.some(g=>g[0].includes(k)&&g[2]&&(g[2].q||g[2].dl));
 function addLog(i,d,n,q,l){const e=document.createElement("div");e.className="row";e.style.marginTop="6px";const fq=hasQ(curCom(),i);e.innerHTML=`<input type="date" class="ld" value="${esc(d||"")}" style="flex:1"><input class="ln" placeholder="ملاحظة (اختياري)" value="${esc(n||"")}" style="flex:2">${fq?`<input type="number" class="lq" min="0" max="5" step="0.5" placeholder="جودة /5" value="${q??""}" style="flex:1;min-width:80px"><label style="display:flex;gap:5px;align-items:center;margin:0;color:var(--tx)"><input type="checkbox" class="ll" style="width:auto" ${l?"checked":""}> سلّم في الديدلاين</label>`:""}<button type="button" class="g" onclick="this.parentNode.remove();syncCnt('${i}')">×</button>`;$("#lg_"+i).appendChild(e);syncCnt(i)}
 function addEx(i,d,n,a){const e=document.createElement("div");e.className="row";e.style.marginTop="6px";e.innerHTML=`<input type="date" class="ed" value="${esc(d||"")}" style="flex:1"><input class="en" placeholder="سبب الاعتذار" value="${esc(n||"")}" style="flex:2"><select class="ea" style="flex:1"><option value="1" ${a===false?"":"selected"}>مقبول</option><option value="0" ${a===false?"selected":""}>غير مقبول</option></select><button type="button" class="g" onclick="this.parentNode.remove()">×</button>`;$("#ex_"+i).appendChild(e)}
 function syncCnt(i){const n=$("#lg_"+i).children.length;if(n)$("#"+i+"a").value=n}
-function fillRec(id){const m=D.members.find(x=>x.id===id),r=(m.rec||{})[$("#rm").value]||{};ks(m.committee).forEach(([i])=>{const a=r[i]||["",""];$("#lg_"+i).innerHTML="";((r.log||{})[i]||[]).forEach(x=>addLog(i,x.d,x.n,x.q,x.l));$("#ex_"+i).innerHTML="";((r.exc||{})[i]||[]).forEach(x=>addEx(i,x.d,x.n,x.a));$("#"+i+"a").value=a[0];$("#"+i+"b").value=a[1]});xs(m.committee).forEach(([k])=>{$("#"+k).value=r[k]??""});$("#rmn").value=r.man??""}
+function fillRec(id){const m=D.members.find(x=>x.id===id),r=(m.rec||{})[$("#rm").value]||{};ks(m.committee).forEach(([i])=>{const a=r[i]||["",""];$("#lg_"+i).innerHTML="";((r.log||{})[i]||[]).forEach(x=>addLog(i,x.d,x.n,x.q,x.l));$("#ex_"+i).innerHTML="";((r.exc||{})[i]||[]).forEach(x=>addEx(i,x.d,x.n,x.a));$("#"+i+"a").value=a[0];$("#"+i+"b").value=a[1]});xs(m.committee).forEach(([k])=>{$("#"+k).value=r[k]??""});$("#rmn").value=r.man??"";S.modal.mo=$("#rm").value;applyDraft(id)}
 const logs=(r,id)=>((r.log||{})[id]||[]).length?'<div class="mu" style="margin-top:4px">'+KN[id]+": "+r.log[id].map(x=>esc(x.d.slice(5).split("-").reverse().join("/"))+(x.n?" ("+esc(x.n)+")":"")+(x.q!=null?" جودة "+x.q:"")+(x.l!=null?(x.l?" ✓ في الميعاد":" ✗ متأخر"):"")).join(" · ")+'</div>':"";
 const excs=(r,id)=>((r.exc||{})[id]||[]).length?'<div class="mu" style="margin-top:4px">اعتذارات '+KN[id]+": "+r.exc[id].map(x=>esc(x.d.slice(5).split("-").reverse().join("/"))+(x.n?" ("+esc(x.n)+")":"")+(x.a?" ✓مقبول":" ✗غير مقبول")).join(" · ")+'</div>':"";
 async function saveRec(id){
@@ -138,11 +140,10 @@ async function saveRec(id){
   const lg={};ks(cm).forEach(([i])=>{const L=[...$("#lg_"+i).children].map(e=>({d:e.querySelector(".ld").value,n:e.querySelector(".ln").value.trim(),q:e.querySelector(".lq")?Math.max(0,Math.min(5,+e.querySelector(".lq").value||0)):undefined,l:e.querySelector(".ll")?(e.querySelector(".ll").checked?1:0):undefined})).filter(x=>x.d).sort((a,b)=>a.d.localeCompare(b.d));if(L.length)lg[i]=L});if(Object.keys(lg).length)r.log=lg;const ex={};ks(cm).forEach(([i])=>{const L=[...$("#ex_"+i).children].map(e=>({d:e.querySelector(".ed").value,n:e.querySelector(".en").value.trim(),a:e.querySelector(".ea").value==="1"})).filter(x=>x.d).sort((a,b)=>a.d.localeCompare(b.d));if(L.length)ex[i]=L});if(Object.keys(ex).length)r.exc=ex;r.ex=Object.values(ex).reduce((a,l)=>a+l.length,0);const mv=$("#rmn").value.trim();if(mv!=="")r.man=Math.max(0,Math.min(maxS((D.members.find(x=>x.id===id)||{}).committee),+mv));
   const x=await sb.from("records").upsert({member_id:id,month:k,data:r},{onConflict:"member_id,month"});
   if(x.error){$("#mm").textContent=x.error.message;return}
-  S.modal=null;await load();render();
+  clearDraft(id,k);S.modal=null;await load();render();
 }
-let D={members:[],warn:[],ann:[]},S={tab:"members",modal:null,auth:"in",msg:"",em:"",recover:false},session=null,me=null,myWarn=0,loaded=false;
+let D={members:[],warn:[],ann:[],signups:[],follows:[],board:[]},S={tab:"members",modal:null,auth:"in",msg:"",em:"",recover:false},session=null,me=null,myWarn=0,loaded=false;
 const isAdm=()=>!!(me&&me.is_admin);
-const isMgr=()=>!!(me&&!me.is_admin&&(me.manages||[]).length);
 const ml=k=>{const[y,m]=k.split("-");return MO[+m-1]+" "+y};
 const wc=m=>(me&&m.id===me.id&&!isAdm())?myWarn:D.warn.filter(x=>x.member_id===m.id).length;
 const avatar=(m,lg)=>m.avatar_url?`<img class="av${lg?" lg":""}" src="${esc(m.avatar_url)}" alt="">`:`<div class="av${lg?" lg":""}">${esc((m.name||"?")[0])}</div>`;
@@ -150,36 +151,6 @@ const gpill=m=>{const g=grade(score(m));return g?`<span class="pill ${"AB".inclu
 const errAr=m=>/rate limit/i.test(m)?"وصلنا للحد المسموح من رسائل الإيميل حاليًا. حاول بعد ساعة، أو كلّم الأدمن.":/invalid login/i.test(m)?"الإيميل أو كلمة المرور غلط.":/already registered|already been registered/i.test(m)?"الإيميل ده عنده حساب بالفعل، سجّل دخول.":/not confirmed/i.test(m)?"لازم تأكد الإيميل الأول من الرسالة اللي وصلتك.":m;
 const today=()=>new Date().toISOString().slice(0,10);
 
-async function load(){
-  const[a,b,w,n]=await Promise.all([sb.from("members").select("*"),sb.from("records").select("*"),sb.from("warnings").select("*"),sb.from("announced").select("month")]);
-  if(a.error||b.error){S.msg=(a.error||b.error).message;D.members=[];loaded=true;return}
-  const by={};a.data.forEach(m=>{m.rec={};by[m.id]=m});
-  b.data.forEach(r=>{if(by[r.member_id])by[r.member_id].rec[r.month]=r.data});
-  D.members=a.data;D.warn=w.data||[];D.ann=(n.data||[]).map(x=>x.month);
-  me=D.members.find(m=>m.user_id===session.user.id)||null;
-  const c=await sb.rpc("my_warning_count");myWarn=c.data||0;
-  if(isAdm()&&!["members","committees","dash","announce"].includes(S.tab))S.tab="members";
-  if(isMgr()&&!["follow","me"].includes(S.tab))S.tab="follow";
-  loaded=true;
-}
-async function boot(){
-  const{data}=await sb.auth.getSession();session=data.session;
-  sb.auth.onAuthStateChange((ev,s)=>{session=s;setTimeout(async()=>{
-    if(ev==="PASSWORD_RECOVERY")S.recover=true;
-    else if(!s){me=null;loaded=false;D={members:[],warn:[],ann:[]}}
-    else if(ev!=="INITIAL_SESSION"){if(!me)loaded=false;render();await load()}
-    render()},0)});
-  if(session)await load();
-  render();
-}
-async function doAuth(signup){
-  const email=$("#ae").value.trim(),password=$("#ap").value;S.msg="";S.em=email;
-  if(!email||password.length<6){S.msg="اكتب الإيميل وكلمة مرور 6 حروف على الأقل.";return render()}
-  const r=signup?await sb.auth.signUp({email,password}):await sb.auth.signInWithPassword({email,password});
-  if(r.error)S.msg=errAr(r.error.message);
-  else if(signup&&!r.data.session)S.msg="تم إنشاء الحساب. افتح إيميلك وأكد الحساب ثم سجل دخول.";
-  render();
-}
 async function resetPw(){
   const email=$("#ae").value.trim();S.em=email;
   if(!email){S.msg="اكتب إيميلك الأول ثم اضغط نسيت كلمة المرور.";return render()}
@@ -194,20 +165,6 @@ async function setNewPw(){
 }
 async function logout(){await sb.auth.signOut();session=null;me=null;S.modal=null;render()}
 
-function loginView(){
-  const su=S.auth==="up";
-  return`<div class="auth"><div class="box">
-  <div class="crest">YLY</div><h1 class="ttl">YLY Dakahlia</h1><p class="sub">منصة تقييم الأداء · TeamMeter</p>
-  <div class="chips"><span>📊 تقييم شهري</span><span>🏆 ترتيب اللجان</span><span>📄 تقارير PDF</span></div>
-  <div class="card" style="margin-top:18px">
-  <div class="seg"><button class="${su?"g":""}" onclick="S.auth='in';S.msg='';render()">تسجيل الدخول</button><button class="${su?"":"g"}" onclick="S.auth='up';S.msg='';render()">حساب جديد</button></div>
-  <label>البريد الإلكتروني</label><input id="ae" type="email" autocomplete="email" dir="ltr" value="${esc(S.em)}">
-  <label>كلمة المرور</label><input id="ap" type="password" autocomplete="${su?"new-password":"current-password"}" dir="ltr" onkeydown="if(event.key==='Enter')doAuth(${su})">
-  <p class="err">${esc(S.msg)}</p>
-  <button style="width:100%;padding:12px" onclick="doAuth(${su})">${su?"إنشاء الحساب":"دخول"}</button>
-  ${su?'<p class="mu" style="margin:10px 0 0">التسجيل متاح فقط للإيميلات اللي أضافتها الإدارة.</p>':'<p style="text-align:center;margin:14px 0 0"><a href="#" class="lnk" onclick="resetPw();return false">نسيت كلمة المرور؟</a></p>'}
-  </div><p class="mu" style="text-align:center">© YLY Dakahlia</p></div></div>`;
-}
 function recoverView(){
   return`<div class="auth"><div class="box"><div class="crest">YLY</div><h1 class="ttl">كلمة مرور جديدة</h1>
   <div class="card" style="margin-top:18px"><label>كلمة المرور الجديدة</label><input id="np" type="password" dir="ltr" autocomplete="new-password"><p class="err">${esc(S.msg)}</p><button style="width:100%;padding:12px" onclick="setNewPw()">حفظ</button></div></div></div>`;
@@ -217,84 +174,17 @@ const topbar=(extra)=>`<div class="top"><div class="row">${me?avatar(me):""}<spa
 function avatarBanner(){
   return`<div class="card" style="border-color:var(--pr)"><b>📸 ارفع صورتك الشخصية</b><p class="mu" style="margin:4px 0 10px">هتظهر في حسابك وعند الإدارة.</p><label class="btn" style="margin:0;color:#fff">اختيار صورة<input type="file" accept="image/*" hidden onchange="upAvatar(this.files[0])"></label></div>`;
 }
-async function upAvatar(f){
-  if(!f)return;
-  try{
-    const bm=await createImageBitmap(f),n=320,c=document.createElement("canvas");c.width=c.height=n;
-    const s=Math.min(bm.width,bm.height);c.getContext("2d").drawImage(bm,(bm.width-s)/2,(bm.height-s)/2,s,s,0,0,n,n);
-    const blob=await new Promise(r=>c.toBlob(r,"image/jpeg",0.85)),path=session.user.id+".jpg";
-    const up=await sb.storage.from("avatars").upload(path,blob,{upsert:true,contentType:"image/jpeg"});if(up.error)throw up.error;
-    const url=sb.storage.from("avatars").getPublicUrl(path).data.publicUrl+"?v="+Date.now();
-    const r=await sb.rpc("set_my_avatar",{u:url});if(r.error)throw r.error;
-    await load();render();
-  }catch(e){alert("تعذر رفع الصورة: "+(e.message||e))}
-}
 function memberView(m,own){
   const rk=rankIn(m),pos=rk.findIndex(x=>x.id===m.id)+1,has=months(m).length>0;
   const w=own?myWarn:(isAdm()?D.warn.filter(x=>x.member_id===m.id).length:null);
-  const head=`<div class="card"><div class="row">${own?`<label class="avw" style="margin:0" title="تغيير الصورة">${avatar(m,1)}<input type="file" accept="image/*" hidden onchange="upAvatar(this.files[0])"></label>`:avatar(m,1)}<div style="flex:1"><b style="font-size:18px">${esc(m.name)}</b><div class="mu">${esc(m.role||"عضو")} · لجنة ${esc(m.committee)}</div></div>${has?gpill(m)+trend(delta(m)):""}</div><div class="row" style="margin-top:10px"><button class="g" onclick="exportPDF('${m.id}')">📄 تصدير PDF</button></div></div>`;
+  const head=`<div class="card"><div class="row">${own?`<label class="avw" style="margin:0" title="تغيير الصورة">${avatar(m,1)}<input type="file" accept="image/*" hidden onchange="upAvatar(this.files[0])"></label>`:avatar(m,1)}<div style="flex:1"><b style="font-size:18px">${esc(nm(m.name))}</b><div class="mu">${esc(m.role||"عضو")} · لجنة ${esc(m.committee)}</div></div>${has?gpill(m)+trend(delta(m)):""}</div><div class="row" style="margin-top:10px"><button class="g" onclick="exportPDF('${m.id}')">📄 تصدير PDF</button></div></div>`;
   if(!has)return(own&&!m.avatar_url?avatarBanner():"")+head+(w!=null?`<div class="card"><div class="mu">الإنذارات المستلمة</div><div class="big" style="color:${w?"var(--bad)":"var(--ok)"}">${w}</div></div>`:"")+`<div class="card"><p style="margin:0">لم يتم إعلان أي تقييم بعد. هيظهر هنا أول ما الإدارة تعلن نتيجة الشهر.</p></div>`;
   return(own&&!m.avatar_url?avatarBanner():"")+head+`<div class="${w!=null?"grid3":"grid"}"><div class="card"><div class="mu">تقييمك الحالي</div><div class="big">${score(m)}<span class="mu">/${maxS(m.committee)}</span></div></div>
   <div class="card"><div class="mu">ترتيبك في اللجنة</div><div class="big">${pos}<span class="mu">/${rk.length}</span></div></div>
   ${w!=null?`<div class="card"><div class="mu">الإنذارات</div><div class="big" style="color:${w?"var(--bad)":"var(--ok)"}">${w}</div></div>`:""}</div>
   <div class="card" style="margin-top:12px"><b>تطور أدائك عبر الشهور</b>${chart(m)}</div>
   <div class="card"><b>تفاصيل آخر شهر (${ml(last(m))})</b>${breakdown(m)}</div>
-  <div class="card"><b>🏆 توب اللجنة</b>${rk.slice(0,3).map((x,i)=>`<div class="lb ${x.id===m.id?"me":""}">${["🥇","🥈","🥉"][i]}<span style="flex:1">${esc(x.name)}${x.id===m.id?" (أنت)":""}</span><b>${score(x)}</b></div>`).join("")}
-  ${pos>3?`<div class="lb me"><span>${pos}</span><span style="flex:1">${esc(m.name)} (أنت)</span><b>${score(m)}</b></div>`:""}</div>`;
-}
-function memberCard(m,adm){
-  const w=wc(m),mx=maxS(m.committee);
-  return`<div class="card" ${w>=3?'style="border-color:var(--bad)"':""}><div class="row">${avatar(m)}<div style="flex:1"><b>${esc(m.name)}</b><div class="mu">${esc(m.role||"")} · ${esc(m.committee)}${m.user_id?"":" · لم يسجّل بعد"}</div></div><div class="big" style="font-size:26px">${score(m)}</div></div>
-  <div class="bar" style="margin:8px 0"><i style="width:${Math.min(100,score(m)/mx*100)}%"></i></div>
-  <div class="row">${gpill(m)}${trend(delta(m))}${w?`<span class="pill dn">⚠️ ${w} إنذار</span>`:""}<span style="flex:1"></span>
-  <button class="g" onclick="S.modal={t:'rec',id:'${m.id}'};render()">+ تقييم شهر</button><button class="g" onclick="S.modal={t:'view',id:'${m.id}'};render()">عرض</button>
-  ${adm?`<button class="g" onclick="S.modal={t:'warn',id:'${m.id}'};render()">إنذار</button><button class="g" onclick="S.modal={t:'mem',id:'${m.id}'};render()">تعديل</button>`:""}</div></div>`;
-}
-function adminView(){
-  const tabs=[["members","الأعضاء"],["committees","اللجان"],["dash","لوحة الشرف"],["announce","📢 الإعلان"]];
-  const sc=D.members.map(score),avg=sc.length?Math.round(sc.reduce((a,b)=>a+b,0)/sc.length):0;
-  let sub="";
-  if(S.tab==="members")sub=`<div class="grid"><div class="card"><div class="mu">إجمالي الأعضاء</div><div class="big">${D.members.length}</div></div><div class="card"><div class="mu">متوسط التقييم</div><div class="big">${avg}</div></div></div><div style="height:12px"></div>`+D.members.map(m=>memberCard(m,true)).join("");
-  else if(S.tab==="committees")sub=comms().map(c=>{const r=D.members.filter(m=>m.committee===c).sort((a,b)=>score(b)-score(a)),a=Math.round(r.reduce((s,m)=>s+score(m),0)/r.length);return`<div class="card"><div class="row" style="justify-content:space-between"><b>لجنة ${esc(c)}</b><span class="mu">${r.length} أعضاء · متوسط ${a}</span></div>${r.map((m,i)=>`<div class="lb"><span>${i+1}</span>${avatar(m)}<span style="flex:1">${esc(m.name)}</span><b>${score(m)}</b></div>`).join("")}</div>`}).join("")||'<p class="mu">أضف أعضاء أولاً.</p>';
-  else if(S.tab==="dash"){const wl=D.members.map(m=>[m,wc(m)]).filter(x=>x[1]).sort((a,b)=>b[1]-a[1]);
-    sub=`<div class="card"><b>🏆 أفضل 5 في الفريق</b>${[...D.members].sort((a,b)=>score(b)-score(a)).slice(0,5).map((m,i)=>`<div class="lb"><span>${i+1}</span>${avatar(m)}<span style="flex:1">${esc(m.name)} <span class="mu">· ${esc(m.committee)}</span></span>${trend(delta(m))}<b>${score(m)}</b></div>`).join("")}</div>
-    <div class="card"><b>⚠️ يحتاجون متابعة (أقل من 75% أو في النازل)</b>${D.members.filter(m=>score(m)/maxS(m.committee)<0.75||delta(m)<=-5).map(m=>`<div class="lb"><span style="flex:1">${esc(m.name)}</span>${trend(delta(m))}<b>${score(m)}</b></div>`).join("")||'<p class="mu">لا أحد 👏</p>'}</div>
-    <div class="card"><b>🚨 الإنذارات</b>${wl.map(([m,n])=>`<div class="lb"><span style="flex:1">${esc(m.name)} <span class="mu">· ${esc(m.committee)}</span></span><span class="pill dn">${n}</span></div>`).join("")||'<p class="mu">لا توجد إنذارات.</p>'}</div>`;}
-  else{const all=[...new Set(D.members.flatMap(m=>months(m)))].sort().reverse();
-    sub=`<div class="card"><b>📢 إعلان تقييم الشهر</b><p class="mu">تقييمات أي شهر بتفضل مخفية عن الأعضاء لحد ما تعلنها من هنا، وبتظهر لكل الأعضاء في نفس الوقت.</p>${all.map(k=>{const on=D.ann.includes(k),n=D.members.filter(m=>m.rec[k]).length;return`<div class="lb"><span style="flex:1"><b>${ml(k)}</b> <span class="mu">· ${n} تقييم من ${D.members.length}</span></span>${on?`<span class="pill up">معلن</span><button class="g" onclick="announce('${k}',false)">سحب الإعلان</button>`:`<span class="pill st">غير معلن</span><button onclick="announce('${k}',true)">📢 إعلان</button>`}</div>`}).join("")||'<p class="mu">سجّل تقييمات أولاً.</p>'}</div>`;}
-  return topbar(`<button onclick="S.modal={t:'mem'};render()">+ عضو</button><button class="g" onclick="backup()" title="نسخة احتياطية">⬇ Excel</button>`)+`<div class="tabs">${tabs.map(t=>`<button class="${S.tab===t[0]?"on":""}" onclick="S.tab='${t[0]}';render()">${t[1]}</button>`).join("")}</div>`+sub;
-}
-function mgrView(){
-  const mine=D.members.filter(m=>(me.manages||[]).includes(m.committee));
-  const tabs=[["follow","متابعة اللجان"],["me","حسابي"]];
-  return topbar()+`<div class="tabs">${tabs.map(t=>`<button class="${S.tab===t[0]?"on":""}" onclick="S.tab='${t[0]}';render()">${t[1]}</button>`).join("")}</div>`+
-  (S.tab==="me"?memberView(me,true):`<p class="mu">لجان متابعتك: ${(me.manages||[]).map(esc).join("، ")}</p>`+(mine.map(m=>memberCard(m,false)).join("")||'<p class="mu">لا يوجد أعضاء.</p>'));
-}
-function modal(){
-  const t=S.modal,m=D.members.find(x=>x.id===t.id);
-  if(t.t==="view")return`<div class="ov" onclick="if(event.target===this){S.modal=null;render()}"><div class="card">${memberView(m,false)}<button class="g" onclick="S.modal=null;render()">إغلاق</button></div></div>`;
-  if(t.t==="warn"){const L=D.warn.filter(x=>x.member_id===m.id).sort((a,b)=>b.d.localeCompare(a.d));
-    return`<div class="ov"><div class="card"><b>إنذارات: ${esc(m.name)}</b> <span class="pill dn">${L.length}</span>${L.map(x=>`<div class="lb"><span class="mu">${esc(x.d)}</span><span style="flex:1">${esc(x.reason||"—")}</span><button class="g" onclick="delWarn('${x.id}')">×</button></div>`).join("")}
-    <label>تاريخ الإنذار</label><input id="wd" type="date" value="${today()}"><label>السبب</label><input id="wr"><p class="err" id="mm"></p>
-    <div class="row" style="margin-top:12px"><button class="d" onclick="addWarn('${m.id}')">إضافة إنذار</button><button class="g" onclick="S.modal=null;render()">إغلاق</button></div></div></div>`;}
-  if(t.t==="mem")return`<div class="ov"><div class="card"><b>${m?"تعديل عضو":"إضافة عضو"}</b>
-  <label>الإيميل (هيسجل بيه)</label><input id="me" type="email" dir="ltr" value="${esc(m?.email)}"><label>الاسم</label><input id="mn" value="${esc(m?.name)}"><label>الدور</label><input id="mr" value="${esc(m?.role)}">
-  <label>اللجنة</label><select id="mc">${[...new Set([...COM,m?.committee].filter(Boolean))].map(c=>`<option ${c===m?.committee?"selected":""}>${esc(c)}</option>`).join("")}</select>
-  <label>يتابع ويعدّل تقييم لجان (لأعضاء HR، اختياري)</label><div class="row">${COM.map(c=>`<label style="display:flex;gap:5px;align-items:center;margin:0"><input type="checkbox" class="mg" value="${c}" style="width:auto" ${(m?.manages||[]).includes(c)?"checked":""}>${c}</label>`).join("")}</div>
-  <p class="err" id="mm"></p><div class="row" style="margin-top:12px"><button onclick="saveMem('${m?.id||""}')">حفظ</button><button class="g" onclick="S.modal=null;render()">إلغاء</button>${m&&m.id!==me?.id?`<button class="d" onclick="delMem('${m.id}')">حذف</button>`:""}</div></div></div>`;
-  const now=new Date().toISOString().slice(0,7);
-  return`<div class="ov"><div class="card"><b>تقييم شهر: ${esc(m.name)}</b><label>الشهر</label><input id="rm" type="month" value="${now}" onchange="fillRec('${m.id}')">
-  ${ks(m.committee).map(([id,l])=>`<label>${l} (المنجز / المطلوب)</label><div class="row"><input id="${id}a" type="number" min="0" placeholder="منجز"><input id="${id}b" type="number" min="0" placeholder="مطلوب"></div><div id="lg_${id}"></div><button type="button" class="g" style="margin-top:6px" onclick="addLog('${id}')">+ إضافة تاريخ</button><div id="ex_${id}"></div><button type="button" class="g" style="margin-top:6px" onclick="addEx('${id}')">+ إضافة اعتذار</button>`).join("")}
-  ${xs(m.committee).map(([k,l])=>`<label>${l} (من ${cfg(m.committee).x[k]})</label><input id="${k}" type="number" min="0" max="${cfg(m.committee).x[k]}" step="0.5">`).join("")}
-  <label>درجة إجمالية يدوية من 0 إلى ${maxS(m.committee)} (اختياري، لو كتبتها بتحل محل الحساب التلقائي)</label><input id="rmn" type="number" min="0" max="${maxS(m.committee)}" placeholder="سيبها فاضية للحساب التلقائي">
-  <p class="err" id="mm"></p><div class="row" style="margin-top:12px"><button onclick="saveRec('${m.id}')">حفظ التقييم</button><button class="g" onclick="S.modal=null;render()">إلغاء</button></div></div></div>`;
-}
-async function saveMem(id){
-  const v=s=>$(s).value.trim(),row={email:v("#me").toLowerCase(),name:v("#mn"),role:v("#mr")||"عضو",committee:v("#mc"),manages:[...document.querySelectorAll(".mg:checked")].map(x=>x.value)};
-  if(!row.email||!row.name||!row.committee){$("#mm").textContent="الإيميل والاسم واللجنة مطلوبين";return}
-  const r=id?await sb.from("members").update(row).eq("id",id):await sb.from("members").insert(row);
-  if(r.error){$("#mm").textContent=r.error.message;return}
-  S.modal=null;await load();render();
+  <div class="card"><b>🏆 ترتيب اللجنة</b>${rk.filter(x=>months(x).length).map((x,i)=>`<div class="lb ${x.id===m.id?"me":""}"><span>${i+1}</span><span style="flex:1">${esc(nm(x.name))}</span>${gpill(x)}<b>${score(x)}</b></div>`).join("")}</div>`;
 }
 async function delMem(id){if(!confirm("حذف العضو وكل تقييماته نهائياً؟"))return;const r=await sb.from("members").delete().eq("id",id);if(r.error)return alert(r.error.message);S.modal=null;await load();render()}
 async function addWarn(id){const r=await sb.from("warnings").insert({member_id:id,d:$("#wd").value||today(),reason:$("#wr").value.trim()});if(r.error){$("#mm").textContent=r.error.message;return}await load();render()}
@@ -310,14 +200,22 @@ function exportPDF(id){
   const el=document.createElement("div");el.id="rpt";
   el.innerHTML=`<div dir="rtl" style="font-family:'Segoe UI',Tahoma,'Noto Sans Arabic',sans-serif">
   <div class="rh"><div><div style="font-size:20px;font-weight:800">YLY Dakahlia</div><div style="opacity:.85;font-size:13px">تقرير تقييم الأداء · TeamMeter</div></div><div style="font-size:13px">${new Date().toLocaleDateString("ar-EG")}</div></div>
-  <div class="card"><div class="row">${avatar(m,1)}<div style="flex:1"><b style="font-size:20px">${esc(m.name)}</b><div class="mu">${esc(m.role||"عضو")} · لجنة ${esc(m.committee)}</div></div>${ms.length?gpill(m):""}</div></div>
+  <div class="card"><div class="row">${avatar(m,1)}<div style="flex:1"><b style="font-size:20px">${esc(nm(m.name))}</b><div class="mu">${esc(m.role||"عضو")} · لجنة ${esc(m.committee)}</div></div>${ms.length?gpill(m):""}</div></div>
   ${ms.length?`<div class="grid3"><div class="card"><div class="mu">التقييم الحالي</div><div class="big">${score(m)}<span class="mu">/${mx}</span></div></div><div class="card"><div class="mu">الترتيب في اللجنة</div><div class="big">${pos}<span class="mu">/${rk.length}</span></div></div><div class="card"><div class="mu">الإنذارات</div><div class="big">${w}</div></div></div>
   <div class="card" style="margin-top:12px"><b>تطور الأداء</b>${chart(m)}</div>
   <div class="card"><b>الدرجات الشهرية</b><table class="rt"><tr><th>الشهر</th><th>الدرجة</th></tr>${ms.map(k=>`<tr><td>${ml(k)}</td><td>${mscore(m.rec[k],m.committee)} / ${mx}</td></tr>`).join("")}</table></div>
-  <div class="card"><b>تفاصيل شهر ${ml(last(m))}</b>${breakdown(m)}</div>`:'<div class="card">لا توجد تقييمات معلنة بعد.</div>'}</div>`;
-  document.body.appendChild(el);
-  window.addEventListener("afterprint",()=>el.remove(),{once:true});
-  setTimeout(()=>window.print(),400);
+  <div class="card"><b>تفاصيل شهر ${ml(last(m))}</b>${breakdown(m)}</div>`:'<div class="card">لا توجد تقييمات معلنة بعد.</div>'}
+  <div style="text-align:center;direction:ltr;font-size:12px;color:#59628a;margin-top:18px;padding-top:10px;border-top:1px solid #dfe3f0">Developed by Mr. Yousef El-Gharbawy</div></div>`;
+  // التقرير بيتطبع من صفحة مستقلة (تبويب جديد) عشان مايتأثرش بخلفية الموقع وستايل الطباعة
+  const css=[...document.querySelectorAll("style")].map(x=>x.textContent).join("\n");
+  const doc=`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>تقرير ${esc(nm(m.name))}</title><style>${css}
+html,body{background:#fff!important;color:#141a2e;min-height:0}#rpt{display:block!important;padding:4px}.ft{display:none}</style></head><body>${el.outerHTML}<script>
+addEventListener("load",function(){var im=[].slice.call(document.images);Promise.race([Promise.all(im.map(function(i){return i.complete?0:new Promise(function(r){i.onload=i.onerror=r})})),new Promise(function(r){setTimeout(r,3000)})]).then(function(){setTimeout(function(){print()},300)})});
+<\/script></body></html>`;
+  const pw=window.open("","_blank");
+  if(pw){pw.document.open();pw.document.write(doc);pw.document.close();return}
+  const f=document.createElement("iframe");f.style.cssText="position:fixed;right:0;bottom:0;width:1px;height:1px;border:0;opacity:0";
+  f.srcdoc=doc;document.body.appendChild(f);setTimeout(()=>f.remove(),60000);
 }
 function backup(){
   const H=["الاسم","الإيميل","اللجنة","الشهر","الدرجة","النزولات","التاسكات","السيشنات","الاجتماعات","TEC","التفاعل","التدرج","البونص","الإنذارات"],R=[];
@@ -325,19 +223,303 @@ function backup(){
   const csv="\ufeff"+[H,...R].map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(",")).join("\n");
   const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));a.download="teammeter-backup.csv";a.click();
 }
+/* ===== الجولة 3: طلبات التسجيل، متابعة HR، النشاط، البورد، الصور، سجل الشهور، الحفظ التلقائي ===== */
+let touched=false,restored=false,bFile=null,dT=null,PH=[];
+const emptyD=()=>({members:[],warn:[],ann:[],signups:[],follows:[],board:[]});
+const nm=n=>String(n||"").trim().split(/\s+/).slice(0,2).join(" ");
+const isMgr=()=>!!(me&&!me.is_admin&&D.follows.some(f=>f.manager_id===me.id));
+const curMonth=()=>new Date().toISOString().slice(0,7);
+const ago=t=>{if(!t)return"لم يدخل بعد";const s=(Date.now()-new Date(t))/1000;if(s<90)return"دلوقتي";if(s<3600)return"من "+Math.round(s/60)+" دقيقة";if(s<86400)return"من "+Math.round(s/3600)+" ساعة";return"من "+Math.round(s/86400)+" يوم"};
+const dk=(id,mo)=>`tm-draft:${id}:${mo}`;
+const myFollows=()=>D.follows.filter(f=>f.manager_id===(me&&me.id)).map(f=>D.members.find(x=>x.id===f.member_id)).filter(Boolean);
+const tabBar=l=>`<div class="tabs">${l.map(t=>`<button class="${S.tab===t[0]?"on":""}" onclick="S.tab='${t[0]}';render()">${t[1]}</button>`).join("")}</div>`;
+
+async function load(){
+  const[a,b,w,n,su,fo,bd]=await Promise.all([sb.from("members").select("*"),sb.from("records").select("*"),sb.from("warnings").select("*"),sb.from("announced").select("month"),sb.from("signups").select("*").order("created_at"),sb.from("follows").select("*"),sb.from("board").select("*").order("sort")]);
+  if(a.error||b.error){S.msg=(a.error||b.error).message;D.members=[];loaded=true;return}
+  const by={};a.data.forEach(m=>{m.rec={};m.meta={};by[m.id]=m});
+  b.data.forEach(r=>{const m=by[r.member_id];if(m){m.rec[r.month]=r.data;m.meta[r.month]={by:r.by_member,at:r.updated_at}}});
+  D.members=a.data;D.warn=w.data||[];D.ann=(n.data||[]).map(x=>x.month);D.signups=su.data||[];D.follows=fo.data||[];D.board=bd.data||[];
+  me=D.members.find(m=>m.user_id===session.user.id)||null;
+  const c=await sb.rpc("my_warning_count");myWarn=c.data||0;
+  if(me){if(!touched){touched=true;sb.rpc("touch_seen")}}
+  else{const st=await sb.rpc("my_signup_status");S.signup=st.data||null}
+  const AT=["members","req","committees","dash","announce","seen","hr","board","photos"];
+  if(isAdm()&&!AT.includes(S.tab))S.tab="members";
+  else if(isMgr()&&!["follow","me","leaders"].includes(S.tab))S.tab="follow";
+  else if(me&&!isAdm()&&!isMgr()&&!["me","leaders"].includes(S.tab))S.tab="me";
+  if(!restored){restored=true;try{const o=JSON.parse(localStorage.getItem("tm-open-modal")||"null");
+    if(o&&me&&["rec","mem"].includes(o.t)&&(isAdm()||(o.t==="rec"&&D.follows.some(f=>f.manager_id===me.id&&f.member_id===o.id)))&&(!o.id||D.members.find(x=>x.id===o.id)))S.modal=o}catch(e){}}
+  loaded=true;
+}
+async function refresh(){loaded=false;render();await load();render()}
+async function boot(){
+  const{data}=await sb.auth.getSession();session=data.session;
+  sb.auth.onAuthStateChange((ev,s)=>{session=s;setTimeout(async()=>{
+    if(ev==="PASSWORD_RECOVERY")S.recover=true;
+    else if(!s){me=null;loaded=false;touched=false;D=emptyD()}
+    else if(ev!=="INITIAL_SESSION"){if(!me)loaded=false;render();await load()}
+    render()},0)});
+  if(typeof document.addEventListener==="function"){document.addEventListener("input",draftSave);document.addEventListener("change",draftSave)}
+  if(session)await load();
+  render();
+}
+async function doAuth(signup){
+  const email=$("#ae").value.trim(),password=$("#ap").value,full=signup?$("#an").value.trim():"";S.msg="";S.em=email;S.fn=full;
+  if(!email||password.length<6){S.msg="اكتب الإيميل وكلمة مرور 6 حروف على الأقل.";return render()}
+  if(signup&&full.split(/\s+/).length<2){S.msg="اكتب اسمك ثنائي على الأقل.";return render()}
+  const r=signup?await sb.auth.signUp({email,password,options:{data:{full_name:full}}}):await sb.auth.signInWithPassword({email,password});
+  if(r.error)S.msg=errAr(r.error.message);
+  else if(signup&&!r.data.session)S.msg="تم إنشاء الحساب. افتح إيميلك وأكد الحساب ثم سجل دخول.";
+  render();
+}
+function loginView(){
+  const su=S.auth==="up";
+  return`<div class="auth"><div class="box">
+  <div class="crest">YLY</div><h1 class="ttl">YLY Dakahlia</h1><p class="sub">منصة تقييم الأداء · TeamMeter</p>
+  <div class="chips"><span>📊 تقييم شهري</span><span>🏆 ترتيب اللجان</span><span>📄 تقارير PDF</span></div>
+  <div class="card" style="margin-top:18px">
+  <div class="seg"><button class="${su?"g":""}" onclick="S.auth='in';S.msg='';render()">تسجيل الدخول</button><button class="${su?"":"g"}" onclick="S.auth='up';S.msg='';render()">حساب جديد</button></div>
+  ${su?`<label>الاسم (ثنائي على الأقل)</label><input id="an" autocomplete="name" value="${esc(S.fn||"")}">`:""}
+  <label>البريد الإلكتروني</label><input id="ae" type="email" autocomplete="email" dir="ltr" value="${esc(S.em)}">
+  <label>كلمة المرور</label><input id="ap" type="password" autocomplete="${su?"new-password":"current-password"}" dir="ltr" onkeydown="if(event.key==='Enter')doAuth(${su})">
+  <p class="err">${esc(S.msg)}</p>
+  <button style="width:100%;padding:12px" onclick="doAuth(${su})">${su?"إرسال طلب التسجيل":"دخول"}</button>
+  ${su?'<p class="mu" style="margin:10px 0 0">الحساب بيتفعّل بعد موافقة الإدارة.</p>':'<p style="text-align:center;margin:14px 0 0"><a href="#" class="lnk" onclick="resetPw();return false">نسيت كلمة المرور؟</a></p>'}
+  </div><p class="mu" style="text-align:center">© YLY Dakahlia</p></div></div>`;
+}
+async function resizeImg(f,n){const bm=await createImageBitmap(f),c=document.createElement("canvas");c.width=c.height=n;const s=Math.min(bm.width,bm.height);c.getContext("2d").drawImage(bm,(bm.width-s)/2,(bm.height-s)/2,s,s,0,0,n,n);return new Promise(r=>c.toBlob(r,"image/jpeg",0.9))}
+async function upAvatar(f){
+  if(!f)return;
+  try{
+    const blob=await resizeImg(f,800),path=session.user.id+".jpg";
+    const up=await sb.storage.from("avatars").upload(path,blob,{upsert:true,contentType:"image/jpeg"});if(up.error)throw up.error;
+    const url=sb.storage.from("avatars").getPublicUrl(path).data.publicUrl+"?v="+Date.now();
+    const r=await sb.rpc("set_my_avatar",{u:url});if(r.error)throw r.error;
+    await load();render();
+  }catch(e){alert("تعذر رفع الصورة: "+(e.message||e))}
+}
+
+/* ---------- كروت ولوحات ---------- */
+function memberCard(m,adm){
+  const w=wc(m),mx=maxS(m.committee);
+  return`<div class="card" ${w>=3?'style="border-color:var(--bad)"':""}><div class="row">${avatar(m)}<div style="flex:1"><b>${esc(nm(m.name))}</b><div class="mu">${esc(m.role||"")} · ${esc(m.committee)}${m.user_id?"":" · لم يسجّل بعد"}</div></div><div class="big" style="font-size:26px">${score(m)}</div></div>
+  <div class="bar" style="margin:8px 0"><i style="width:${Math.min(100,score(m)/mx*100)}%"></i></div>
+  <div class="row">${gpill(m)}${trend(delta(m))}${w?`<span class="pill dn">⚠️ ${w} إنذار</span>`:""}<span style="flex:1"></span>
+  <button class="g" onclick="S.modal={t:'rec',id:'${m.id}'};render()">+ تقييم شهر</button><button class="g" onclick="S.modal={t:'hist',id:'${m.id}'};render()">الشهور</button><button class="g" onclick="S.modal={t:'view',id:'${m.id}'};render()">عرض</button>
+  ${adm?`<button class="g" onclick="S.modal={t:'warn',id:'${m.id}'};render()">إنذار</button><button class="g" onclick="S.modal={t:'mem',id:'${m.id}'};render()">تعديل</button>`:""}</div></div>`;
+}
+const boardCard=(b,adm)=>`<div class="card" style="text-align:center">${b.photo_url?`<img src="${esc(b.photo_url)}" alt="" style="width:96px;height:96px;border-radius:24px;object-fit:cover">`:`<div class="av lg" style="margin:0 auto;width:96px;height:96px;font-size:36px">${esc((b.name||"?")[0])}</div>`}<div style="margin-top:8px"><b>${esc(nm(b.name))}</b></div><div class="mu">${esc(b.position)}</div><div class="mu">${b.committee?"لجنة "+esc(b.committee):"كل اللجان"}</div>${adm?`<div class="row" style="justify-content:center;margin-top:8px"><button class="g" onclick="bFile=null;S.modal={t:'brd',id:'${b.id}'};render()">تعديل</button><button class="g" onclick="delBoard('${b.id}')">حذف</button></div>`:""}</div>`;
+function leadersView(c){
+  const L=D.board.filter(b=>!b.committee||b.committee===c);
+  return`<div class="card"><b>👥 مسؤولو لجنة ${esc(c)}</b></div>`+(L.length?`<div class="grid">${L.map(b=>boardCard(b,false)).join("")}</div>`:'<div class="card"><p class="mu" style="margin:0">لم تتم إضافة مسؤولين بعد.</p></div>');
+}
+function reqView(){
+  const P=D.signups.filter(s=>s.status==="pending"),R=D.signups.filter(s=>s.status==="rejected");
+  return`<div class="card"><b>🆕 طلبات التسجيل</b><p class="mu" style="margin:4px 0 0">أكّد الإيميل واكتب بيانات العضو ثم اضغط قبول.</p></div>`+
+  (P.map(s=>`<div class="card"><div class="row" style="justify-content:space-between"><b dir="ltr">${esc(s.email)}</b><span class="mu">${new Date(s.created_at).toLocaleDateString("ar-EG")}</span></div>
+  <label>الاسم</label><input id="sn_${s.user_id}" value="${esc(s.full_name||"")}"><label>الدور</label><input id="sr_${s.user_id}" value="عضو">
+  <label>اللجنة</label><select id="sc_${s.user_id}" onchange="document.getElementById('fw_${s.user_id}').style.display=this.value==='HR'?'block':'none'">${COM.map(c=>`<option>${c}</option>`).join("")}</select>
+  <div id="fw_${s.user_id}" style="display:none"><label>الأعضاء اللي هيضيفهم ويعدّل تقييمهم</label><div style="max-height:170px;overflow:auto">${D.members.map(x=>`<label style="display:flex;gap:6px;align-items:center;margin:2px 0;color:var(--tx)"><input type="checkbox" class="fp_${s.user_id}" value="${x.id}" style="width:auto">${esc(nm(x.name))} <span class="mu">${esc(x.committee)}</span></label>`).join("")}</div></div>
+  <p class="err" id="se_${s.user_id}"></p><div class="row"><button onclick="approve('${s.user_id}')">✓ قبول</button><button class="d" onclick="setReq('${s.user_id}','rejected')">رفض</button></div></div>`).join("")||'<div class="card"><p class="mu" style="margin:0">لا توجد طلبات جديدة.</p></div>')+
+  (R.length?`<div class="card"><b>المرفوضة</b>${R.map(s=>`<div class="lb"><span style="flex:1" dir="ltr">${esc(s.email)}</span><button class="g" onclick="setReq('${s.user_id}','pending')">إعادة</button></div>`).join("")}</div>`:"");
+}
+async function approve(uid){
+  const s=D.signups.find(x=>x.user_id===uid),v=i=>$("#"+i+"_"+uid).value.trim(),name=v("sn");
+  if(!name){$("#se_"+uid).textContent="اكتب الاسم";return}
+  const r=await sb.from("members").insert({email:s.email.toLowerCase(),name,role:v("sr")||"عضو",committee:v("sc"),user_id:uid}).select("id").single();
+  if(r.error){$("#se_"+uid).textContent=r.error.message;return}
+  if(v("sc")==="HR"){const picks=[...document.querySelectorAll(".fp_"+uid+":checked")].map(x=>x.value);
+    if(picks.length){const f=await sb.from("follows").insert(picks.map(p=>({manager_id:r.data.id,member_id:p})));if(f.error){$("#se_"+uid).textContent="اتقبل العضو لكن المتابعات ما اتحفظتش: "+f.error.message;await load();return}}}
+  await sb.from("signups").delete().eq("user_id",uid);await load();render();
+}
+async function setReq(uid,st){const r=await sb.from("signups").update({status:st}).eq("user_id",uid);if(r.error)return alert(r.error.message);await load();render()}
+function seenView(){
+  const L=[...D.members].sort((a,b)=>(b.last_seen||"").localeCompare(a.last_seen||"")),age=m=>m.last_seen?Date.now()-new Date(m.last_seen):Infinity;
+  return`<div class="grid3"><div class="card"><div class="mu">آخر 24 ساعة</div><div class="big">${L.filter(m=>age(m)<864e5).length}</div></div><div class="card"><div class="mu">آخر أسبوع</div><div class="big">${L.filter(m=>age(m)<6048e5).length}</div></div><div class="card"><div class="mu">لم يدخلوا</div><div class="big">${L.filter(m=>!m.last_seen).length}</div></div></div>
+  <div class="card" style="margin-top:12px">${L.map(m=>`<div class="lb">${avatar(m)}<span style="flex:1">${esc(nm(m.name))} <span class="mu">· ${esc(m.committee)}</span></span><span class="pill ${m.last_seen?(age(m)<864e5?"up":"st"):"dn"}">${ago(m.last_seen)}</span></div>`).join("")||'<p class="mu">لا يوجد أعضاء.</p>'}</div>`;
+}
+function hrView(){
+  const mo=S.hm||curMonth(),mg=D.members.filter(m=>D.follows.some(f=>f.manager_id===m.id)),opts=[...new Set([curMonth(),...D.members.flatMap(m=>months(m))])].sort().reverse();
+  return`<div class="card"><label style="margin:0 0 6px">الشهر</label><select onchange="S.hm=this.value;render()">${opts.map(k=>`<option value="${k}" ${k===mo?"selected":""}>${ml(k)}</option>`).join("")}</select></div>`+
+  (mg.map(g=>{
+    const fl=D.follows.filter(f=>f.manager_id===g.id).map(f=>D.members.find(x=>x.id===f.member_id)).filter(Boolean);
+    const mine=x=>x.rec[mo]&&x.meta[mo]&&x.meta[mo].by===g.id,done=fl.filter(mine),byAdm=fl.filter(x=>x.rec[mo]&&!mine(x)),miss=fl.filter(x=>!x.rec[mo]);
+    const at=done.map(x=>x.meta[mo].at).filter(Boolean).sort().pop();
+    const st=!fl.length?["st","لا يتابع أحد"]:!miss.length?["up","✓ سجّل الكل"]:done.length?["st","⏳ جزئي"]:["dn","✗ لم يسجّل"];
+    return`<div class="card"><div class="row">${avatar(g)}<div style="flex:1"><b>${esc(nm(g.name))}</b><div class="mu">${esc(g.committee)} · يتابع ${fl.length}</div></div><span class="pill ${st[0]}">${st[1]}</span></div>
+    <div class="mu" style="margin-top:8px">سجّل ${done.length} من ${fl.length}${byAdm.length?` · سجّلهم الأدمن ${byAdm.length}`:""}${at?` · آخر تسجيل ${ago(at)}`:""}</div>
+    ${miss.length?`<div class="mu" style="margin-top:4px">لم يُسجَّل: ${miss.map(x=>esc(nm(x.name))).join("، ")}</div>`:""}</div>`}).join("")||'<div class="card"><p class="mu" style="margin:0">لا يوجد أعضاء HR بيتابعوا حد. حدد المتابَعين من تعديل العضو.</p></div>');
+}
+function boardAdminView(){
+  return`<div class="row" style="margin-bottom:12px"><button onclick="bFile=null;S.modal={t:'brd'};render()">+ إضافة للبورد</button></div>`+(D.board.length?`<div class="grid">${D.board.map(b=>boardCard(b,true)).join("")}</div>`:'<div class="card"><p class="mu" style="margin:0">لسه مفيش أعضاء بورد.</p></div>');
+}
+function photosView(){
+  const g=COM.includes(S.pg)?S.pg:COM[0],grp=c=>D.members.filter(m=>m.committee===c);
+  PH=grp(g).map(m=>({n:m.name,u:m.avatar_url})).concat(g==="Board"?D.board.map(b=>({n:b.name,u:b.photo_url})):[]);
+  return`<div class="tabs">${COM.map(c=>`<button class="${c===g?"on":""}" onclick="S.pg='${c}';render()">${c} (${grp(c).filter(m=>m.avatar_url).length}/${grp(c).length})</button>`).join("")}</div>
+  <div class="grid3">${PH.map((x,i)=>`<div class="card" style="padding:8px;text-align:center;cursor:${x.u?"pointer":"default"}" ${x.u?`onclick="S.modal={t:'photo',i:${i}};render()"`:""}>${x.u?`<img src="${esc(x.u)}" alt="" loading="lazy" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px">`:`<div class="av" style="width:100%;height:auto;aspect-ratio:1;border-radius:12px;font-size:28px">${esc((x.n||"?")[0])}</div>`}<div style="font-size:12px;margin-top:6px">${esc(nm(x.n))}</div></div>`).join("")||'<p class="mu">لا يوجد.</p>'}</div>`;
+}
+function adminView(){
+  const pend=D.signups.filter(s=>s.status==="pending").length;
+  const tabs=[["members","الأعضاء"],["req","🆕 الطلبات"+(pend?` (${pend})`:"")],["committees","اللجان"],["dash","لوحة الشرف"],["announce","📢 الإعلان"],["seen","👁 الدخول"],["hr","✅ تسجيلات HR"],["board","🏛 البورد"],["photos","🖼 الصور"]];
+  const sc=D.members.map(score),avg=sc.length?Math.round(sc.reduce((a,b)=>a+b,0)/sc.length):0;
+  let sub="";
+  if(S.tab==="members")sub=(pend?`<div class="card" style="border-color:var(--warn)"><div class="row"><b style="flex:1">🆕 ${pend} طلب تسجيل جديد</b><button onclick="S.tab='req';render()">مراجعة</button></div></div>`:"")+`<div class="grid"><div class="card"><div class="mu">إجمالي الأعضاء</div><div class="big">${D.members.length}</div></div><div class="card"><div class="mu">متوسط التقييم</div><div class="big">${avg}</div></div></div><div style="height:12px"></div>`+D.members.map(m=>memberCard(m,true)).join("");
+  else if(S.tab==="req")sub=reqView();
+  else if(S.tab==="committees")sub=comms().map(c=>{const r=D.members.filter(m=>m.committee===c).sort((a,b)=>score(b)-score(a)),a=Math.round(r.reduce((s,m)=>s+score(m),0)/r.length);return`<div class="card"><div class="row" style="justify-content:space-between"><b>لجنة ${esc(c)}</b><span class="mu">${r.length} أعضاء · متوسط ${a}</span></div>${r.map((m,i)=>`<div class="lb"><span>${i+1}</span>${avatar(m)}<span style="flex:1">${esc(nm(m.name))}</span><b>${score(m)}</b></div>`).join("")}</div>`}).join("")||'<p class="mu">أضف أعضاء أولاً.</p>';
+  else if(S.tab==="dash"){const wl=D.members.map(m=>[m,wc(m)]).filter(x=>x[1]).sort((a,b)=>b[1]-a[1]);
+    sub=`<div class="card"><b>🏆 أفضل 5 في الفريق</b>${[...D.members].sort((a,b)=>score(b)-score(a)).slice(0,5).map((m,i)=>`<div class="lb"><span>${i+1}</span>${avatar(m)}<span style="flex:1">${esc(nm(m.name))} <span class="mu">· ${esc(m.committee)}</span></span>${trend(delta(m))}<b>${score(m)}</b></div>`).join("")}</div>
+    <div class="card"><b>⚠️ يحتاجون متابعة (أقل من 75% أو في النازل)</b>${D.members.filter(m=>score(m)/maxS(m.committee)<0.75||delta(m)<=-5).map(m=>`<div class="lb"><span style="flex:1">${esc(nm(m.name))}</span>${trend(delta(m))}<b>${score(m)}</b></div>`).join("")||'<p class="mu">لا أحد 👏</p>'}</div>
+    <div class="card"><b>🚨 الإنذارات</b>${wl.map(([m,n])=>`<div class="lb"><span style="flex:1">${esc(nm(m.name))} <span class="mu">· ${esc(m.committee)}</span></span><span class="pill dn">${n}</span></div>`).join("")||'<p class="mu">لا توجد إنذارات.</p>'}</div>`;}
+  else if(S.tab==="announce"){const all=[...new Set(D.members.flatMap(m=>months(m)))].sort().reverse();
+    sub=`<div class="card"><b>📢 إعلان تقييم الشهر</b><p class="mu">تقييمات أي شهر بتفضل مخفية عن الأعضاء لحد ما تعلنها من هنا، وبتظهر لكل الأعضاء في نفس الوقت.</p>${all.map(k=>{const on=D.ann.includes(k),n=D.members.filter(m=>m.rec[k]).length;return`<div class="lb"><span style="flex:1"><b>${ml(k)}</b> <span class="mu">· ${n} تقييم من ${D.members.length}</span></span>${on?`<span class="pill up">معلن</span><button class="g" onclick="announce('${k}',false)">سحب الإعلان</button>`:`<span class="pill st">غير معلن</span><button onclick="announce('${k}',true)">📢 إعلان</button>`}</div>`}).join("")||'<p class="mu">سجّل تقييمات أولاً.</p>'}</div>`;}
+  else if(S.tab==="seen")sub=seenView();
+  else if(S.tab==="hr")sub=hrView();
+  else if(S.tab==="board")sub=boardAdminView();
+  else sub=photosView();
+  return topbar(`<button onclick="S.modal={t:'mem'};render()">+ عضو</button><button class="g" onclick="backup()" title="نسخة احتياطية">⬇ Excel</button>`)+tabBar(tabs)+sub;
+}
+function mgrView(){
+  const mine=myFollows();
+  return topbar()+tabBar([["follow","متابعة الأعضاء"],["me","حسابي"],["leaders","👥 المسؤولون"]])+
+  (S.tab==="me"?memberView(me,true):S.tab==="leaders"?leadersView(me.committee):`<p class="mu">بتتابع ${mine.length} عضو</p>`+(mine.map(m=>memberCard(m,false)).join("")||'<p class="mu">لم تُحدَّد لك متابعات بعد.</p>'));
+}
+
+/* ---------- النوافذ ---------- */
+function modal(){
+  const t=S.modal,m=D.members.find(x=>x.id===t.id);
+  if(t.t==="photo"){const x=PH[t.i];if(!x)return"";return`<div class="ov" onclick="if(event.target===this)closeM()"><div class="card" style="text-align:center"><img src="${esc(x.u)}" alt="" style="max-width:100%;max-height:60vh;border-radius:14px"><p><b>${esc(nm(x.n))}</b></p><div class="row" style="justify-content:center"><button onclick="dlPhoto(${t.i})">⬇ تحميل بجودة كاملة</button><button class="g" onclick="closeM()">إغلاق</button></div></div></div>`}
+  if(t.t==="brd"){const b=D.board.find(x=>x.id===t.id);return`<div class="ov"><div class="card"><b>${b?"تعديل":"إضافة"} عضو بورد</b>
+    <label>الاسم</label><input id="bn" value="${esc(b?.name)}"><label>المنصب</label><input id="bp" value="${esc(b?.position)}" placeholder="مثال: Vice President">
+    <label>مسؤول عن لجنة</label><select id="bc"><option value="">كل اللجان</option>${COM.map(c=>`<option ${b?.committee===c?"selected":""}>${c}</option>`).join("")}</select>
+    <label>الصورة</label><input type="file" accept="image/*" onchange="bFile=this.files[0]">${b?.photo_url?'<p class="mu">سيب الصورة فاضية للإبقاء على الحالية.</p>':""}
+    <p class="err" id="mm"></p><div class="row" style="margin-top:12px"><button onclick="saveBoard('${b?.id||""}')">حفظ</button><button class="g" onclick="closeM(true)">إلغاء</button></div></div></div>`}
+  if(t.t==="mem"){
+    const fl=D.follows.filter(f=>f.manager_id===m?.id).map(f=>f.member_id);
+    return`<div class="ov"><div class="card"><b>${m?"تعديل عضو":"إضافة عضو"}</b> <span class="mu" id="ds"></span>
+    <label>الإيميل (هيسجل بيه)</label><input id="me" type="email" dir="ltr" value="${esc(m?.email)}"><label>الاسم</label><input id="mn" value="${esc(m?.name)}"><label>الدور</label><input id="mr" value="${esc(m?.role)}">
+    <label>اللجنة</label><select id="mc" onchange="togFl()">${[...new Set([...COM,m?.committee].filter(Boolean))].map(c=>`<option ${c===m?.committee?"selected":""}>${esc(c)}</option>`).join("")}</select>
+    <div id="flw" style="display:${(m?.committee||"PR")==="HR"?"block":"none"}"><label>الأعضاء اللي هيضيفهم ويعدّل تقييمهم (هو بس يشوفهم)</label><input placeholder="بحث بالاسم..." oninput="filterFl(this.value)">
+    <div style="max-height:170px;overflow:auto;margin-top:6px">${D.members.filter(x=>x.id!==m?.id).map(x=>`<label class="fli" data-n="${esc(x.name)} ${esc(x.committee)}" style="display:flex;gap:6px;align-items:center;margin:2px 0;color:var(--tx)"><input type="checkbox" class="fl" value="${x.id}" style="width:auto" ${fl.includes(x.id)?"checked":""}>${esc(nm(x.name))} <span class="mu">${esc(x.committee)}</span></label>`).join("")}</div></div>
+    <p class="err" id="mm"></p><div class="row" style="margin-top:12px"><button onclick="saveMem('${m?.id||""}')">حفظ</button><button class="g" onclick="closeM(true)">إلغاء</button>${m&&m.id!==me?.id?`<button class="d" onclick="delMem('${m.id}')">حذف</button>`:""}</div></div></div>`;}
+  if(!m)return"";
+  if(t.t==="view")return`<div class="ov" onclick="if(event.target===this)closeM()"><div class="card">${memberView(m,false)}<button class="g" onclick="closeM()">إغلاق</button></div></div>`;
+  if(t.t==="hist"){const ms=months(m).sort().reverse(),mx=maxS(m.committee);
+    return`<div class="ov"><div class="card"><b>سجل تقييمات: ${esc(nm(m.name))}</b>${ms.map(k=>{const sc=mscore(m.rec[k],m.committee),g=grade(sc);return`<div class="lb" style="flex-wrap:wrap"><span style="flex:1"><b>${ml(k)}</b> <span class="mu">${sc} / ${mx}</span> ${g?`<span class="pill up">${g}</span>`:""} ${D.ann.includes(k)?'<span class="pill up">معلن</span>':'<span class="pill st">غير معلن</span>'}</span>${isAdm()?`<button class="g" onclick="S.modal={t:'rec',id:'${m.id}',mo:'${k}'};render()">تعديل</button><button class="g" onclick="editTotal('${m.id}','${k}')">الإجمالي</button><button class="g" onclick="delRec('${m.id}','${k}')">×</button>`:""}</div>`}).join("")||'<p class="mu">لا توجد تقييمات.</p>'}<div class="row" style="margin-top:12px"><button class="g" onclick="closeM()">إغلاق</button></div></div></div>`;}
+  if(t.t==="warn"){const L=D.warn.filter(x=>x.member_id===m.id).sort((a,b)=>b.d.localeCompare(a.d));
+    return`<div class="ov"><div class="card"><b>إنذارات: ${esc(nm(m.name))}</b> <span class="pill dn">${L.length}</span>${L.map(x=>`<div class="lb"><span class="mu">${esc(x.d)}</span><span style="flex:1">${esc(x.reason||"—")}</span><button class="g" onclick="delWarn('${x.id}')">×</button></div>`).join("")}
+    <label>تاريخ الإنذار</label><input id="wd" type="date" value="${today()}"><label>السبب</label><input id="wr"><p class="err" id="mm"></p>
+    <div class="row" style="margin-top:12px"><button class="d" onclick="addWarn('${m.id}')">إضافة إنذار</button><button class="g" onclick="closeM()">إغلاق</button></div></div></div>`;}
+  const now=curMonth();
+  return`<div class="ov"><div class="card"><b>تقييم شهر: ${esc(nm(m.name))}</b> <span class="mu" id="ds"></span><label>الشهر</label><input id="rm" type="month" value="${t.mo||now}" onchange="fillRec('${m.id}')">
+  ${ks(m.committee).map(([id,l])=>`<label>${l} (المنجز / المطلوب)</label><div class="row"><input id="${id}a" type="number" min="0" placeholder="منجز"><input id="${id}b" type="number" min="0" placeholder="مطلوب"></div><div id="lg_${id}"></div><button type="button" class="g" style="margin-top:6px" onclick="addLog('${id}')">+ إضافة تاريخ</button><div id="ex_${id}"></div><button type="button" class="g" style="margin-top:6px" onclick="addEx('${id}')">+ إضافة اعتذار</button>`).join("")}
+  ${xs(m.committee).map(([k,l])=>`<label>${l} (من ${cfg(m.committee).x[k]})</label><input id="${k}" type="number" min="0" max="${cfg(m.committee).x[k]}" step="0.5">`).join("")}
+  <label>درجة إجمالية يدوية من 0 إلى ${maxS(m.committee)} (اختياري، لو كتبتها بتحل محل الحساب التلقائي)</label><input id="rmn" type="number" min="0" max="${maxS(m.committee)}" placeholder="سيبها فاضية للحساب التلقائي">
+  <p class="err" id="mm"></p><div class="row" style="margin-top:12px"><button onclick="saveRec('${m.id}')">حفظ التقييم</button><button class="g" onclick="closeM(true)">إلغاء</button></div></div></div>`;
+}
+function togFl(){const w=document.getElementById("flw"),c=$("#mc");if(w&&c)w.style.display=c.value==="HR"?"block":"none"}
+function filterFl(q){q=q.trim();document.querySelectorAll(".fli").forEach(e=>e.style.display=(!q||e.dataset.n.includes(q))?"flex":"none")}
+async function saveMem(id){
+  const v=s=>$(s).value.trim(),row={email:v("#me").toLowerCase(),name:v("#mn"),role:v("#mr")||"عضو",committee:v("#mc")};
+  if(!row.email||!row.name||!row.committee){$("#mm").textContent="الإيميل والاسم واللجنة مطلوبين";return}
+  let mid=id;
+  if(id){const r=await sb.from("members").update(row).eq("id",id);if(r.error){$("#mm").textContent=r.error.message;return}}
+  else{const r=await sb.from("members").insert(row).select("id").single();if(r.error){$("#mm").textContent=r.error.message;return}mid=r.data.id}
+  const picks=row.committee==="HR"?[...document.querySelectorAll(".fl:checked")].map(x=>x.value):[];
+  const d=await sb.from("follows").delete().eq("manager_id",mid);if(d.error){$("#mm").textContent=d.error.message;return}
+  if(picks.length){const f=await sb.from("follows").insert(picks.map(p=>({manager_id:mid,member_id:p})));if(f.error){$("#mm").textContent=f.error.message;return}}
+  try{localStorage.removeItem("tm-draft:mem:"+(id||"new"))}catch(e){}
+  S.modal=null;await load();render();
+}
+async function saveBoard(id){
+  const v=s=>$(s).value.trim(),row={name:v("#bn"),position:v("#bp"),committee:v("#bc")||null};
+  if(!row.name||!row.position){$("#mm").textContent="الاسم والمنصب مطلوبين";return}
+  try{
+    if(bFile){const blob=await resizeImg(bFile,800),path=(id||crypto.randomUUID())+".jpg";
+      const up=await sb.storage.from("board").upload(path,blob,{upsert:true,contentType:"image/jpeg"});if(up.error)throw up.error;
+      row.photo_url=sb.storage.from("board").getPublicUrl(path).data.publicUrl+"?v="+Date.now()}
+    const r=id?await sb.from("board").update(row).eq("id",id):await sb.from("board").insert(row);if(r.error)throw r.error;
+  }catch(e){$("#mm").textContent=e.message||String(e);return}
+  bFile=null;S.modal=null;await load();render();
+}
+async function delBoard(id){if(!confirm("حذف من البورد؟"))return;const r=await sb.from("board").delete().eq("id",id);if(r.error)return alert(r.error.message);await load();render()}
+async function dlPhoto(i){
+  const x=PH[i];if(!x)return;
+  try{const b=await (await fetch(x.u)).blob(),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=nm(x.n||"photo")+".jpg";a.click()}
+  catch(e){window.open(x.u,"_blank")}
+}
+async function editTotal(id,k){
+  const m=D.members.find(x=>x.id===id),r={...m.rec[k]},mx=maxS(m.committee);
+  const v=prompt(`الدرجة الإجمالية لشهر ${ml(k)} (من ${mx}).\nسيبها فاضية للرجوع للحساب التلقائي.`,r.man!=null?r.man:mscore(r,m.committee));
+  if(v===null)return;
+  if(v.trim()==="")delete r.man;else r.man=Math.max(0,Math.min(mx,+v||0));
+  const x=await sb.from("records").upsert({member_id:id,month:k,data:r},{onConflict:"member_id,month"});if(x.error)return alert(x.error.message);
+  await load();render();
+}
+async function delRec(id,k){if(!confirm("حذف تقييم الشهر ده؟"))return;const x=await sb.from("records").delete().eq("member_id",id).eq("month",k);if(x.error)return alert(x.error.message);await load();render()}
+
+/* ---------- الحفظ التلقائي للمسودات ---------- */
+function clearDraft(id,mo){try{localStorage.removeItem(dk(id,mo))}catch(e){}}
+function closeM(discard){
+  if(discard&&S.modal){
+    if(S.modal.t==="rec")clearDraft(S.modal.id,S.modal.mo||($("#rm")&&$("#rm").value));
+    if(S.modal.t==="mem"){try{localStorage.removeItem("tm-draft:mem:"+(S.modal.id||"new"))}catch(e){}}
+  }
+  S.modal=null;try{localStorage.removeItem("tm-open-modal")}catch(e){}render();
+}
+function draftCollect(){
+  const g=i=>document.getElementById(i),v=i=>g(i)?g(i).value:"",m=D.members.find(x=>x.id===S.modal.id),o={f:{},log:{},exc:{}};
+  ks(m.committee).forEach(([i])=>{o.f[i+"a"]=v(i+"a");o.f[i+"b"]=v(i+"b");
+    o.log[i]=[...g("lg_"+i).children].map(e=>({d:e.querySelector(".ld").value,n:e.querySelector(".ln").value,q:e.querySelector(".lq")?e.querySelector(".lq").value:"",l:e.querySelector(".ll")?e.querySelector(".ll").checked:false}));
+    o.exc[i]=[...g("ex_"+i).children].map(e=>({d:e.querySelector(".ed").value,n:e.querySelector(".en").value,a:e.querySelector(".ea").value==="1"}))});
+  xs(m.committee).forEach(([k])=>o.f[k]=v(k));o.f.rmn=v("rmn");return o;
+}
+function applyDraft(id){
+  let raw=null;try{raw=localStorage.getItem(dk(id,S.modal.mo))}catch(e){}
+  if(!raw)return;
+  try{const o=JSON.parse(raw).data,m=D.members.find(x=>x.id===id);
+    ks(m.committee).forEach(([i])=>{$("#lg_"+i).innerHTML="";$("#ex_"+i).innerHTML="";(o.log[i]||[]).forEach(x=>addLog(i,x.d,x.n,x.q,x.l));(o.exc[i]||[]).forEach(x=>addEx(i,x.d,x.n,x.a))});
+    Object.keys(o.f).forEach(k=>{const el=document.getElementById(k);if(el)el.value=o.f[k]});
+    const ds=document.getElementById("ds");if(ds)ds.textContent="↺ تم استرجاع مسودتك";
+  }catch(e){}
+}
+function memDraftCollect(){return{me:$("#me").value,mn:$("#mn").value,mr:$("#mr").value,mc:$("#mc").value,fl:[...document.querySelectorAll(".fl:checked")].map(x=>x.value)}}
+function applyMemDraft(){
+  let raw=null;try{raw=localStorage.getItem("tm-draft:mem:"+(S.modal.id||"new"))}catch(e){}
+  if(!raw)return;
+  try{const o=JSON.parse(raw).data;["me","mn","mr","mc"].forEach(k=>{if(o[k]!=null&&$("#"+k))$("#"+k).value=o[k]});document.querySelectorAll(".fl").forEach(x=>x.checked=o.fl.includes(x.value));togFl();const ds=document.getElementById("ds");if(ds)ds.textContent="↺ تم استرجاع مسودتك"}catch(e){}
+}
+function draftSave(e){
+  if(!S.modal||!me||(e&&e.target&&e.target.id==="rm"))return;
+  clearTimeout(dT);
+  dT=setTimeout(()=>{try{
+    const ds=document.getElementById("ds");
+    if(S.modal.t==="rec"&&document.getElementById("rm")){
+      localStorage.setItem(dk(S.modal.id,S.modal.mo||$("#rm").value),JSON.stringify({data:draftCollect(),ts:Date.now()}));
+      localStorage.setItem("tm-open-modal",JSON.stringify(S.modal));if(ds)ds.textContent="✓ تم الحفظ التلقائي";
+    }else if(S.modal.t==="mem"&&document.getElementById("mn")){
+      localStorage.setItem("tm-draft:mem:"+(S.modal.id||"new"),JSON.stringify({data:memDraftCollect(),ts:Date.now()}));
+      localStorage.setItem("tm-open-modal",JSON.stringify(S.modal));if(ds)ds.textContent="✓ تم الحفظ التلقائي";
+    }
+  }catch(err){}},350);
+}
 function render(){
   let h;
   if(S.recover)h=recoverView();
   else if(!session)h=loginView();
   else if(!loaded)h=`<div class="auth"><div class="box"><div class="crest">YLY</div><p class="sub">جاري تحميل بياناتك…</p></div></div>`;
-  else if(!me)h=topbar()+`<div class="card"><p>${S.msg?esc(S.msg):"الإيميل ده مش مسجل عند الأدمن. كلّمه عشان يضيفك ثم سجل دخول تاني."}</p></div>`;
+  else if(!me){const st=S.signup;h=topbar()+`<div class="card"><b>${st==="rejected"?"تم رفض طلبك":"طلبك قيد المراجعة"}</b><p>${st==="rejected"?"تواصل مع الإدارة لو فيه خطأ.":st==="pending"?"تم استلام طلب تسجيلك، وهيتفعّل حسابك أول ما الإدارة توافق عليه.":(S.msg?esc(S.msg):"الإيميل ده مش مسجل عند الأدمن. كلّمه عشان يضيفك ثم سجل دخول تاني.")}</p><button class="g" onclick="refresh()">تحديث</button></div>`}
   else if(isAdm())h=adminView();
   else if(isMgr())h=mgrView();
-  else h=topbar()+memberView(me,true);
-  const canEdit=isAdm()||isMgr(),ok=S.modal&&canEdit&&(isAdm()||["rec","view"].includes(S.modal.t));
+  else h=topbar()+tabBar([["me","حسابي"],["leaders","👥 مسؤولو اللجنة"]])+(S.tab==="leaders"?leadersView(me.committee):memberView(me,true));
+  const ok=!!(S.modal&&me&&(isAdm()||(isMgr()&&["rec","view","hist"].includes(S.modal.t))));
   $("#app").innerHTML=h+(ok?modal():"");
   if(ok&&S.modal.t==="rec")fillRec(S.modal.id);
+  if(ok&&S.modal.t==="mem")applyMemDraft();
+  try{if(ok&&["rec","mem"].includes(S.modal.t))localStorage.setItem("tm-open-modal",JSON.stringify(S.modal));else if(!S.modal)localStorage.removeItem("tm-open-modal")}catch(e){}
 }
+
 boot();
 
 </script>
