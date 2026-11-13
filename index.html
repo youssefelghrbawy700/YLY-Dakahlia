@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>YLY Dakahlia </title>
+<title>YLY Dakahlia · تيم ميتر</title>
 <style>
 :root{--card:rgba(15,21,46,.42);--tx:#f1f4ff;--mu:#a6aecd;--bd:rgba(255,255,255,.13);--pr:#5b7cff;--pr2:#7c5cff;--ok:#34d399;--bad:#f87171;--warn:#fbbf24;--inp:rgba(255,255,255,.07);--bg:#0b1020;--o1:rgba(7,12,34,.3);--o2:rgba(7,12,34,.55)}
 :root[data-theme="light"]{--card:rgba(255,255,255,.62);--tx:#131a33;--mu:#59628a;--bd:rgba(19,26,51,.12);--pr:#2f4fdc;--pr2:#5b3fd6;--ok:#10b981;--bad:#ef4444;--warn:#d97706;--inp:#fff;--bg:#eef1fb;--o1:rgba(238,241,251,.28);--o2:rgba(238,241,251,.5)}
@@ -70,7 +70,7 @@ body{background:#fff!important}
 </head>
 <body>
 <div class="w" id="app"><p class="mu">جاري التحميل…</p></div>
-<footer class="ft">Developed by Mr. Youssef El-Gharbawy</footer>
+<footer class="ft">Developed by Mr. Yousef El-Gharbawy</footer>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
 // ===== غيّر القيمتين دول من Supabase: Project Settings > API =====
@@ -205,7 +205,7 @@ function exportPDF(id){
   <div class="card" style="margin-top:12px"><b>تطور الأداء</b>${chart(m)}</div>
   <div class="card"><b>الدرجات الشهرية</b><table class="rt"><tr><th>الشهر</th><th>الدرجة</th></tr>${ms.map(k=>`<tr><td>${ml(k)}</td><td>${mscore(m.rec[k],m.committee)} / ${mx}</td></tr>`).join("")}</table></div>
   <div class="card"><b>تفاصيل شهر ${ml(last(m))}</b>${breakdown(m)}</div>`:'<div class="card">لا توجد تقييمات معلنة بعد.</div>'}
-  <div style="text-align:center;direction:ltr;font-size:12px;color:#59628a;margin-top:18px;padding-top:10px;border-top:1px solid #dfe3f0">Developed by Mr. Youssef El-Gharbawy</div></div>`;
+  <div style="text-align:center;direction:ltr;font-size:12px;color:#59628a;margin-top:18px;padding-top:10px;border-top:1px solid #dfe3f0">Developed by Mr. Yousef El-Gharbawy</div></div>`;
   // التقرير بيتطبع من صفحة مستقلة (تبويب جديد) عشان مايتأثرش بخلفية الموقع وستايل الطباعة
   const css=[...document.querySelectorAll("style")].map(x=>x.textContent).join("\n");
   const doc=`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>تقرير ${esc(nm(m.name))}</title><style>${css}
@@ -227,6 +227,11 @@ function backup(){
 let touched=false,restored=false,bFile=null,dT=null,PH=[];
 const emptyD=()=>({members:[],warn:[],ann:[],signups:[],follows:[],board:[]});
 const nm=n=>String(n||"").trim().split(/\s+/).slice(0,2).join(" ");
+const bCom=b=>Array.isArray(b.committees)&&b.committees.length?b.committees:(b.committee?[b.committee]:[]);
+const COM4=COM.filter(c=>c!=="Board");
+const myBoard=()=>me?D.board.filter(b=>b.member_id===me.id):[];
+const myBCom=()=>[...new Set(myBoard().flatMap(bCom))];
+const isBoardAcc=()=>!!(me&&!me.is_admin&&myBCom().length);
 const isMgr=()=>!!(me&&!me.is_admin&&D.follows.some(f=>f.manager_id===me.id));
 const curMonth=()=>new Date().toISOString().slice(0,7);
 const ago=t=>{if(!t)return"لم يدخل بعد";const s=(Date.now()-new Date(t))/1000;if(s<90)return"دلوقتي";if(s<3600)return"من "+Math.round(s/60)+" دقيقة";if(s<86400)return"من "+Math.round(s/3600)+" ساعة";return"من "+Math.round(s/86400)+" يوم"};
@@ -309,9 +314,22 @@ function memberCard(m,adm){
   <button class="g" onclick="S.modal={t:'rec',id:'${m.id}'};render()">+ تقييم شهر</button><button class="g" onclick="S.modal={t:'hist',id:'${m.id}'};render()">الشهور</button><button class="g" onclick="S.modal={t:'view',id:'${m.id}'};render()">عرض</button>
   ${adm?`<button class="g" onclick="S.modal={t:'warn',id:'${m.id}'};render()">إنذار</button><button class="g" onclick="S.modal={t:'mem',id:'${m.id}'};render()">تعديل</button>`:""}</div></div>`;
 }
-const boardCard=(b,adm)=>`<div class="card" style="text-align:center">${b.photo_url?`<img src="${esc(b.photo_url)}" alt="" style="width:96px;height:96px;border-radius:24px;object-fit:cover">`:`<div class="av lg" style="margin:0 auto;width:96px;height:96px;font-size:36px">${esc((b.name||"?")[0])}</div>`}<div style="margin-top:8px"><b>${esc(nm(b.name))}</b></div><div class="mu">${esc(b.position)}</div><div class="mu">${b.committee?"لجنة "+esc(b.committee):"كل اللجان"}</div>${adm?`<div class="row" style="justify-content:center;margin-top:8px"><button class="g" onclick="bFile=null;S.modal={t:'brd',id:'${b.id}'};render()">تعديل</button><button class="g" onclick="delBoard('${b.id}')">حذف</button></div>`:""}</div>`;
+const boardCard=(b,adm)=>`<div class="card" style="text-align:center">${b.photo_url?`<img src="${esc(b.photo_url)}" alt="" style="width:96px;height:96px;border-radius:24px;object-fit:cover">`:`<div class="av lg" style="margin:0 auto;width:96px;height:96px;font-size:36px">${esc((b.name||"?")[0])}</div>`}<div style="margin-top:8px"><b>${esc(nm(b.name))}</b></div><div class="mu">${esc(b.position)}</div><div class="mu">${(()=>{const c=bCom(b);return!c.length||c.length>=COM4.length?"كل اللجان":"لجنة "+c.map(esc).join(" + ")})()}</div>${adm&&b.member_id?`<div class="mu" style="font-size:12px">🔑 ${esc(nm((D.members.find(x=>x.id===b.member_id)||{}).name||"حساب"))} · يشوف تقييمات لجنته أول بأول</div>`:""}${adm?`<div class="row" style="justify-content:center;margin-top:8px"><button class="g" onclick="bFile=null;S.modal={t:'brd',id:'${b.id}'};render()">تعديل</button><button class="g" onclick="delBoard('${b.id}')">حذف</button></div>`:""}</div>`;
+function bcomView(){
+  const cs=myBCom();
+  if(!cs.length)return'<div class="card"><p class="mu" style="margin:0">لم تُحدد لك لجنة بعد.</p></div>';
+  const c=cs.includes(S.bcc)?S.bcc:cs[0],L=D.members.filter(m=>m.committee===c);
+  const opts=[...new Set(L.flatMap(m=>months(m)))].sort().reverse(),mo=opts.includes(S.bcm)?S.bcm:(opts[0]||null);
+  const sc=m=>mo&&m.rec[mo]?mscore(m.rec[mo],m.committee):-1,rows=[...L].sort((a,b)=>sc(b)-sc(a));
+  const ann=mo&&D.ann.includes(mo);
+  return`<div class="card">${cs.length>1?`<label style="margin:0 0 6px">اللجنة</label><select onchange="S.bcc=this.value;S.bcm=null;render()">${cs.map(x=>`<option ${x===c?"selected":""}>${esc(x)}</option>`).join("")}</select>`:`<b>لجنة ${esc(c)}</b>`}
+  ${opts.length?`<label>الشهر</label><select onchange="S.bcm=this.value;render()">${opts.map(k=>`<option value="${k}" ${k===mo?"selected":""}>${ml(k)}</option>`).join("")}</select> <span class="pill ${ann?"up":"st"}" style="margin-top:8px">${ann?"معلن":"غير معلن · لسه مخفي عن الأعضاء"}</span>`:'<p class="mu" style="margin:8px 0 0">لا توجد تقييمات مسجلة بعد.</p>'}</div>`+
+  rows.map(m=>{const v=sc(m),g=v>=0?grade(v):"",mx=maxS(m.committee);return`<div class="card"><div class="row">${avatar(m)}<div style="flex:1"><b>${esc(nm(m.name))}</b><div class="mu">${esc(m.role||"")}</div></div>${g?`<span class="pill ${"AB".includes(g)?"up":g==="C"?"st":"dn"}">التقدير ${g}</span>`:""}<div class="big" style="font-size:26px">${v>=0?v:"—"}</div></div>
+  ${v>=0?`<div class="bar" style="margin:8px 0"><i style="width:${Math.min(100,v/mx*100)}%"></i></div>`:'<div class="mu" style="margin-top:6px">لم يُسجَّل تقييم لهذا الشهر</div>'}
+  <div class="row"><span style="flex:1"></span><button class="g" onclick="S.modal={t:'hist',id:'${m.id}'};render()">الشهور</button><button class="g" onclick="S.modal={t:'view',id:'${m.id}'};render()">عرض</button></div></div>`}).join("");
+}
 function leadersView(c){
-  const L=D.board.filter(b=>!b.committee||b.committee===c);
+  const L=D.board.filter(b=>!bCom(b).length||bCom(b).includes(c));
   return`<div class="card"><b>👥 مسؤولو لجنة ${esc(c)}</b></div>`+(L.length?`<div class="grid">${L.map(b=>boardCard(b,false)).join("")}</div>`:'<div class="card"><p class="mu" style="margin:0">لم تتم إضافة مسؤولين بعد.</p></div>');
 }
 function reqView(){
@@ -394,8 +412,8 @@ function adminView(){
 }
 function mgrView(){
   const mine=myFollows();
-  return topbar()+tabBar([["follow","متابعة الأعضاء"],["me","حسابي"],["leaders","👥 المسؤولون"]])+
-  (S.tab==="me"?memberView(me,true):S.tab==="leaders"?leadersView(me.committee):`<p class="mu">بتتابع ${mine.length} عضو</p>`+(mine.map(m=>memberCard(m,false)).join("")||'<p class="mu">لم تُحدَّد لك متابعات بعد.</p>'));
+  return topbar()+tabBar([["follow","متابعة الأعضاء"],["me","حسابي"],["leaders","👥 المسؤولون"]].concat(isBoardAcc()?[["bcom","📊 لجنتي"]]:[]))+
+  (S.tab==="me"?memberView(me,true):S.tab==="leaders"?leadersView(me.committee):S.tab==="bcom"&&isBoardAcc()?bcomView():`<p class="mu">بتتابع ${mine.length} عضو</p>`+(mine.map(m=>memberCard(m,false)).join("")||'<p class="mu">لم تُحدَّد لك متابعات بعد.</p>'));
 }
 
 /* ---------- النوافذ ---------- */
@@ -404,7 +422,9 @@ function modal(){
   if(t.t==="photo"){const x=PH[t.i];if(!x)return"";return`<div class="ov" onclick="if(event.target===this)closeM()"><div class="card" style="text-align:center"><img src="${esc(x.u)}" alt="" style="max-width:100%;max-height:60vh;border-radius:14px"><p><b>${esc(nm(x.n))}</b></p><div class="row" style="justify-content:center"><button onclick="dlPhoto(${t.i})">⬇ تحميل بجودة كاملة</button><button class="g" onclick="closeM()">إغلاق</button></div></div></div>`}
   if(t.t==="brd"){const b=D.board.find(x=>x.id===t.id);return`<div class="ov"><div class="card"><b>${b?"تعديل":"إضافة"} عضو بورد</b>
     <label>الاسم</label><input id="bn" value="${esc(b?.name)}"><label>المنصب</label><input id="bp" value="${esc(b?.position)}" placeholder="مثال: Vice President">
-    <label>مسؤول عن لجنة</label><select id="bc"><option value="">كل اللجان</option>${COM.map(c=>`<option ${b?.committee===c?"selected":""}>${c}</option>`).join("")}</select>
+    <label>مسؤول عن اللجان (اختار واحدة أو أكتر)</label><div class="row" style="gap:14px">${COM4.map(c=>`<label style="display:flex;gap:6px;align-items:center;margin:0;color:var(--tx)"><input type="checkbox" class="bcm" value="${c}" style="width:auto" ${b&&bCom(b).includes(c)?"checked":""}>${c}</label>`).join("")}</div>
+    <label>حساب المسؤول (اختياري)</label><select id="bm"><option value="">بدون حساب (عرض فقط في صفحة المسؤولين)</option>${[...D.members].sort((x,y)=>nm(x.name).localeCompare(nm(y.name),"ar")).map(x=>`<option value="${x.id}" ${b?.member_id===x.id?"selected":""}>${esc(nm(x.name))} · ${esc(x.committee)}</option>`).join("")}</select>
+    <p class="mu" style="font-size:12px;margin:4px 0 0">لو اخترت حساب: صاحبه هيشوف تقييمات اللجان المختارة كلها أول بأول حتى قبل الإعلان (عرض فقط).</p>
     <label>الصورة</label><input type="file" accept="image/*" onchange="bFile=this.files[0]">${b?.photo_url?'<p class="mu">سيب الصورة فاضية للإبقاء على الحالية.</p>':""}
     <p class="err" id="mm"></p><div class="row" style="margin-top:12px"><button onclick="saveBoard('${b?.id||""}')">حفظ</button><button class="g" onclick="closeM(true)">إلغاء</button></div></div></div>`}
   if(t.t==="mem"){
@@ -445,8 +465,9 @@ async function saveMem(id){
   S.modal=null;await load();render();
 }
 async function saveBoard(id){
-  const v=s=>$(s).value.trim(),row={name:v("#bn"),position:v("#bp"),committee:v("#bc")||null};
+  const v=s=>$(s).value.trim(),cs=[...document.querySelectorAll(".bcm:checked")].map(x=>x.value),row={name:v("#bn"),position:v("#bp"),committees:cs,committee:cs.length===1?cs[0]:null,member_id:v("#bm")||null};
   if(!row.name||!row.position){$("#mm").textContent="الاسم والمنصب مطلوبين";return}
+  if(row.member_id&&!cs.length){$("#mm").textContent="اختار لجنة واحدة على الأقل لحساب المسؤول";return}
   try{
     if(bFile){const blob=await resizeImg(bFile,800),path=(id||crypto.randomUUID())+".jpg";
       const up=await sb.storage.from("board").upload(path,blob,{upsert:true,contentType:"image/jpeg"});if(up.error)throw up.error;
@@ -524,8 +545,9 @@ function render(){
   else if(!me){const st=S.signup;h=topbar()+`<div class="card"><b>${st==="rejected"?"تم رفض طلبك":"طلبك قيد المراجعة"}</b><p>${st==="rejected"?"تواصل مع الإدارة لو فيه خطأ.":st==="pending"?"تم استلام طلب تسجيلك، وهيتفعّل حسابك أول ما الإدارة توافق عليه.":(S.msg?esc(S.msg):"الإيميل ده مش مسجل عند الأدمن. كلّمه عشان يضيفك ثم سجل دخول تاني.")}</p><button class="g" onclick="refresh()">تحديث</button></div>`}
   else if(isAdm())h=adminView();
   else if(isMgr())h=mgrView();
+  else if(isBoardAcc())h=topbar()+tabBar([["bcom","📊 تقييمات لجنتي"],["me","حسابي"],["leaders","👥 مسؤولو اللجنة"]])+(S.tab==="me"?memberView(me,true):S.tab==="leaders"?leadersView(me.committee):bcomView());
   else h=topbar()+tabBar([["me","حسابي"],["leaders","👥 مسؤولو اللجنة"]])+(S.tab==="leaders"?leadersView(me.committee):memberView(me,true));
-  const ok=!!(S.modal&&me&&(isAdm()||(isMgr()&&["rec","view","hist"].includes(S.modal.t))));
+  const ok=!!(S.modal&&me&&(isAdm()||(isMgr()&&["rec","view","hist"].includes(S.modal.t))||(isBoardAcc()&&["view","hist"].includes(S.modal.t))));
   $("#app").innerHTML=h+(ok?modal():"");
   if(ok&&S.modal.t==="rec")fillRec(S.modal.id);
   if(ok&&S.modal.t==="mem")applyMemDraft();
