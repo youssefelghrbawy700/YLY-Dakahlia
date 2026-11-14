@@ -604,7 +604,7 @@ async function loadTpl(){try{const r=await sb.from("design_templates").select("*
 const tplList=()=>DT.map((n,i)=>({id:"b"+i,name:n})).concat(TPL.map(t=>({id:"c"+t.id,name:t.name+" ★",t})));
 const tplById=id=>tplList().find(x=>x.id===id);
 function dMonths(){return[...D.ann].sort().reverse().filter(mo=>D.members.some(m=>m.rec&&m.rec[mo]))}
-function dTops(mo){const o={};COM4.forEach(c=>{o[c]=D.members.filter(m=>m.committee===c&&m.rec[mo]).map(m=>({m,s:mscore(m.rec[mo],c)})).filter(x=>x.s>0).sort((a,b)=>b.s-a.s).slice(0,3).map(x=>x.m)});return o}
+function dTops(mo){const o={};COM4.forEach(c=>{const a=D.members.filter(m=>m.committee===c&&m.rec[mo]).map(m=>({m,s:mscore(m.rec[mo],c)})).filter(x=>x.s>0).sort((a,b)=>b.s-a.s),ms=[],rk=[];let r=0,prev=null;a.forEach(x=>{if(prev===null||x.s!==prev){r++;prev=x.s}if(r<=3){ms.push(x.m);rk.push(r)}});ms.ranks=rk;o[c]=ms});return o}
 const dKey=x=>x.mo+"|"+x.c+"|"+x.r;
 const dTplId=x=>{let v=DS[dKey(x)];if(v==null)v=DS[x.mo+"|*"];if(typeof v==="number")v="b"+v;if(v==null||!tplById(v))v="b0";return v};
 function designsView(){
@@ -619,7 +619,7 @@ function designsView(){
   ${TPL.length?`<label>قوالبي</label>${TPL.map(t=>`<div class="lb"><span style="flex:1">${esc(t.name)}</span><button class="g" onclick="edOpenTpl('${t.id}')">✏️ تعديل</button><button class="g" onclick="edOpenTpl('${t.id}',1)">⧉ نسخة</button>${t.canva_url?`<button class="g" onclick="window.open('${esc(t.canva_url)}','_blank')">↗ كانفا</button>`:""}</div>`).join("")}`:""}</div>`;
   if(!ms.length)return head+'<div class="card"><p class="mu" style="margin:0">لا توجد شهور معلنة بعد. أول ما تعلن شهر بتظهر هنا ديزاينات التوب بتاعته.</p></div>';
   const mo=ms.includes(S.dmo)?S.dmo:ms[0],T=dTops(mo),cf=COM4.includes(S.dcf)?S.dcf:"all",L=[];
-  COM4.forEach(c=>{if(cf==="all"||cf===c)T[c].forEach((m,i)=>L.push({c,m,r:i+1,mo}))});
+  COM4.forEach(c=>{if(cf==="all"||cf===c)T[c].forEach((m,i)=>L.push({c,m,r:T[c].ranks[i],mo}))});
   D_LIST=L;
   return head+`<div class="card"><label style="margin-top:0">الشهر</label><select onchange="S.dmo=this.value;render()">${ms.map(k=>`<option value="${k}" ${k===mo?"selected":""}>${ml(k)}</option>`).join("")}</select>
   <label>طبّق تصميم على الكل</label><div class="row">${tl.map(t=>`<button class="g chip" onclick="dAll('${t.id}')">${esc(t.name)}</button>`).join("")}</div></div>
@@ -768,7 +768,7 @@ async function holeOfLayer(L){
 /* ---------- حالة المحرر ---------- */
 let E=null,EQ=0;
 function edQ(){if(!E||EQ)return;EQ=1;requestAnimationFrame(()=>{EQ=0;edDraw()})}
-function edPvList(){const ms=dMonths();if(!ms.length)return[];const mo=ms.includes(S.dmo)?S.dmo:ms[0],T=dTops(mo),L=[];COM4.forEach(c=>T[c].forEach((m,i)=>L.push({c,m,r:i+1,mo})));return L}
+function edPvList(){const ms=dMonths();if(!ms.length)return[];const mo=ms.includes(S.dmo)?S.dmo:ms[0],T=dTops(mo),L=[];COM4.forEach(c=>T[c].forEach((m,i)=>L.push({c,m,r:T[c].ranks[i],mo})));return L}
 async function edLoadPv(){const p=E.pvs[E.pv],img=p.m&&p.m.avatar_url?await dImg(p.m.avatar_url):null;E.o={name:nm(p.m.name||"Youssef Mohamed"),c:p.c,r:p.r,mo:p.mo,img,_ed:true}}
 async function edStart(opt){
   const pvs=edPvList();if(!pvs.length)pvs.push({c:"HR",m:{name:"Youssef Mohamed"},r:1,mo:new Date().toISOString().slice(0,7)});
