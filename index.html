@@ -583,8 +583,16 @@ async function loadTpl(){try{const r=await sb.from("design_templates").select("*
 const tplList=()=>DT.map((n,i)=>({id:"b"+i,name:n})).concat(TPL.map(t=>({id:"c"+t.id,name:t.name+" ★",t})));
 const tplById=id=>tplList().find(x=>x.id===id);
 function dMonths(){return[...D.ann].sort().reverse().filter(mo=>D.members.some(m=>m.rec&&m.rec[mo]))}
-function dTops(mo){const o={};COM4.forEach(c=>{o[c]=D.members.filter(m=>m.committee===c&&m.rec[mo]).map(m=>({m,s:mscore(m.rec[mo],c)})).filter(x=>x.s>0).sort((a,b)=>b.s-a.s).slice(0,3).map(x=>x.m)});return o}
-const dKey=x=>x.mo+"|"+x.c+"|"+x.r;
+function dTops(mo){
+  const o={};
+  COM4.forEach(c=>{
+    const L=D.members.filter(m=>m.committee===c&&m.rec[mo]).map(m=>({m,s:Math.round(mscore(m.rec[mo],c)*100)/100})).filter(x=>x.s>0)
+      .sort((a,b)=>b.s-a.s||nm(a.m.name).localeCompare(nm(b.m.name),"ar"));
+    let rk=0;
+    L.forEach((x,i)=>{if(!i||x.s!==L[i-1].s)rk++;x.r=rk});
+    o[c]=L.filter(x=>x.r<=3)
+  });return o}
+const dKey=x=>x.mo+"|"+x.c+"|"+x.r+"|"+x.m.id;
 const dTplId=x=>{let v=DS[dKey(x)];if(v==null)v=DS[x.mo+"|*"];if(typeof v==="number")v="b"+v;if(v==null||!tplById(v))v="b0";return v};
 function designsView(){
   const ms=dMonths(),tl=tplList();
@@ -594,7 +602,7 @@ function designsView(){
   ${TPL.length?`<label>قوالبي</label>${TPL.map(t=>`<div class="lb"><span style="flex:1">${esc(t.name)}</span>${t.canva_url?`<button class="g" onclick="window.open('${esc(t.canva_url)}','_blank')">✏️ كانفا</button>`:""}<button class="g" onclick="dtOpen('${t.id}')">تعديل</button></div>`).join("")}`:""}</div>`;
   if(!ms.length)return head+'<div class="card"><p class="mu" style="margin:0">لا توجد شهور معلنة بعد. أول ما تعلن شهر بتظهر هنا ديزاينات التوب بتاعته.</p></div>';
   const mo=ms.includes(S.dmo)?S.dmo:ms[0],T=dTops(mo),cf=COM4.includes(S.dcf)?S.dcf:"all",L=[];
-  COM4.forEach(c=>{if(cf==="all"||cf===c)T[c].forEach((m,i)=>L.push({c,m,r:i+1,mo}))});
+  COM4.forEach(c=>{if(cf==="all"||cf===c)T[c].forEach(x=>L.push({c,m:x.m,r:x.r,mo}))});
   D_LIST=L;
   return head+`<div class="card"><label style="margin-top:0">الشهر</label><select onchange="S.dmo=this.value;render()">${ms.map(k=>`<option value="${k}" ${k===mo?"selected":""}>${ml(k)}</option>`).join("")}</select>
   <label>طبّق تصميم على الكل</label><div class="row">${tl.map(t=>`<button class="g chip" onclick="dAll('${t.id}')">${esc(t.name)}</button>`).join("")}</div></div>
@@ -638,9 +646,9 @@ async function dDown(i,btn){
   if(btn){btn.disabled=false;btn.textContent=old}
 }
 /* ---- القوالب المخصصة (ديزاين جاهز من كانفا) ---- */
-const dtDefault=()=>({photo:{x:540,y:520,w:520,h:520,shape:"circle"},name:{on:true,x:540,y:880,size:72,color:"#ffffff",align:"center",max:900,wt:900},rank:{on:true,x:540,y:215,size:60,color:"#f6c453",align:"center",max:900,text:"TOP {r} · {c}",wt:900},month:{on:false,x:540,y:950,size:34,color:"#c9d3ff",align:"center",max:900,text:"{month} {year}",wt:700}});
+const dtDefault=()=>({photo:{x:540,y:520,w:520,h:520,shape:"circle"},name:{on:true,x:540,y:880,size:72,color:"#ffffff",align:"center",max:900,wt:900},rank:{on:true,x:540,y:215,size:60,color:"#f6c453",align:"center",max:900,text:"TOP {r} · {c}",wt:900},month:{on:false,x:540,y:950,size:34,color:"#c9d3ff",align:"center",max:900,text:"{month}",wt:700}});
 const dtCfg=c=>{const d=dtDefault(),o={};Object.keys(d).forEach(k=>o[k]=Object.assign({},d[k],(c&&c[k])||{}));return o};
-const dtPat=(t,o)=>String(t||"").replace(/\{r\}/g,o.r).replace(/\{c\}/g,o.c).replace(/\{name\}/g,o.name).replace(/\{MONTH\}/g,monEn(o.mo).toUpperCase()).replace(/\{month\}/g,monEn(o.mo)).replace(/\{year\}/g,yrEn(o.mo));
+const dtPat=(t,o)=>String(t||"").replace(/\{r\}/g,o.r).replace(/\{c\}/g,o.c).replace(/\{name\}/g,o.name).replace(/\{MONTH\}/g,monEn(o.mo).toUpperCase()).replace(/\{month\}/g,monEn(o.mo)).replace(/\{year\}/g,"").replace(/\s{2,}/g," ").trim();
 function drawCustom(g,t,o,sel){
   const c=dtCfg(t.cfg),box={};
   g.fillStyle=t.mode==="frame"?(t.bgColor||"#0b1b66"):"#111";g.fillRect(0,0,1080,1080);
@@ -694,7 +702,7 @@ function dtView(){
     `<label>اللون</label><input type="color" value="${el.color}" oninput="dtSet('color',this.value)">
      <label>المحاذاة</label><select onchange="dtSet('align',this.value)">${[["center","وسط"],["left","شمال"],["right","يمين"]].map(s=>`<option value="${s[0]}" ${el.align===s[0]?"selected":""}>${s[1]}</option>`).join("")}</select>
      <label>سُمك الخط</label><select onchange="dtSet('wt',+this.value)">${[[600,"عادي"],[800,"عريض"],[900,"عريض جداً"]].map(s=>`<option value="${s[0]}" ${(el.wt||800)===s[0]?"selected":""}>${s[1]}</option>`).join("")}</select>`+
-    (sel!=="name"?`<label>النص (بيتبدّل تلقائي: {r} الترتيب · {c} اللجنة · {month} الشهر · {year} السنة · {name} الاسم)</label><input value="${esc(el.text)}" oninput="dtSet('text',this.value)">`:"");
+    (sel!=="name"?`<label>النص (بيتبدّل تلقائي: {r} الترتيب · {c} اللجنة · {month} الشهر · {name} الاسم)</label><input value="${esc(el.text)}" oninput="dtSet('text',this.value)">`:"");
   return`<div class="ov"><div class="card" style="max-width:540px"><b>${e.id?"تعديل ديزاين":"إضافة ديزاين"}</b>
   <label>اسم الديزاين</label><input value="${esc(e.name)}" oninput="S.dtE.name=this.value">
   <label>ملف التصميم (PNG أو JPG)</label><div class="row"><label class="btn" style="margin:0;color:#fff">اختيار ملف<input type="file" hidden accept="image/png,image/jpeg,image/webp" onchange="dtFile(this.files[0])"></label><span class="mu">${DTF?esc(DTF.name):(e.imageUrl?"✓ مرفوع (اختار ملف جديد لو عايز تبدّله)":"لم يُرفع بعد")}</span></div>
@@ -774,7 +782,7 @@ const DR=[
 (g,o)=>{
   const gr=g.createLinearGradient(0,0,0,1080);gr.addColorStop(0,"#0a1130");gr.addColorStop(1,"#1a2a66");g.fillStyle=gr;g.fillRect(0,0,1080,1080);
   g.save();g.translate(540,540);g.strokeStyle="rgba(240,190,70,.16)";g.lineWidth=14;for(let k=0;k<24;k++){g.rotate(Math.PI/12);g.beginPath();g.moveTo(0,0);g.lineTo(820,0);g.stroke()}g.restore();
-  g.textAlign="center";g.textBaseline="alphabetic";g.fillStyle="#f2c14e";g.font="800 42px sans-serif";g.fillText("BEST MEMBER OF "+monEn(o.mo).toUpperCase()+" "+yrEn(o.mo),540,205);
+  g.textAlign="center";g.textBaseline="alphabetic";g.fillStyle="#f2c14e";g.font="800 42px sans-serif";g.fillText("BEST MEMBER OF "+monEn(o.mo).toUpperCase(),540,205);
   g.fillStyle="#f2c14e";g.beginPath();g.moveTo(460,300);g.lineTo(478,248);g.lineTo(512,278);g.lineTo(540,235);g.lineTo(568,278);g.lineTo(602,248);g.lineTo(620,300);g.closePath();g.fill();
   g.save();g.shadowColor="rgba(0,0,0,.5)";g.shadowBlur=40;g.beginPath();g.arc(540,560,250,0,7);g.fillStyle="#f2c14e";g.fill();g.restore();
   g.save();g.beginPath();g.arc(540,560,236,0,7);g.clip();if(o.img)cover(g,o.img,304,324,472,472);else{g.fillStyle="#2a4fc4";g.fillRect(304,324,472,472);g.fillStyle="#fff";g.font="800 190px sans-serif";g.textBaseline="middle";g.fillText((o.name||"?")[0],540,560);g.textBaseline="alphabetic"}g.restore();
@@ -785,7 +793,7 @@ const DR=[
 (g,o)=>{
   g.fillStyle="#fff";g.fillRect(0,0,1080,1080);
   g.fillStyle="#1e3fae";g.beginPath();g.moveTo(0,0);g.lineTo(1080,0);g.lineTo(1080,250);g.lineTo(0,420);g.closePath();g.fill();
-  g.textBaseline="alphabetic";g.textAlign="left";g.fillStyle="#fff";g.font="800 40px sans-serif";g.fillText("BEST MEMBER · "+monEn(o.mo).toUpperCase()+" "+yrEn(o.mo),60,100);
+  g.textBaseline="alphabetic";g.textAlign="left";g.fillStyle="#fff";g.font="800 40px sans-serif";g.fillText("BEST MEMBER · "+monEn(o.mo).toUpperCase(),60,100);
   g.font="600 30px sans-serif";g.fillText("YLY Dakahlia",60,148);
   g.fillStyle="#f2a31b";g.font="900 330px sans-serif";g.fillText(String(o.r),50,720);
   g.fillStyle="#1e3fae";g.font="900 100px sans-serif";g.fillText("TOP",60,560);
@@ -815,7 +823,7 @@ const DR=[
   g.fillStyle="#f2c14e";g.font="900 150px sans-serif";g.textAlign="left";g.fillText(String(o.r),70,520);g.fillStyle="#fff";g.font="800 48px sans-serif";g.fillText(o.c,76,580);
   const pg=g.createLinearGradient(220,0,860,0);pg.addColorStop(0,"#f6d36a");pg.addColorStop(1,"#e2a52f");g.fillStyle=pg;rr(g,190,810,700,92,46);g.fill();
   g.fillStyle="#0a1130";g.textAlign="center";g.textBaseline="middle";fit(g,o.name,640,64,"900","sans-serif");g.fillText(o.name,540,857);g.textBaseline="alphabetic";
-  g.fillStyle="#c9d3ff";g.font="700 34px sans-serif";g.fillText("BEST MEMBER · "+monEn(o.mo).toUpperCase()+" "+yrEn(o.mo),540,945)},
+  g.fillStyle="#c9d3ff";g.font="700 34px sans-serif";g.fillText("BEST MEMBER · "+monEn(o.mo).toUpperCase(),540,945)},
 /* 6) سداسي أزرق */
 (g,o)=>{
   const gr=g.createLinearGradient(0,0,1080,1080);gr.addColorStop(0,"#1240c8");gr.addColorStop(1,"#061a66");g.fillStyle=gr;g.fillRect(0,0,1080,1080);
@@ -828,7 +836,7 @@ const DR=[
   g.fillStyle="#f2c14e";g.font="900 320px sans-serif";g.fillText(String(o.r),44,690);
   g.fillStyle="#f2c14e";rr(g,60,730,190,64,32);g.fill();g.fillStyle="#0a1130";g.textAlign="center";g.textBaseline="middle";g.font="900 38px sans-serif";g.fillText(o.c,155,762);g.textBaseline="alphabetic";
   g.fillStyle="#fff";g.textAlign="center";fit(g,o.name,900,78,"900","sans-serif");g.fillText(o.name,540,900);
-  g.fillStyle="#c9d3ff";g.font="700 32px sans-serif";g.fillText("BEST MEMBER · "+monEn(o.mo).toUpperCase()+" "+yrEn(o.mo),540,945)},
+  g.fillStyle="#c9d3ff";g.font="700 32px sans-serif";g.fillText("BEST MEMBER · "+monEn(o.mo).toUpperCase(),540,945)},
 /* 7) نيون */
 (g,o)=>{
   g.fillStyle="#04050d";g.fillRect(0,0,1080,1080);
