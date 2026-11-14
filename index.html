@@ -243,7 +243,7 @@ function backup(){
   const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));a.download="teammeter-backup.csv";a.click();
 }
 /* ===== الجولة 3: طلبات التسجيل، متابعة HR، النشاط، البورد، الصور، سجل الشهور، الحفظ التلقائي ===== */
-let touched=false,restored=false,bFile=null,dT=null,PH=[];
+let touched=false,restored=false,bFile=null,memFile=null,dT=null,PH=[];
 const emptyD=()=>({members:[],warn:[],ann:[],signups:[],follows:[],board:[]});
 const nm=n=>String(n||"").trim().split(/\s+/).slice(0,2).join(" ");
 const bCom=b=>Array.isArray(b.committees)&&b.committees.length?b.committees:(b.committee?[b.committee]:[]);
@@ -479,6 +479,10 @@ function modal(){
   if(t.t==="mem"){
     const fl=D.follows.filter(f=>f.manager_id===m?.id).map(f=>f.member_id);
     return`<div class="ov"><div class="card"><b>${m?"تعديل عضو":"إضافة عضو"}</b> <span class="mu" id="ds"></span>
+    <div style="display:flex;gap:12px;align-items:center;margin:12px 0;flex-wrap:wrap">
+      <img id="mpv" src="${esc(m?.avatar_url||"")}" alt="صورة العضو" style="width:76px;height:76px;object-fit:cover;border-radius:50%;border:1px solid var(--bd);${m?.avatar_url?"":"display:none"}">
+      <div style="flex:1;min-width:180px"><label>صورة العضو</label><input id="mphoto" type="file" accept="image/png,image/jpeg,image/webp" onchange="memFile=this.files[0];previewMemPhoto(this)"><p class="mu" style="font-size:12px;margin:4px 0">اختار صورة جديدة، أو سيب الخانة فاضية للاحتفاظ بالصورة الحالية.</p></div>
+    </div>
     <label>الإيميل (هيسجل بيه)</label><input id="me" type="email" dir="ltr" value="${esc(m?.email)}"><label>الاسم</label><input id="mn" value="${esc(m?.name)}"><label>المنصب</label><select id="mr" onchange="togRole()">${roleOpts(m?.role).map(r=>`<option ${r===roleSel(m?.role)?"selected":""}>${esc(r)}</option>`).join("")}</select>
     <label>اللجنة</label><select id="mc" onchange="togFl()">${comOpts(m?.committee).map(c=>`<option ${c===(m?.committee||"PR")?"selected":""}>${esc(c)}</option>`).join("")}</select>
     ${(()=>{const be=m?D.board.find(b=>b.member_id===m.id):null;return`<div id="bdw" style="display:${roleSel(m?.role)==="Board"?"block":"none"}"><label>مسؤول في لجنة إيه؟ (دوس على واحدة أو أكتر)</label>${chipsHtml(be?bCom(be):[],"mbcs")}<label>المنصب في البورد (اختياري)</label><input id="mbp" value="${esc(be?.position)}" placeholder="مثال: Vice President"></div>`})()}
@@ -502,17 +506,36 @@ function modal(){
 }
 function togFl(){const w=document.getElementById("flw"),c=$("#mc");if(w&&c)w.style.display=c.value==="HR"?"block":"none"}
 function filterFl(q){q=q.trim();document.querySelectorAll(".fli").forEach(e=>e.style.display=(!q||e.dataset.n.includes(q))?"flex":"none")}
+function previewMemPhoto(input){
+  const f=input&&input.files&&input.files[0];if(!f)return;
+  if(!/^image\/(png|jpeg|webp)$/.test(f.type)){memFile=null;input.value="";$("#mm").textContent="اختار صورة PNG أو JPG أو WEBP";return}
+  const im=$("#mpv");if(im){im.src=URL.createObjectURL(f);im.style.display="block"}
+}
+async function uploadMemberPhoto(mid){
+  if(!memFile)return null;
+  const blob=await resizeImg(memFile,4096,.97);if(!blob)throw new Error("تعذر تجهيز الصورة");
+  const path="admin_"+mid+".jpg";
+  const up=await sb.storage.from("avatars").upload(path,blob,{upsert:true,contentType:"image/jpeg"});if(up.error)throw up.error;
+  try{const thumb=await resizeImg(memFile,640,.9);const tu=await sb.storage.from("avatars").upload("admin_"+mid+"_t.jpg",thumb,{upsert:true,contentType:"image/jpeg"});if(tu.error)throw tu.error}catch(e){console.warn("تعذر رفع الصورة المصغرة:",e)}
+  return sb.storage.from("avatars").getPublicUrl(path).data.publicUrl+"?v="+Date.now();
+}
 async function saveMem(id){
   const v=s=>$(s).value.trim(),row={email:v("#me").toLowerCase(),name:v("#mn"),role:v("#mr")||"Member",committee:v("#mc")},isB=row.role==="Board",bcs=chipsVal("mbcs");
   if(!row.email||!row.name||!row.committee){$("#mm").textContent="الإيميل والاسم واللجنة مطلوبين";return}
   if(isB&&!bcs.length){$("#mm").textContent="اختار هو مسؤول في لجنة إيه (واحدة على الأقل)";return}
+  if(memFile&&!/^image\/(png|jpeg|webp)$/.test(memFile.type)){$("#mm").textContent="اختار صورة PNG أو JPG أو WEBP";return}
   let mid=id;
   if(id){const r=await sb.from("members").update(row).eq("id",id);if(r.error){$("#mm").textContent=r.error.message;return}}
   else{const r=await sb.from("members").insert(row).select("id").single();if(r.error){$("#mm").textContent=r.error.message;return}mid=r.data.id}
+  if(memFile){
+    try{const url=await uploadMemberPhoto(mid);if(url){const p=await sb.from("members").update({avatar_url:url}).eq("id",mid);if(p.error)throw p.error}}
+    catch(e){$("#mm").textContent="اتحفظت بيانات العضو لكن الصورة ما اتحفظتش: "+(e.message||String(e));await load();return}
+  }
   const picks=row.committee==="HR"?[...document.querySelectorAll(".fl:checked")].map(x=>x.value):[];
   const d=await sb.from("follows").delete().eq("manager_id",mid);if(d.error){$("#mm").textContent=d.error.message;return}
   if(picks.length){const f=await sb.from("follows").insert(picks.map(p=>({manager_id:mid,member_id:p})));if(f.error){$("#mm").textContent=f.error.message;return}}
   const be=await syncBoard(mid,row.name,isB,bcs,v("#mbp"));if(be){$("#mm").textContent="اتحفظ العضو لكن البورد ما اتحفظش: "+be.message;await load();return}
+  memFile=null;
   try{localStorage.removeItem("tm-draft:mem:"+(id||"new"))}catch(e){}
   S.modal=null;await load();render();
 }
