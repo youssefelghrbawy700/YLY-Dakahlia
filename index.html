@@ -287,7 +287,9 @@ async function doAuth(signup){
   const email=$("#ae").value.trim(),password=$("#ap").value,full=signup?$("#an").value.trim():"";S.msg="";S.em=email;S.fn=full;
   if(!email||password.length<6){S.msg="اكتب الإيميل وكلمة مرور 6 حروف على الأقل.";return render()}
   if(signup&&full.split(/\s+/).length<2){S.msg="اكتب اسمك ثنائي على الأقل.";return render()}
-  const r=signup?await sb.auth.signUp({email,password,options:{data:{full_name:full}}}):await sb.auth.signInWithPassword({email,password});
+  const rr=signup?$("#ar").value:"",cc=signup?$("#ac").value:"",bb=signup?chipsVal("abcs"):[];
+  if(signup){S.fr=rr;S.fc=cc;S.fb=bb;if(rr==="Board"&&!bb.length){S.msg="اختار إنت مسؤول في لجنة إيه (واحدة على الأقل).";return render()}}
+  const r=signup?await sb.auth.signUp({email,password,options:{data:{full_name:full,req_role:rr,req_committee:cc,req_board:rr==="Board"?bb.join(","):""}}}):await sb.auth.signInWithPassword({email,password});
   if(r.error)S.msg=errAr(r.error.message);
   else if(signup&&!r.data.session)S.msg="تم إنشاء الحساب. افتح إيميلك وأكد الحساب ثم سجل دخول.";
   render();
@@ -299,7 +301,10 @@ function loginView(){
   <div class="chips"><span>📊 تقييم شهري</span><span>🏆 ترتيب اللجان</span><span>📄 تقارير PDF</span></div>
   <div class="card" style="margin-top:18px">
   <div class="seg"><button class="${su?"g":""}" onclick="S.auth='in';S.msg='';render()">تسجيل الدخول</button><button class="${su?"":"g"}" onclick="S.auth='up';S.msg='';render()">حساب جديد</button></div>
-  ${su?`<label>الاسم (ثنائي على الأقل)</label><input id="an" autocomplete="name" value="${esc(S.fn||"")}">`:""}
+  ${su?`<label>الاسم (ثنائي على الأقل)</label><input id="an" autocomplete="name" value="${esc(S.fn||"")}">
+  <label>المنصب</label><select id="ar" onchange="document.getElementById('abw').style.display=this.value==='Board'?'block':'none'">${["Member","Board"].map(r=>`<option ${r===(S.fr||"Member")?"selected":""}>${r}</option>`).join("")}</select>
+  <label>اللجنة</label><select id="ac">${COM4.map(c=>`<option ${c===(S.fc||"PR")?"selected":""}>${c}</option>`).join("")}</select>
+  <div id="abw" style="display:${S.fr==="Board"?"block":"none"}"><label>مسؤول في لجنة إيه؟ (دوس على واحدة أو أكتر)</label>${chipsHtml(S.fb||[],"abcs")}</div>`:""}
   <label>البريد الإلكتروني</label><input id="ae" type="email" autocomplete="email" dir="ltr" value="${esc(S.em)}">
   <label>كلمة المرور</label><input id="ap" type="password" autocomplete="${su?"new-password":"current-password"}" dir="ltr" onkeydown="if(event.key==='Enter')doAuth(${su})">
   <p class="err">${esc(S.msg)}</p>
@@ -348,12 +353,12 @@ function leadersView(c){
 }
 function reqView(){
   const P=D.signups.filter(s=>s.status==="pending"),R=D.signups.filter(s=>s.status==="rejected");
-  return`<div class="card"><b>🆕 طلبات التسجيل</b><p class="mu" style="margin:4px 0 0">أكّد الإيميل واكتب بيانات العضو ثم اضغط قبول.</p></div>`+
+  return`<div class="card"><b>🆕 طلبات التسجيل</b><p class="mu" style="margin:4px 0 0">أكّد الإيميل وراجع المنصب واللجنة اللي طلبهم الشخص (تقدر تعدّلهم) ثم اضغط قبول.</p></div>`+
   (P.map(s=>`<div class="card"><div class="row" style="justify-content:space-between"><b dir="ltr">${esc(s.email)}</b><span class="mu">${new Date(s.created_at).toLocaleDateString("ar-EG")}</span></div>
-  <label>الاسم</label><input id="sn_${s.user_id}" value="${esc(s.full_name||"")}"><label>المنصب</label><select id="sr_${s.user_id}" onchange="document.getElementById('sbw_${s.user_id}').style.display=this.value==='Board'?'block':'none'"><option>Member</option><option>Board</option></select>
-  <div id="sbw_${s.user_id}" style="display:none"><label>مسؤول في لجنة إيه؟</label>${chipsHtml([],"sbcs_"+s.user_id)}<label>المنصب في البورد (اختياري)</label><input id="sbp_${s.user_id}" placeholder="مثال: Vice President"></div>
-  <label>اللجنة</label><select id="sc_${s.user_id}" onchange="document.getElementById('fw_${s.user_id}').style.display=this.value==='HR'?'block':'none'">${COM4.map(c=>`<option>${c}</option>`).join("")}</select>
-  <div id="fw_${s.user_id}" style="display:none"><label>الأعضاء اللي هيضيفهم ويعدّل تقييمهم</label><div style="max-height:170px;overflow:auto">${D.members.map(x=>`<label style="display:flex;gap:6px;align-items:center;margin:2px 0;color:var(--tx)"><input type="checkbox" class="fp_${s.user_id}" value="${x.id}" style="width:auto">${esc(nm(x.name))} <span class="mu">${esc(x.committee)}</span></label>`).join("")}</div></div>
+  <label>الاسم</label><input id="sn_${s.user_id}" value="${esc(s.full_name||"")}"><label>المنصب</label><select id="sr_${s.user_id}" onchange="document.getElementById('sbw_${s.user_id}').style.display=this.value==='Board'?'block':'none'"><option>Member</option><option ${s.req_role==="Board"?"selected":""}>Board</option></select>
+  <div id="sbw_${s.user_id}" style="display:${s.req_role==="Board"?"block":"none"}"><label>مسؤول في لجنة إيه؟</label>${chipsHtml(s.req_board||[],"sbcs_"+s.user_id)}<label>المنصب في البورد (اختياري)</label><input id="sbp_${s.user_id}" placeholder="مثال: Vice President"></div>
+  <label>اللجنة</label><select id="sc_${s.user_id}" onchange="document.getElementById('fw_${s.user_id}').style.display=this.value==='HR'?'block':'none'">${COM4.map(c=>`<option ${c===s.req_committee?"selected":""}>${c}</option>`).join("")}</select>
+  <div id="fw_${s.user_id}" style="display:${s.req_committee==="HR"?"block":"none"}"><label>الأعضاء اللي هيضيفهم ويعدّل تقييمهم</label><div style="max-height:170px;overflow:auto">${D.members.map(x=>`<label style="display:flex;gap:6px;align-items:center;margin:2px 0;color:var(--tx)"><input type="checkbox" class="fp_${s.user_id}" value="${x.id}" style="width:auto">${esc(nm(x.name))} <span class="mu">${esc(x.committee)}</span></label>`).join("")}</div></div>
   <p class="err" id="se_${s.user_id}"></p><div class="row"><button onclick="approve('${s.user_id}')">✓ قبول</button><button class="d" onclick="setReq('${s.user_id}','rejected')">رفض</button></div></div>`).join("")||'<div class="card"><p class="mu" style="margin:0">لا توجد طلبات جديدة.</p></div>')+
   (R.length?`<div class="card"><b>المرفوضة</b>${R.map(s=>`<div class="lb"><span style="flex:1" dir="ltr">${esc(s.email)}</span><button class="g" onclick="setReq('${s.user_id}','pending')">إعادة</button></div>`).join("")}</div>`:"");
 }
