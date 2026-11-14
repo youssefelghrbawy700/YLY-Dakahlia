@@ -35,7 +35,7 @@ button.d{background:var(--bad)}
 .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--ok),#22d3ee)}
 .pill{padding:2px 9px;border-radius:99px;font-size:12px;font-weight:700}
 .up{background:#10b98126;color:var(--ok)}.dn{background:#ef444426;color:var(--bad)}.st{background:#f59e0b26;color:var(--warn)}
-.av{width:44px;height:44px;border-radius:14px;background:linear-gradient(135deg,var(--pr),var(--pr2));color:#fff;display:grid;place-items:center;font-weight:800;flex:none;object-fit:cover}
+.av{width:44px;height:44px;border-radius:14px;background:linear-gradient(135deg,var(--pr),var(--pr2));color:#fff;display:grid;place-items:center;font-weight:800;flex:none;object-fit:cover;object-position:center 22%}
 .av.lg{width:64px;height:64px;border-radius:18px;font-size:24px}
 .avw{cursor:pointer;display:block}
 .lb{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--bd)}.lb:last-child{border:0}
@@ -312,11 +312,11 @@ function loginView(){
   ${su?'<p class="mu" style="margin:10px 0 0">الحساب بيتفعّل بعد موافقة الإدارة.</p>':'<p style="text-align:center;margin:14px 0 0"><a href="#" class="lnk" onclick="resetPw();return false">نسيت كلمة المرور؟</a></p>'}
   </div><p class="mu" style="text-align:center">© YLY Dakahlia</p></div></div>`;
 }
-async function resizeImg(f,n){const bm=await createImageBitmap(f),c=document.createElement("canvas");c.width=c.height=n;const s=Math.min(bm.width,bm.height);c.getContext("2d").drawImage(bm,(bm.width-s)/2,(bm.height-s)/2,s,s,0,0,n,n);return new Promise(r=>c.toBlob(r,"image/jpeg",0.9))}
+async function resizeImg(f,n){const bm=await createImageBitmap(f),k=Math.min(1,n/Math.max(bm.width,bm.height)),w=Math.round(bm.width*k),h=Math.round(bm.height*k),c=document.createElement("canvas");c.width=w;c.height=h;const x=c.getContext("2d");x.imageSmoothingQuality="high";x.drawImage(bm,0,0,w,h);return new Promise(r=>c.toBlob(r,"image/jpeg",0.92))}
 async function upAvatar(f){
   if(!f)return;
   try{
-    const blob=await resizeImg(f,800),path=session.user.id+".jpg";
+    const blob=await resizeImg(f,1600),path=session.user.id+".jpg";
     const up=await sb.storage.from("avatars").upload(path,blob,{upsert:true,contentType:"image/jpeg"});if(up.error)throw up.error;
     const url=sb.storage.from("avatars").getPublicUrl(path).data.publicUrl+"?v="+Date.now();
     const r=await sb.rpc("set_my_avatar",{u:url});if(r.error)throw r.error;
@@ -441,7 +441,7 @@ function mgrView(){
 /* ---------- النوافذ ---------- */
 function modal(){
   const t=S.modal,m=D.members.find(x=>x.id===t.id);
-  if(t.t==="photo"){const x=PH[t.i];if(!x)return"";return`<div class="ov" onclick="if(event.target===this)closeM()"><div class="card" style="text-align:center"><img src="${esc(x.u)}" alt="" style="max-width:100%;max-height:60vh;border-radius:14px"><p><b>${esc(nm(x.n))}</b></p><div class="row" style="justify-content:center"><button onclick="dlPhoto(${t.i})">⬇ تحميل بجودة كاملة</button><button class="g" onclick="closeM()">إغلاق</button></div></div></div>`}
+  if(t.t==="photo"){const x=PH[t.i];if(!x)return"";return`<div class="ov" onclick="if(event.target===this)closeM()"><div class="card" style="text-align:center"><img src="${esc(x.u)}" alt="" style="max-width:100%;max-height:60vh;border-radius:14px" onload="if(this.naturalWidth<800){const q=document.getElementById('lq');q.style.display='block';q.textContent='⚠ الصورة دي مرفوعة بجودة قليلة ('+this.naturalWidth+'×'+this.naturalHeight+' بيكسل). اطلب من العضو يرفعها تاني من حسابه.'}"><p id="lq" class="mu" style="display:none;color:var(--warn);margin:8px 0 0"></p><p><b>${esc(nm(x.n))}</b></p><div class="row" style="justify-content:center"><button onclick="dlPhoto(${t.i})">⬇ تحميل بجودة كاملة</button><button class="g" onclick="closeM()">إغلاق</button></div></div></div>`}
   if(t.t==="brd"){const b=D.board.find(x=>x.id===t.id);return`<div class="ov"><div class="card"><b>${b?"تعديل":"إضافة"} عضو بورد</b>
     <label>الاسم</label><input id="bn" value="${esc(b?.name)}"><label>المنصب</label><input id="bp" value="${esc(b?.position)}" placeholder="مثال: Vice President">
     <label>مسؤول في لجنة إيه؟ (دوس على واحدة أو أكتر)</label><div class="row" id="bcs">${COM4.map(c=>`<button type="button" class="g chip bcm ${b&&bCom(b).includes(c)?"on":""}" data-c="${c}" onclick="this.classList.toggle('on')">${c}</button>`).join("")}<button type="button" class="g chip" onclick="document.querySelectorAll('#bcs .bcm').forEach(x=>x.classList.add('on'))">كل اللجان</button><button type="button" class="g chip" onclick="document.querySelectorAll('#bcs .bcm').forEach(x=>x.classList.remove('on'))">مسح</button></div>
@@ -494,7 +494,7 @@ async function saveBoard(id){
   if(!row.name||!row.position){$("#mm").textContent="الاسم والمنصب مطلوبين";return}
   if(row.member_id&&!cs.length){$("#mm").textContent="اختار لجنة واحدة على الأقل لحساب المسؤول";return}
   try{
-    if(bFile){const blob=await resizeImg(bFile,800),path=(id||crypto.randomUUID())+".jpg";
+    if(bFile){const blob=await resizeImg(bFile,1600),path=(id||crypto.randomUUID())+".jpg";
       const up=await sb.storage.from("board").upload(path,blob,{upsert:true,contentType:"image/jpeg"});if(up.error)throw up.error;
       row.photo_url=sb.storage.from("board").getPublicUrl(path).data.publicUrl+"?v="+Date.now()}
     const r=id?await sb.from("board").update(row).eq("id",id):await sb.from("board").insert(row);if(r.error)throw r.error;
