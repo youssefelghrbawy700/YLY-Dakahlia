@@ -414,7 +414,7 @@ function photosView(){
 }
 function adminView(){
   const pend=D.signups.filter(s=>s.status==="pending").length;
-  const tabs=[["members","الأعضاء"],["req","🆕 الطلبات"+(pend?` (${pend})`:"")],["committees","اللجان"],["dash","لوحة الشرف"],["announce","📢 الإعلان"],["seen","👁 الدخول"],["hr","✅ تسجيلات HR"],["board","🏛 البورد"],["photos","🖼 الصور"]];
+  const tabs=[["members","الأعضاء"],["req","🆕 الطلبات"+(pend?` (${pend})`:"")],["committees","اللجان"],["dash","لوحة الشرف"],["announce","📢 الإعلان"],["seen","👁 الدخول"],["hr","✅ تسجيلات HR"],["board","🏛 البورد"],["photos","🖼 الصور"],["designs","🎨 الديزاينات"]];
   const sc=D.members.map(score),avg=sc.length?Math.round(sc.reduce((a,b)=>a+b,0)/sc.length):0;
   let sub="";
   if(S.tab==="members")sub=(pend?`<div class="card" style="border-color:var(--warn)"><div class="row"><b style="flex:1">🆕 ${pend} طلب تسجيل جديد</b><button onclick="S.tab='req';render()">مراجعة</button></div></div>`:"")+`<div class="grid"><div class="card"><div class="mu">إجمالي الأعضاء</div><div class="big">${D.members.length}</div></div><div class="card"><div class="mu">متوسط التقييم</div><div class="big">${avg}</div></div></div><div style="height:12px"></div>`+D.members.map(m=>memberCard(m,true)).join("");
@@ -429,13 +429,14 @@ function adminView(){
   else if(S.tab==="seen")sub=seenView();
   else if(S.tab==="hr")sub=hrView();
   else if(S.tab==="board")sub=boardAdminView();
+  else if(S.tab==="designs")sub=designsView();
   else sub=photosView();
   return topbar(`<button onclick="S.modal={t:'mem'};render()">+ عضو</button><button class="g" onclick="backup()" title="نسخة احتياطية">⬇ Excel</button>`)+tabBar(tabs)+sub;
 }
 function mgrView(){
   const mine=myFollows();
-  return topbar()+tabBar([["follow","متابعة الأعضاء"],["me","حسابي"],["leaders","👥 المسؤولون"]].concat(isBoardAcc()?[["bcom","📊 لجنتي"]]:[]))+
-  (S.tab==="me"?memberView(me,true):S.tab==="leaders"?leadersView(me.committee):S.tab==="bcom"&&isBoardAcc()?bcomView():`<p class="mu">بتتابع ${mine.length} عضو</p>`+(mine.map(m=>memberCard(m,false)).join("")||'<p class="mu">لم تُحدَّد لك متابعات بعد.</p>'));
+  return topbar()+tabBar([["follow","متابعة الأعضاء"],["me","حسابي"],["leaders","👥 المسؤولون"]].concat(isBoardAcc()?[["bcom","📊 لجنتي"]]:[],dTab()))+
+  (S.tab==="me"?memberView(me,true):S.tab==="leaders"?leadersView(me.committee):S.tab==="designs"&&canDesign()?designsView():S.tab==="bcom"&&isBoardAcc()?bcomView():`<p class="mu">بتتابع ${mine.length} عضو</p>`+(mine.map(m=>memberCard(m,false)).join("")||'<p class="mu">لم تُحدَّد لك متابعات بعد.</p>'));
 }
 
 /* ---------- النوافذ ---------- */
@@ -562,6 +563,129 @@ function draftSave(e){
     }
   }catch(err){}},350);
 }
+/* ---------- الديزاينات المقترحة (توب كل شهر) ---------- */
+const DT=["ورق وصحيفة","أزرق وذهبي","داكن وذهبي","أبيض نظيف"];
+let DS={};try{DS=JSON.parse(localStorage.getItem("tm-dsg")||"{}")}catch(e){}
+const dSave=()=>{try{localStorage.setItem("tm-dsg",JSON.stringify(DS))}catch(e){}};
+const canDesign=()=>!!(me&&(isAdm()||myBCom().includes("SM")||(roleSel(me.role)==="Board"&&me.committee==="SM")));
+const dTab=()=>canDesign()&&!isAdm()?[["designs","🎨 الديزاينات"]]:[];
+let D_LIST=[];const IMGC={};
+function dMonths(){return[...D.ann].sort().reverse().filter(mo=>D.members.some(m=>m.rec&&m.rec[mo]))}
+function dTops(mo){const o={};COM4.forEach(c=>{o[c]=D.members.filter(m=>m.committee===c&&m.rec[mo]).map(m=>({m,s:mscore(m.rec[mo],c)})).filter(x=>x.s>0).sort((a,b)=>b.s-a.s).slice(0,3).map(x=>x.m)});return o}
+const dKey=x=>x.mo+"|"+x.c+"|"+x.r;
+const dTpl=x=>{const v=DS[dKey(x)];return v!=null?v:(DS[x.mo+"|*"]||0)};
+function designsView(){
+  const ms=dMonths();
+  if(!ms.length)return'<div class="card"><b>🎨 الديزاينات المقترحة</b><p class="mu" style="margin:6px 0 0">لا توجد شهور معلنة بعد. أول ما تعلن شهر بتظهر هنا ديزاينات التوب بتاعته.</p></div>';
+  const mo=ms.includes(S.dmo)?S.dmo:ms[0],T=dTops(mo),cf=COM4.includes(S.dcf)?S.dcf:"all",L=[];
+  COM4.forEach(c=>{if(cf==="all"||cf===c)T[c].forEach((m,i)=>L.push({c,m,r:i+1,mo}))});
+  D_LIST=L;
+  return`<div class="card"><div class="row"><b style="flex:1">🎨 الديزاينات المقترحة</b><button class="g" onclick="refreshSeen()">↻ تحديث البيانات</button></div>
+  <p class="mu" style="margin:6px 0 0">ديزاين جاهز لكل واحد من توب 3 في كل لجنة. جرّب التصاميم بزرار ◀ ▶، ولو مش عاجبك بدّله. وبعدين حمّله وانشره.</p>
+  <label>الشهر</label><select onchange="S.dmo=this.value;render()">${ms.map(k=>`<option value="${k}" ${k===mo?"selected":""}>${ml(k)}</option>`).join("")}</select>
+  <label>طبّق تصميم على الكل</label><div class="row">${DT.map((t,i)=>`<button class="g chip" onclick="dAll(${i})">${t}</button>`).join("")}</div></div>
+  <div class="tabs"><button class="${cf==="all"?"on":""}" onclick="S.dcf='all';render()">الكل</button>${COM4.map(c=>`<button class="${cf===c?"on":""}" onclick="S.dcf='${c}';render()">${c}</button>`).join("")}</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px">${L.map((x,i)=>`<div class="card" style="padding:8px"><canvas id="dc${i}" width="1080" height="1080" style="width:100%;border-radius:10px;display:block;background:#0003"></canvas>
+  <div style="margin:6px 0 2px"><b>${x.c} · TOP ${x.r}</b> <span class="mu">${esc(nm(x.m.name))}</span></div>
+  <div class="row" style="justify-content:space-between"><button class="g" onclick="dNext(${i},-1)">◀</button><span class="mu" id="dl${i}">${DT[dTpl(x)]}</span><button class="g" onclick="dNext(${i},1)">▶</button></div>
+  <div class="row" style="margin-top:6px"><button onclick="dDown(${i})">⬇ تحميل</button><button class="g" onclick="dRedraw(${i})">🔄 تحديث</button></div></div>`).join("")||'<p class="mu">لا يوجد توب في اللجنة دي للشهر ده.</p>'}</div>`;
+}
+function dNext(i,d){const x=D_LIST[i];DS[dKey(x)]=(dTpl(x)+d+DT.length)%DT.length;dSave();document.getElementById("dl"+i).textContent=DT[dTpl(x)];dDraw(i)}
+function dAll(t){D_LIST.forEach((x,i)=>{DS[dKey(x)]=t;document.getElementById("dl"+i).textContent=DT[t]});if(D_LIST[0])DS[D_LIST[0].mo+"|*"]=t;dSave();dDrawAll()}
+function dRedraw(i){const u=D_LIST[i].m.avatar_url;if(u)delete IMGC[u];dDraw(i)}
+function dDrawAll(){D_LIST.forEach((_,i)=>dDraw(i))}
+function dImg(u){
+  if(!u)return Promise.resolve(null);
+  return IMGC[u]||(IMGC[u]=new Promise(res=>{const a=new Image();a.crossOrigin="anonymous";
+    a.onload=()=>res(a);
+    a.onerror=()=>{const b=new Image();b.onload=()=>{b.tainted=true;res(b)};b.onerror=()=>res(null);b.src=u};
+    a.src=u}));
+}
+async function dDraw(i){
+  const x=D_LIST[i],c=document.getElementById("dc"+i);if(!x||!c)return;
+  const img=await dImg(x.m.avatar_url),ctx=c.getContext("2d");
+  ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,1080,1080);
+  try{DR[dTpl(x)](ctx,{name:nm(x.m.name),c:x.c,r:x.r,mo:x.mo,img})}catch(e){console.error(e)}
+}
+function dDown(i){
+  const x=D_LIST[i],c=document.getElementById("dc"+i);
+  try{c.toBlob(b=>{if(!b)return alert("تعذر تجهيز الصورة");const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=`${x.c}-TOP${x.r}-${nm(x.m.name)}-${x.mo}.png`;a.click()},"image/png")}
+  catch(e){alert("تعذر التحميل لأن صورة العضو محمية. جرّب زرار 🔄 تحديث ثم حمّل تاني.")}
+}
+/* ---- رسم التصاميم (1080×1080) ---- */
+const monEn=mo=>new Date(mo+"-01T00:00:00").toLocaleString("en-US",{month:"long"});
+const yrEn=mo=>mo.slice(0,4);
+function rr(g,x,y,w,h,r){g.beginPath();if(g.roundRect)g.roundRect(x,y,w,h,r);else g.rect(x,y,w,h)}
+function cover(g,img,x,y,w,h){const k=Math.max(w/img.width,h/img.height),sw=w/k,sh=h/k;g.drawImage(img,(img.width-sw)/2,(img.height-sh)*0.15,sw,sh,x,y,w,h)}
+function ph(g,o,x,y,w,h,r,col){g.save();rr(g,x,y,w,h,r);g.clip();
+  if(o.img)cover(g,o.img,x,y,w,h);else{g.fillStyle=col||"#2a4fc4";g.fillRect(x,y,w,h);g.fillStyle="#fff";g.font="800 "+(h*.4)+"px sans-serif";g.textAlign="center";g.textBaseline="middle";g.fillText((o.name||"?")[0],x+w/2,y+h/2)}
+  g.restore()}
+function star(g,cx,cy,r,col){g.save();g.fillStyle=col;g.beginPath();for(let k=0;k<8;k++){const a=k*Math.PI/4,rad=k%2?r*.28:r;g.lineTo(cx+Math.cos(a)*rad,cy+Math.sin(a)*rad)}g.closePath();g.fill();g.restore()}
+function fit(g,txt,max,size,wt,fam){let s=size;g.font=`${wt} ${s}px ${fam}`;while(g.measureText(txt).width>max&&s>24){s-=2;g.font=`${wt} ${s}px ${fam}`}return s}
+function foot(g,col){g.fillStyle=col;g.font="600 28px sans-serif";g.textBaseline="alphabetic";g.textAlign="left";g.fillText("www.ylyunion.com",50,1040);g.textAlign="right";g.fillText("YLY Dakahlia",1030,1040)}
+const DR=[
+/* 0) ورق وصحيفة */
+(g,o)=>{
+  g.fillStyle="#f6f3ec";g.fillRect(0,0,1080,1080);
+  g.strokeStyle="rgba(120,110,90,.07)";g.lineWidth=2;for(let k=0;k<46;k++){g.beginPath();g.moveTo((k*97)%1080,0);g.lineTo((k*211+300)%1080,1080);g.stroke()}
+  g.fillStyle="#1e3fae";g.beginPath();g.moveTo(0,0);g.lineTo(260,0);g.lineTo(0,210);g.closePath();g.fill();
+  g.save();g.translate(60,300);g.rotate(-.2);g.fillStyle="#d9cdb4";g.fillRect(-20,-50,500,330);g.fillStyle="#16339b";g.textAlign="left";g.textBaseline="alphabetic";
+  g.font="italic 800 64px Georgia,serif";g.fillText("Best Members",0,20);g.fillText("We Have",0,92);
+  g.fillStyle="#f2a31b";g.font="800 30px sans-serif";g.fillText("DAKAHLIA · "+monEn(o.mo),0,150);
+  g.fillStyle="#8a7f66";g.font="italic 700 90px Georgia,serif";g.fillText("YLY",90,250);g.restore();
+  g.save();g.shadowColor="rgba(0,0,0,.3)";g.shadowBlur=30;g.shadowOffsetY=10;g.fillStyle="#fff";rr(g,372,150,400,640,34);g.fill();g.restore();
+  ph(g,o,382,160,380,620,28);
+  g.fillStyle="#16339b";g.textAlign="center";g.textBaseline="alphabetic";g.font="italic 900 120px Georgia,serif";g.fillText("TOP",900,300);g.font="italic 900 250px Georgia,serif";g.fillText(String(o.r),900,540);
+  g.strokeStyle="#f2a31b";g.lineWidth=12;g.lineCap="round";g.beginPath();g.moveTo(800,600);g.lineTo(980,560);g.stroke();
+  g.fillStyle="#f2a31b";g.textAlign="left";g.font="italic 900 110px Georgia,serif";g.fillText(o.c,120,860);
+  g.fillStyle="#1e3fae";g.beginPath();g.moveTo(150,870);g.lineTo(930,850);g.lineTo(950,985);g.lineTo(170,975);g.closePath();g.fill();
+  g.fillStyle="#fff";g.textAlign="center";const s=fit(g,o.name,700,76,"800","Georgia,serif");g.fillText(o.name,545,945+s*.05);
+  foot(g,"#1e3fae")},
+/* 1) أزرق وذهبي */
+(g,o)=>{
+  const gr=g.createLinearGradient(0,0,1080,1080);gr.addColorStop(0,"#2358e8");gr.addColorStop(1,"#142f9c");g.fillStyle=gr;g.fillRect(0,0,1080,1080);
+  g.save();g.beginPath();g.moveTo(0,0);g.lineTo(520,0);g.lineTo(0,520);g.closePath();g.moveTo(1080,1080);g.lineTo(1080,560);g.lineTo(560,1080);g.closePath();g.clip();
+  g.strokeStyle="rgba(240,180,60,.55)";g.lineWidth=3;for(let k=-1100;k<2200;k+=44){g.beginPath();g.moveTo(k,0);g.lineTo(k+1080,1080);g.stroke();g.beginPath();g.moveTo(k+1080,0);g.lineTo(k,1080);g.stroke()}g.restore();
+  star(g,640,150,70,"#f2b63a");star(g,90,880,40,"#f59a4a");star(g,170,960,50,"#f59a4a");
+  g.textBaseline="alphabetic";g.textAlign="right";const s=fit(g,o.name,520,74,"900","sans-serif");g.lineWidth=8;g.strokeStyle="#e98a1f";g.lineJoin="round";g.strokeText(o.name,1040,150);g.fillStyle="#fff6c9";g.fillText(o.name,1040,150);
+  g.save();g.translate(70,420);g.rotate(-.12);g.textAlign="left";g.fillStyle="#fff";g.font="italic 900 170px sans-serif";g.fillText("BEST",60,0);
+  g.lineWidth=5;g.strokeStyle="#f2b63a";g.fillStyle="rgba(0,0,0,0)";g.font="italic 900 120px sans-serif";g.strokeText("member",10,110);
+  g.fillStyle="#fff";g.font="italic 700 44px sans-serif";g.fillText("of "+monEn(o.mo).toLowerCase(),150,170);g.restore();
+  g.fillStyle="#fff";g.textAlign="left";g.font="900 110px sans-serif";g.fillText("TOP "+o.r,60,720);
+  g.strokeStyle="#f2b63a";g.lineWidth=5;g.beginPath();g.moveTo(60,745);g.lineTo(420,735);g.stroke();
+  g.font="900 64px sans-serif";g.fillText(o.c+" MEMBER",60,820);
+  g.save();g.shadowColor="rgba(0,0,0,.35)";g.shadowBlur=26;g.fillStyle="#f2b63a";rr(g,520,390,520,640,40);g.fill();g.restore();
+  ph(g,o,534,404,492,612,30);
+  foot(g,"#fff")},
+/* 2) داكن وذهبي */
+(g,o)=>{
+  const gr=g.createLinearGradient(0,0,0,1080);gr.addColorStop(0,"#0a1130");gr.addColorStop(1,"#1a2a66");g.fillStyle=gr;g.fillRect(0,0,1080,1080);
+  g.save();g.translate(540,470);g.strokeStyle="rgba(240,190,70,.18)";g.lineWidth=14;for(let k=0;k<24;k++){g.rotate(Math.PI/12);g.beginPath();g.moveTo(0,0);g.lineTo(820,0);g.stroke()}g.restore();
+  g.textAlign="center";g.textBaseline="alphabetic";g.fillStyle="#f2c14e";g.font="800 46px sans-serif";g.fillText("BEST MEMBER OF "+monEn(o.mo).toUpperCase(),540,110);
+  g.fillStyle="#fff";g.font="600 34px sans-serif";g.fillText("YLY DAKAHLIA · "+yrEn(o.mo),540,160);
+  g.fillStyle="#f2c14e";g.beginPath();g.moveTo(450,235);g.lineTo(470,180);g.lineTo(510,215);g.lineTo(540,165);g.lineTo(570,215);g.lineTo(610,180);g.lineTo(630,235);g.closePath();g.fill();
+  g.save();g.shadowColor="rgba(0,0,0,.5)";g.shadowBlur=40;g.beginPath();g.arc(540,500,270,0,7);g.fillStyle="#f2c14e";g.fill();g.restore();
+  g.save();g.beginPath();g.arc(540,500,254,0,7);g.clip();if(o.img)cover(g,o.img,286,246,508,508);else{g.fillStyle="#2a4fc4";g.fillRect(286,246,508,508);g.fillStyle="#fff";g.font="800 200px sans-serif";g.textBaseline="middle";g.fillText((o.name||"?")[0],540,500);g.textBaseline="alphabetic"}g.restore();
+  g.fillStyle="#f2c14e";rr(g,400,730,280,80,40);g.fill();g.fillStyle="#0a1130";g.font="900 46px sans-serif";g.textBaseline="middle";g.fillText("TOP "+o.r+" · "+o.c,540,771);g.textBaseline="alphabetic";
+  g.fillStyle="#fff";fit(g,o.name,900,88,"900","sans-serif");g.fillText(o.name,540,910);
+  g.strokeStyle="#f2c14e";g.lineWidth=6;g.beginPath();g.moveTo(360,945);g.lineTo(720,945);g.stroke();
+  foot(g,"#c9d3ff")},
+/* 3) أبيض نظيف */
+(g,o)=>{
+  g.fillStyle="#fff";g.fillRect(0,0,1080,1080);
+  g.fillStyle="#1e3fae";g.beginPath();g.moveTo(0,0);g.lineTo(1080,0);g.lineTo(1080,250);g.lineTo(0,420);g.closePath();g.fill();
+  g.textBaseline="alphabetic";g.textAlign="left";g.fillStyle="#fff";g.font="800 40px sans-serif";g.fillText("BEST MEMBER · "+monEn(o.mo).toUpperCase()+" "+yrEn(o.mo),60,100);
+  g.font="600 30px sans-serif";g.fillText("YLY Dakahlia",60,148);
+  g.fillStyle="#f2a31b";g.font="900 330px sans-serif";g.fillText(String(o.r),50,720);
+  g.fillStyle="#1e3fae";g.font="900 100px sans-serif";g.fillText("TOP",60,560);
+  g.fillStyle="#1e3fae";rr(g,60,760,200,70,35);g.fill();g.fillStyle="#fff";g.textAlign="center";g.font="800 40px sans-serif";g.textBaseline="middle";g.fillText(o.c,160,796);g.textBaseline="alphabetic";
+  g.fillStyle="#f2a31b";rr(g,530,230,470,640,36);g.fill();
+  g.save();g.shadowColor="rgba(0,0,0,.25)";g.shadowBlur=24;g.fillStyle="#fff";rr(g,510,210,470,640,36);g.fill();g.restore();
+  ph(g,o,520,220,450,620,30);
+  g.fillStyle="#111a3d";g.textAlign="left";fit(g,o.name,900,76,"900","sans-serif");g.fillText(o.name,60,960);
+  foot(g,"#6b76a3")}
+];
+
 function render(){
   let h;
   if(S.recover)h=recoverView();
@@ -570,10 +694,11 @@ function render(){
   else if(!me){const st=S.signup;h=topbar()+`<div class="card"><b>${st==="rejected"?"تم رفض طلبك":"طلبك قيد المراجعة"}</b><p>${st==="rejected"?"تواصل مع الإدارة لو فيه خطأ.":st==="pending"?"تم استلام طلب تسجيلك، وهيتفعّل حسابك أول ما الإدارة توافق عليه.":(S.msg?esc(S.msg):"الإيميل ده مش مسجل عند الأدمن. كلّمه عشان يضيفك ثم سجل دخول تاني.")}</p><button class="g" onclick="refresh()">تحديث</button></div>`}
   else if(isAdm())h=adminView();
   else if(isMgr())h=mgrView();
-  else if(isBoardAcc())h=topbar()+tabBar([["bcom","📊 تقييمات لجنتي"],["me","حسابي"],["leaders","👥 مسؤولو اللجنة"]])+(S.tab==="me"?memberView(me,true):S.tab==="leaders"?leadersView(me.committee):bcomView());
-  else h=topbar()+tabBar([["me","حسابي"],["leaders","👥 مسؤولو اللجنة"]])+(S.tab==="leaders"?leadersView(me.committee):memberView(me,true));
+  else if(isBoardAcc())h=topbar()+tabBar([["bcom","📊 تقييمات لجنتي"],["me","حسابي"],["leaders","👥 مسؤولو اللجنة"]].concat(dTab()))+(S.tab==="me"?memberView(me,true):S.tab==="leaders"?leadersView(me.committee):S.tab==="designs"&&canDesign()?designsView():bcomView());
+  else h=topbar()+tabBar([["me","حسابي"],["leaders","👥 مسؤولو اللجنة"]].concat(dTab()))+(S.tab==="leaders"?leadersView(me.committee):S.tab==="designs"&&canDesign()?designsView():memberView(me,true));
   const ok=!!(S.modal&&me&&(isAdm()||(isMgr()&&["rec","view","hist"].includes(S.modal.t))||(isBoardAcc()&&["view","hist"].includes(S.modal.t))));
   $("#app").innerHTML=h+(ok?modal():"");
+  if(session&&me&&S.tab==="designs"&&canDesign())setTimeout(dDrawAll,0);
   if(ok&&S.modal.t==="rec")fillRec(S.modal.id);
   if(ok&&S.modal.t==="mem")applyMemDraft();
   try{if(ok&&["rec","mem"].includes(S.modal.t))localStorage.setItem("tm-open-modal",JSON.stringify(S.modal));else if(!S.modal)localStorage.removeItem("tm-open-modal")}catch(e){}
