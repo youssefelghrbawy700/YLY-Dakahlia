@@ -685,8 +685,8 @@ function qrCard(){
   if(S.qr===undefined)qrLoad();
   if(S.qr===undefined||S.qr==="loading")return`<div class="card"><b>🪪 كود الحضور بتاعك</b><p class="mu">جاري التحميل…</p></div>`;
   if(String(S.qr).startsWith("ERR"))return`<div class="card"><b>🪪 كود الحضور بتاعك</b><p class="err">مش متاح دلوقتي (${esc(String(S.qr).slice(4))}). لو انت الأدمن شغّل setup.sql في Supabase.</p></div>`;
-  if(S.qrUrl_t!==S.qr){S.qrUrl=qrCanvas(QRP+S.qr,8,2).toDataURL();S.qrUrl_t=S.qr}
-  return`<div class="card" style="text-align:center"><b>🪪 كود الحضور بتاعك</b><p class="mu" style="margin:4px 0 10px">اعرض الكود ده للـHR في أي نزولة أو اجتماع، بيمسحوه وحضورك بيتسجّل لوحده. ما تبعتهوش لحد.</p><img src="${S.qrUrl}" alt="QR" style="width:220px;height:220px;background:#fff;padding:8px;border-radius:14px;image-rendering:pixelated"><div class="row" style="justify-content:center;margin-top:10px"><button onclick="qrSave()">⬇ حفظ كصورة</button></div></div>`}
+  if(S.qrUrl_t!==S.qr){S.qrUrl=qrCanvas(QRP+S.qr,16,4).toDataURL();S.qrW=(qrMatrix(QRP+S.qr).size+8)*8;S.qrUrl_t=S.qr}
+  return`<div class="card" style="text-align:center"><b>🪪 كود الحضور بتاعك</b><p class="mu" style="margin:4px 0 10px">اعرض الكود ده للـHR في أي نزولة أو اجتماع، بيمسحوه وحضورك بيتسجّل لوحده. ما تبعتهوش لحد.</p><img src="${S.qrUrl}" alt="QR" style="width:${S.qrW}px;max-width:100%;height:auto;background:#fff;border-radius:14px;image-rendering:pixelated"><div class="row" style="justify-content:center;margin-top:10px"><button onclick="qrSave()">⬇ حفظ كصورة</button></div></div>`}
 function qrSave(){
   if(!S.qr||String(S.qr).startsWith("ERR")||!me)return;const W=900,H=1150,c=document.createElement("canvas");c.width=W;c.height=H;const g=c.getContext("2d");
   g.fillStyle="#0b1b66";g.fillRect(0,0,W,H);g.fillStyle="#fff";g.beginPath();g.roundRect?g.roundRect(60,170,780,780,36):g.rect(60,170,780,780);g.fill();
@@ -747,12 +747,15 @@ async function evReconcile(){
     await Promise.all(jobs)}catch(e){console.error(e)}
   RECB=false;if(n)render()}
 let _jq=null;
-function scnLoadJsQR(){return _jq||(_jq=new Promise((res,rej)=>{if(window.jsQR)return res();const s=document.createElement("script");s.src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js";s.onload=()=>res();s.onerror=()=>{_jq=null;rej(new Error("jsqr"))};document.head.appendChild(s)}))}
+function scnLoadScript(u){return new Promise((res,rej)=>{const t=document.createElement("script");t.src=u;t.onload=()=>res();t.onerror=()=>rej(new Error("jsqr"));document.head.appendChild(t)})}
+function scnLoadJsQR(){return _jq||(_jq=(async()=>{if(window.jsQR)return;try{await scnLoadScript("https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js")}catch(e){await scnLoadScript("https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js")}if(!window.jsQR)throw new Error("jsqr")})().catch(e=>{_jq=null;throw e}))}
 async function scnDecoder(){
-  if("BarcodeDetector" in window){try{const d=new BarcodeDetector({formats:["qr_code"]});return async v=>{const r=await d.detect(v);return r&&r[0]?r[0].rawValue:null}}catch(e){}}
-  await scnLoadJsQR();const c=document.createElement("canvas"),g=c.getContext("2d",{willReadFrequently:true});
-  return async v=>{const k=Math.min(1,640/(v.videoWidth||640));c.width=Math.round((v.videoWidth||640)*k);c.height=Math.round((v.videoHeight||480)*k);g.drawImage(v,0,0,c.width,c.height);
-    const d=g.getImageData(0,0,c.width,c.height),r=window.jsQR(d.data,c.width,c.height,{inversionAttempts:"attemptBoth"});return r?r.data:null}}
+  if("BarcodeDetector" in window){try{const d=new BarcodeDetector({formats:["qr_code"]});return{name:"المتصفح",f:async(v)=>{const r=await d.detect(v);return r&&r[0]?r[0].rawValue:null}}}catch(e){}}
+  await scnLoadJsQR();const c=document.createElement("canvas"),g=c.getContext("2d",{willReadFrequently:true});let n=0;
+  return{name:"jsQR",f:async(v,boost)=>{const vw=v.videoWidth||v.width||640,vh=v.videoHeight||v.height||480,tries=boost?[1400,960,640]:[n++%2?520:960];
+    for(const mw of tries){const k=Math.min(1,mw/vw);c.width=Math.max(8,Math.round(vw*k));c.height=Math.max(8,Math.round(vh*k));g.drawImage(v,0,0,c.width,c.height);
+      const d=g.getImageData(0,0,c.width,c.height),r=window.jsQR(d.data,c.width,c.height,{inversionAttempts:boost||n%3===0?"attemptBoth":"dontInvert"});if(r&&r.data)return r.data}
+    return null}}}
 let _ac=null;
 function beep(ok){try{_ac=_ac||new(window.AudioContext||window.webkitAudioContext)();const o=_ac.createOscillator(),g=_ac.createGain();o.frequency.value=ok?880:220;g.gain.value=.15;o.connect(g);g.connect(_ac.destination);o.start();o.stop(_ac.currentTime+(ok?.12:.3))}catch(e){}if(navigator.vibrate)navigator.vibrate(ok?60:[80,60,80])}
 async function scnOpen(eid){
@@ -760,21 +763,29 @@ async function scnOpen(eid){
   SC={e,stream:null,busy:false,last:"",lastT:0,log:[],tm:0,dead:false};
   const el=document.createElement("div");el.id="scn";el.className="scn";document.body.appendChild(el);document.body.style.overflow="hidden";
   el.innerHTML=`<div class="scn-top"><button class="g" onclick="scnClose(true)">✕ إغلاق</button><div style="flex:1;min-width:0"><b>📷 مسح الحضور</b><div class="mu" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${EVI[e.kind]||""} ${esc(e.title)} · ${fmtD(e.d)}</div></div><span class="pill up" id="scnc">0</span></div>
-  <div class="scn-cam"><video id="scv" playsinline muted autoplay></video><div class="scn-frame"></div></div>
+  <div class="scn-cam"><video id="scv" playsinline webkit-playsinline muted autoplay></video><div class="scn-frame"></div></div>
+  <div class="row" style="padding:6px 12px;justify-content:space-between;background:#0d1226"><span class="mu" id="scns">…</span><label class="btn g" style="margin:0;padding:6px 12px;font-size:13px;color:#fff">📸 صوّر الكود<input type="file" accept="image/*" capture="environment" hidden onchange="scnPhoto(this.files[0]);this.value=''"></label></div>
   <div id="scnr" class="scn-res">جاري فتح الكاميرا…</div><div id="scnl" class="scn-list"></div>`;
   try{if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error("nomedia");
-    SC.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}},audio:false});
-    const v=$("#scv");if(!v||SC.dead){scnStop();return}v.srcObject=SC.stream;await v.play().catch(()=>{});
-    SC.det=await scnDecoder();scnRes("","وجّه الكاميرا على كود العضو…");scnTick()
+    try{_ac=_ac||new(window.AudioContext||window.webkitAudioContext)();if(_ac.state==="suspended")_ac.resume()}catch(e){}
+    SC.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"},width:{ideal:1280},height:{ideal:720}},audio:false}).catch(()=>navigator.mediaDevices.getUserMedia({video:true,audio:false}));
+    const v=$("#scv");if(!v||SC.dead){scnStop();return}v.muted=true;v.setAttribute("playsinline","");v.srcObject=SC.stream;await v.play().catch(()=>{});
+    scnSt("بحمّل قارئ الكود…");SC.det=await scnDecoder();scnSt("الكاميرا شغالة · القارئ: "+SC.det.name);scnRes("","وجّه الكاميرا على كود العضو… قرّبه لحد ما يملا الإطار");scnTick()
   }catch(er){scnRes("bad",er&&er.message==="jsqr"?"محتاج إنترنت عشان يحمّل قارئ الكود. جرّب تاني.":"مقدرتش أفتح الكاميرا. اسمح للموقع بالكاميرا من إعدادات المتصفح (ولازم الموقع يكون https).")}}
+const scnSt=t=>{const e=$("#scns");if(e)e.textContent=t};
 function scnStop(){if(!SC)return;SC.dead=true;clearTimeout(SC.tm);if(SC.stream)SC.stream.getTracks().forEach(t=>t.stop())}
 function scnClose(done){if(!SC&&!$("#scn"))return;const had=SC&&SC.log.length;scnStop();const el=$("#scn");if(el)el.remove();document.body.style.overflow="";SC=null;if(done&&had){render();evReconcile()}}
 function scnRes(cls,html){const r=$("#scnr");if(r){r.className="scn-res "+cls;r.innerHTML=html}}
 async function scnTick(){
   if(!SC||SC.dead)return;const v=$("#scv");let raw=null;
-  try{if(v&&v.readyState>=2&&!SC.busy)raw=await SC.det(v)}catch(e){}
+  try{if(v&&v.readyState>=2&&!SC.busy){raw=await SC.det.f(v);SC.fr=(SC.fr||0)+1;if(SC.fr%8===0)scnSt("الكاميرا شغالة · القارئ: "+SC.det.name+" · "+(v.videoWidth||0)+"×"+(v.videoHeight||0))}}catch(e){scnSt("خطأ في القراءة: "+(e.message||e))}
   if(raw&&!SC.busy){const now=Date.now();if(raw!==SC.last||now-SC.lastT>4000){SC.last=raw;SC.lastT=now;await scnHandle(raw)}else SC.lastT=now}
   if(SC&&!SC.dead)SC.tm=setTimeout(scnTick,250)}
+async function scnPhoto(f){
+  if(!f||!SC)return;scnRes("","جاري قراءة الصورة…");
+  try{const bm=await createImageBitmap(f),k=Math.min(1,1600/Math.max(bm.width,bm.height)),c=document.createElement("canvas");c.width=Math.round(bm.width*k);c.height=Math.round(bm.height*k);c.getContext("2d").drawImage(bm,0,0,c.width,c.height);
+    const raw=await SC.det.f(c,true);if(!raw){beep(false);scnRes("bad","❌ مقدرتش أقرا كود في الصورة. قرّب أكتر والكود يملا الصورة وجرّب تاني.");return}
+    SC.last="";await scnHandle(raw)}catch(e){scnRes("bad","❌ "+esc(e.message||String(e)))}}
 async function scnHandle(raw){
   SC.busy=true;const e=SC.e;
   if(!raw.startsWith(QRP)){beep(false);scnRes("bad","❌ ده مش كود حضور بتاع الموقع");SC.busy=false;return}
