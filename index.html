@@ -521,9 +521,9 @@ function boardAdminView(){
 }
 function photosView(){
   const g=COM.includes(S.pg)?S.pg:COM[0],grp=c=>D.members.filter(m=>m.committee===c);
-  PH=grp(g).map(m=>({n:m.name,u:m.avatar_url})).concat(g==="Board"?D.board.filter(b=>!grp("Board").some(m=>m.id===b.member_id)).map(b=>({n:b.name,u:bPhoto(b)})):[]);
+  PH=grp(g).map(m=>({n:m.name,u:m.avatar_url,id:m.id})).concat(g==="Board"?D.board.filter(b=>!grp("Board").some(m=>m.id===b.member_id)).map(b=>({n:b.name,u:bPhoto(b)})):[]);
   return`<div class="tabs">${COM.map(c=>`<button class="${c===g?"on":""}" onclick="S.pg='${c}';render()">${c} (${grp(c).filter(m=>m.avatar_url).length}/${grp(c).length})</button>`).join("")}</div>
-  <div class="grid3">${PH.map((x,i)=>`<div class="card" style="padding:8px;text-align:center;cursor:${x.u?"pointer":"default"}" ${x.u?`onclick="S.modal={t:'photo',i:${i}};render()"`:""}>${x.u?`${imgT(x.u,"","width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px")}`:`<div class="av" style="width:100%;height:auto;aspect-ratio:1;border-radius:12px;font-size:28px">${esc((x.n||"?")[0])}</div>`}<div style="font-size:12px;margin-top:6px">${esc(nm(x.n))}</div></div>`).join("")||'<p class="mu">لا يوجد.</p>'}</div>`;
+  <div class="grid3">${PH.map((x,i)=>`<div class="card" style="padding:8px;text-align:center;cursor:${x.u?"pointer":"default"}" ${x.u?`onclick="S.modal={t:'photo',i:${i}};render()"`:""}>${x.u?`${imgT(x.u,"","width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px")}`:`<div class="av" style="width:100%;height:auto;aspect-ratio:1;border-radius:12px;font-size:28px">${esc((x.n||"?")[0])}</div>`}<div style="font-size:12px;margin-top:6px">${esc(nm(x.n))}</div>${x.id?`<label class="btn g" style="margin:6px 0 0;padding:5px 8px;font-size:12px;color:var(--tx);display:block" onclick="event.stopPropagation()">📷 ${x.u?"تغيير":"رفع"}<input type="file" hidden accept="image/*" onchange="adminAvatar('${x.id}',this.files[0]);this.value=''"></label>`:""}</div>`).join("")||'<p class="mu">لا يوجد.</p>'}</div>`;
 }
 function adminView(){
   const pend=D.signups.filter(s=>s.status==="pending").length;
@@ -861,6 +861,40 @@ function badgesHtml(m,pos,total){
   const b=[];if(pos===1&&total>1)b.push("🥇 الأول في لجنتك");else if(pos>0&&pos<=3&&total>3)b.push("🏅 ضمن أفضل 3");
   if(months(m).length&&!wc(m))b.push("🛡 بدون إنذارات");if(delta(m)>0)b.push("🔥 في تصاعد +"+delta(m));if(grade(score(m))==="A")b.push("⭐ تقدير A");
   return b.length?`<div class="badges">${b.map(x=>`<span>${x}</span>`).join("")}</div>`:""}
+/* ---------- صور الأعضاء (للأدمن) + إلزام الصورة + إدارة الحساب ---------- */
+async function adminAvatar(mid,f){
+  if(!f||!isAdm())return;
+  try{const blob=await resizeImg(f,4096,.97),p="m_"+mid+".jpg";
+    let up=await sb.storage.from("avatars").upload(p,blob,{upsert:true,contentType:"image/jpeg"});if(up.error)throw up.error;
+    try{const tb=await resizeImg(f,640,.9);await sb.storage.from("avatars").upload("m_"+mid+"_t.jpg",tb,{upsert:true,contentType:"image/jpeg"})}catch(e){}
+    const url=sb.storage.from("avatars").getPublicUrl(p).data.publicUrl+"?v="+Date.now(),r=await sb.from("members").update({avatar_url:url}).eq("id",mid);
+    if(r.error)throw r.error;await load();render();toast("اتحدّثت الصورة ✓")
+  }catch(e){alert("تعذر رفع الصورة: "+(e.message||e)+"\nلو الصورة HEIC (من الآيفون) حوّلها JPG الأول.")}}
+async function adminPw(mid){
+  const pw=($("#npw")||{}).value||"";if(pw.length<6){alert("كلمة السر لازم 6 حروف على الأقل");return}
+  if(!confirm("تغيير كلمة سر العضو؟ هيتسجّل خروجه من كل أجهزته."))return;
+  const r=await sb.rpc("admin_set_password",{p_member:mid,p_password:pw});if(r.error){alert(r.error.message);return}
+  $("#npw").value="";toast("اتغيّرت كلمة السر ✓ — بلّغ العضو بيها","ok")}
+async function adminReset(mid){
+  const m=D.members.find(x=>x.id===mid);if(!m)return;
+  const r=await sb.auth.resetPasswordForEmail(m.email,{redirectTo:location.origin+location.pathname});
+  if(r.error){alert(r.error.message);return}toast("اتبعت رابط الاستعادة على "+m.email,"ok")}
+function avatarGate(){
+  return`<div class="auth"><div class="box"><div class="crest">YLY</div><h1 class="ttl" style="font-size:24px">ارفع صورتك الشخصية</h1>
+  <p class="sub">خطوة لازم تتعمل مرة واحدة قبل ما تدخل حسابك: صورة <b>واضحة لوجهك</b> (الوش باين، من غير نظارة شمس أو فلتر).</p>
+  <div class="card" style="margin-top:18px;text-align:center"><div id="agp" class="av lg" style="width:120px;height:120px;font-size:44px;margin:0 auto 12px;border-radius:30px">${esc((me.name||"?")[0])}</div>
+  <label class="btn" style="margin:0;color:#fff;display:block">📸 اختيار صورة أو تصوير<input type="file" accept="image/*" hidden onchange="gateUp(this.files[0]);this.value=''"></label><p class="err" id="agm"></p></div>
+  <div class="row" style="justify-content:center"><button class="g" onclick="logout()">خروج</button></div></div></div>`}
+async function gateUp(f){
+  const m=$("#agm"),say=t=>{if(m)m.textContent=t};if(!f)return;say("");
+  if(!/^image\//.test(f.type)&&!/\.(jpe?g|png|webp|heic)$/i.test(f.name)){say("اختار ملف صورة");return}
+  if(f.size>25*1024*1024){say("الصورة كبيرة قوي (أكتر من 25MB)");return}
+  try{const bm=await createImageBitmap(f);
+    if(Math.min(bm.width,bm.height)<300){say("الصورة صغيرة قوي. اختار صورة أوضح.");return}
+    if("FaceDetector" in window){try{const fs=await new FaceDetector().detect(bm);if(!fs.length){say("مش باين وش في الصورة. اختار صورة واضحة لوجهك.");return}}catch(e){}}
+    const pv=$("#agp");if(pv){pv.outerHTML=`<img id="agp" class="av lg" style="width:120px;height:120px;border-radius:30px;margin:0 auto 12px;display:block" src="${URL.createObjectURL(f)}">`}
+  }catch(e){say("مقدرتش أقرا الصورة. لو من الآيفون حوّلها JPG.");return}
+  say("جاري الرفع…");await upAvatar(f)}
 /* ---------- النوافذ ---------- */
 function modal(){
   const t=S.modal,m=D.members.find(x=>x.id===t.id);
@@ -880,6 +914,10 @@ function modal(){
     ${(()=>{const be=m?D.board.find(b=>b.member_id===m.id):null;return`<div id="bdw" style="display:${roleSel(m?.role)==="Board"?"block":"none"}"><label>مسؤول في لجنة إيه؟ (دوس على واحدة أو أكتر)</label>${chipsHtml(be?bCom(be):[],"mbcs")}<label>المنصب في البورد (اختياري)</label><input id="mbp" value="${esc(be?.position)}" placeholder="مثال: Vice President"></div>`})()}
     <div id="flw" style="display:${(m?.committee||"PR")==="HR"?"block":"none"}"><label>الأعضاء اللي هيضيفهم ويعدّل تقييمهم (هو بس يشوفهم)</label><input placeholder="بحث بالاسم..." oninput="filterFl(this.value)">
     <div style="max-height:170px;overflow:auto;margin-top:6px">${D.members.filter(x=>x.id!==m?.id).map(x=>`<label class="fli" data-n="${esc(x.name)} ${esc(x.committee)}" style="display:flex;gap:6px;align-items:center;margin:2px 0;color:var(--tx)"><input type="checkbox" class="fl" value="${x.id}" style="width:auto" ${fl.includes(x.id)?"checked":""}>${esc(nm(x.name))} <span class="mu">${esc(x.committee)}</span></label>`).join("")}</div></div>
+    ${m?`<div class="card" style="margin:14px 0 0;padding:12px"><b>👤 الصورة والحساب</b>
+      <div class="row" style="margin-top:8px">${avatar(m)}<label class="btn g" style="margin:0;color:var(--tx)">📷 ${m.avatar_url?"تغيير":"رفع"} صورة<input type="file" hidden accept="image/*" onchange="adminAvatar('${m.id}',this.files[0]);this.value=''"></label></div>
+      ${m.user_id?`<label>كلمة سر جديدة (٦ حروف على الأقل)</label><div class="row" style="flex-wrap:nowrap"><input id="npw" type="text" dir="ltr" autocomplete="off" placeholder="كلمة السر الجديدة"><button type="button" onclick="adminPw('${m.id}')">تغيير</button></div>
+      <div class="row" style="margin-top:8px"><button class="g" type="button" onclick="adminReset('${m.id}')">📧 رابط استعادة بالإيميل</button><button class="g" type="button" onclick="S.modal={t:'view',id:'${m.id}'};render()">👁 عرض حسابه</button></div>`:`<p class="mu" style="margin:8px 0 0">العضو لسه ماسجّلش حساب، فمفيش كلمة سر.</p>`}</div>`:""}
     <p class="err" id="mm"></p><div class="row" style="margin-top:12px"><button onclick="saveMem('${m?.id||""}')">حفظ</button><button class="g" onclick="closeM(true)">إلغاء</button>${m&&m.id!==me?.id?`<button class="d" onclick="delMem('${m.id}')">حذف</button>`:""}</div></div></div>`;}
   if(!m)return"";
   if(t.t==="view")return`<div class="ov" onclick="if(event.target===this)closeM()"><div class="card">${memberView(m,false)}<button class="g" onclick="closeM()">إغلاق</button></div></div>`;
@@ -1530,6 +1568,7 @@ function render(){
   else if(!session)h=loginView();
   else if(!loaded)h=`<div class="auth"><div class="box"><div class="crest">YLY</div><p class="sub">جاري تحميل بياناتك…</p><div class="sk" style="height:14px;margin:18px auto 10px;width:70%"></div><div class="sk" style="height:14px;margin:0 auto;width:45%"></div></div></div>`;
   else if(!me){const st=S.signup;h=topbar()+`<div class="card"><b>${st==="rejected"?"تم رفض طلبك":"طلبك قيد المراجعة"}</b><p>${st==="rejected"?"تواصل مع الإدارة لو فيه خطأ.":st==="pending"?"تم استلام طلب تسجيلك، وهيتفعّل حسابك أول ما الإدارة توافق عليه.":(S.msg?esc(S.msg):"الإيميل ده مش مسجل عند الأدمن. كلّمه عشان يضيفك ثم سجل دخول تاني.")}</p><button class="g" onclick="refresh()">تحديث</button></div>`}
+  else if(!isAdm()&&!me.avatar_url)h=avatarGate();
   else if(isAdm())h=adminView();
   else if(isMgr())h=mgrView();
   else if(isBoardAcc())h=topbar()+tabBar([["bcom","📊 تقييمات لجنتي"],["me","حسابي"],["leaders","👥 مسؤولو اللجنة"]].concat(dTab(),evTab()))+(S.tab==="me"?memberView(me,true):S.tab==="leaders"?leadersView(me.committee):S.tab==="events"&&evOk()?eventsView():S.tab==="designs"&&canDesign()?designsView():bcomView());
