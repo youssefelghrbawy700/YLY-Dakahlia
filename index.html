@@ -68,7 +68,7 @@ body{background:#fff!important}
 .ft{text-align:center;direction:ltr;font-size:12px;letter-spacing:.3px;color:var(--mu);opacity:.85;padding:18px 12px 26px}@media print{.ft{display:none}}
 .chip{padding:8px 16px;border-radius:999px;font-weight:700}.chip.on{background:linear-gradient(135deg,var(--pr),var(--pr2));color:#fff;border-color:transparent}
 
-.edx{position:fixed;inset:0;z-index:60;background:var(--bg);display:flex;flex-direction:column;color:var(--tx)}
+.ed{position:fixed;inset:0;z-index:60;background:var(--bg);display:flex;flex-direction:column;color:var(--tx)}
 .ed-top{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:8px 10px;border-bottom:1px solid var(--bd);background:var(--card)}
 .ed-top button,.ed-top .btn{padding:7px 11px;font-size:13px}
 .ed-sep{width:1px;height:24px;background:var(--bd)}
@@ -1062,7 +1062,7 @@ function toastEd(t){const m=ed$("edm");if(m){m.style.color="var(--ok)";m.textCon
 /* ---------- بناء الواجهة ---------- */
 function edMount(){
   let el=ed$("ed");if(el)el.remove();
-  el=document.createElement("div");el.id="ed";el.className="edx";document.body.appendChild(el);document.body.style.overflow="hidden";
+  el=document.createElement("div");el.id="ed";el.className="ed";document.body.appendChild(el);document.body.style.overflow="hidden";
   el.innerHTML=`<div class="ed-top">
     <button class="g" onclick="edClose()">✕</button>
     <input id="edn" placeholder="اسم الديزاين" value="${esc(E.name)}" oninput="E.name=this.value;E.dirty=true" style="flex:1;min-width:120px;max-width:260px">
