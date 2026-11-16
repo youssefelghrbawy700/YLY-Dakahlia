@@ -9,7 +9,7 @@
 <link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap">
-<title>YLY Dakahlia </title>
+<title>YLY Dakahlia · تيم ميتر</title>
 <style>
 :root{--card:rgba(15,21,46,.42);--tx:#f1f4ff;--mu:#a6aecd;--bd:rgba(255,255,255,.13);--pr:#5b7cff;--pr2:#7c5cff;--ok:#34d399;--bad:#f87171;--warn:#fbbf24;--inp:rgba(255,255,255,.07);--bg:#0b1020;--o1:rgba(7,12,34,.3);--o2:rgba(7,12,34,.55)}
 :root[data-theme="light"]{--card:rgba(255,255,255,.62);--tx:#131a33;--mu:#59628a;--bd:rgba(19,26,51,.12);--pr:#2f4fdc;--pr2:#5b3fd6;--ok:#10b981;--bad:#ef4444;--warn:#d97706;--inp:#fff;--bg:#eef1fb;--o1:rgba(238,241,251,.28);--o2:rgba(238,241,251,.5)}
@@ -272,7 +272,7 @@ async function setNewPw(){
   if(r.error){S.msg=r.error.message;return render()}
   S.recover=false;S.msg="";await load();render();
 }
-async function logout(){await sb.auth.signOut();session=null;me=null;S.modal=null;render()}
+async function logout(){await sb.auth.signOut();session=null;me=null;S.modal=null;S.more=false;S.nt=false;S.landed=false;LASTME=null;S.tab="members";S.hard=true;render()}
 
 function recoverView(){
   return`<div class="auth"><div class="box"><div class="crest">YLY</div><h1 class="ttl">كلمة مرور جديدة</h1>
@@ -307,7 +307,7 @@ function exportPDF(id){
   const w=(me&&m.id===me.id&&!isAdm())?myWarn:D.warn.filter(x=>x.member_id===m.id).length;
   const el=document.createElement("div");el.id="rpt";
   el.innerHTML=`<div dir="rtl" style="font-family:'Segoe UI',Tahoma,'Noto Sans Arabic',sans-serif">
-  <div class="rh"><div><div style="font-size:20px;font-weight:800">YLY Dakahlia</div><div style="opacity:.85;font-size:13px">تقرير تقييم الأداء </div></div><div style="font-size:13px">${new Date().toLocaleDateString("ar-EG")}</div></div>
+  <div class="rh"><div><div style="font-size:20px;font-weight:800">YLY Dakahlia</div><div style="opacity:.85;font-size:13px">تقرير تقييم الأداء · TeamMeter</div></div><div style="font-size:13px">${new Date().toLocaleDateString("ar-EG")}</div></div>
   <div class="card"><div class="row">${avatar(m,1)}<div style="flex:1"><b style="font-size:20px">${esc(nm(m.name))}</b><div class="mu">${esc(m.role||"عضو")} · لجنة ${esc(m.committee)}</div></div>${ms.length?gpill(m):""}</div></div>
   ${ms.length?`<div class="grid3"><div class="card"><div class="mu">التقييم الحالي</div><div class="big">${score(m)}<span class="mu">/${mx}</span></div></div><div class="card"><div class="mu">الترتيب في اللجنة</div><div class="big">${pos}<span class="mu">/${rk.length}</span></div></div><div class="card"><div class="mu">الإنذارات</div><div class="big">${w}</div></div></div>
   <div class="card" style="margin-top:12px"><b>تطور الأداء</b>${chart(m)}</div>
@@ -371,8 +371,10 @@ async function load(){
   if(me&&!touched){touched=true;startPing()}
   else{const st=await sb.rpc("my_signup_status");S.signup=st.data||null}
   const AT=["home","members","req","committees","dash","announce","seen","hr","board","photos","designs","events","att","security"];
+  if(me&&LASTME!==me.id){LASTME=me.id;S.more=false;S.nt=false;S.landed=false}
   if(isAdm()&&!S.landed){S.landed=1;S.tab="home"}
   else if(isAdm()&&!AT.includes(S.tab))S.tab="home";
+  else if(isMgr()&&!S.landed){S.landed=1;S.tab="follow"}
   else if(isMgr()&&!["follow","me","leaders","events","bcom","designs"].includes(S.tab))S.tab="follow";
   else if(me&&!isAdm()&&!isMgr()&&!["me","leaders","bcom","designs","events"].includes(S.tab))S.tab="me";
   if(!restored){restored=true;try{const o=JSON.parse(localStorage.getItem("tm-open-modal")||"null");
@@ -405,7 +407,7 @@ async function doAuth(signup){
 function loginView(){
   const su=S.auth==="up";
   return`<div class="auth"><div class="box">
-  <div class="crest">YLY</div><h1 class="ttl">YLY Dakahlia</h1><p class="sub">منصة تقييم الأداء </p>
+  <div class="crest">YLY</div><h1 class="ttl">YLY Dakahlia</h1><p class="sub">منصة تقييم الأداء · TeamMeter</p>
   <div class="chips"><span>📊 تقييم شهري</span><span>🏆 ترتيب اللجان</span><span>📄 تقارير PDF</span></div>
   <div class="card" style="margin-top:18px">
   <div class="seg"><button class="${su?"g":""}" onclick="S.auth='in';S.msg='';render()">تسجيل الدخول</button><button class="${su?"":"g"}" onclick="S.auth='up';S.msg='';render()">حساب جديد</button></div>
@@ -809,7 +811,7 @@ async function scnHandle(raw){
   const c=$("#scnc");if(c)c.textContent=SC.log.length;const l=$("#scnl");if(l)l.innerHTML=SC.log.map(x=>`<div class="lb"><span style="flex:1">${esc(x.name)} <span class="mu">${esc(x.c)}</span></span><span class="mu">${x.t}</span></div>`).join("");
   SC.busy=false}
 /* ---------- واجهة: تنقل سفلي / انتقالات / إشعارات / تحديث ناعم ---------- */
-let NAV=null,RKEY="",MKEY="",DEFI=null;
+let NAV=null,RKEY="",MKEY="",DEFI=null,LASTME=null;
 const NI={home:"🏠",members:"👥",req:"🆕",committees:"🧩",dash:"🏆",announce:"📢",seen:"👁",hr:"✅",events:"📅",att:"📋",security:"🛡",board:"🏛",photos:"🖼",designs:"🎨",follow:"👥",me:"👤",leaders:"🛡",bcom:"📊"};
 const NLB={home:"الرئيسية",members:"الأعضاء",req:"الطلبات",committees:"اللجان",dash:"لوحة الشرف",announce:"الإعلان",seen:"الدخول",hr:"تسجيلات HR",events:"الأحداث",att:"سجل الحضور",security:"الأمان",board:"البورد",photos:"الصور",designs:"الديزاينات",follow:"المتابعة",me:"حسابي",leaders:"المسؤولون",bcom:"لجنتي"};
 const ADM_MAIN=["home","members","events","req"];
