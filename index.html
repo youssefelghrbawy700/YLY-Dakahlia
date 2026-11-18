@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="تيم ميتر">
 <link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Anton&family=Pacifico&display=swap">
 <title>YLY Dakahlia · تيم ميتر</title>
 <style>
 :root{--card:rgba(15,21,46,.42);--tx:#f1f4ff;--mu:#a6aecd;--bd:rgba(255,255,255,.13);--pr:#5b7cff;--pr2:#7c5cff;--ok:#34d399;--bad:#f87171;--warn:#fbbf24;--inp:rgba(255,255,255,.07);--bg:#0b1020;--o1:rgba(7,12,34,.3);--o2:rgba(7,12,34,.55)}
@@ -820,7 +820,7 @@ async function scnHandle(raw){
   const c=$("#scnc");if(c)c.textContent=SC.log.length;const l=$("#scnl");if(l)l.innerHTML=SC.log.map(x=>`<div class="lb"><span style="flex:1">${esc(x.name)} <span class="mu">${esc(x.c)}</span></span><span class="mu">${x.t}</span></div>`).join("");
   SC.busy=false}
 /* ---------- واجهة: تنقل سفلي / انتقالات / إشعارات / تحديث ناعم ---------- */
-let NAV=null,RKEY="",MKEY="",DEFI=null,LASTME=null;
+let CUR_ADJ=null,NAV=null,RKEY="",MKEY="",DEFI=null,LASTME=null;
 const NI={home:"🏠",members:"👥",req:"🆕",committees:"🧩",dash:"🏆",announce:"📢",seen:"👁",hr:"✅",events:"📅",att:"📋",security:"🛡",sheets:"🔗",board:"🏛",photos:"🖼",designs:"🎨",follow:"👥",me:"👤",leaders:"🛡",bcom:"📊"};
 const NLB={home:"الرئيسية",members:"الأعضاء",req:"الطلبات",committees:"اللجان",dash:"لوحة الشرف",announce:"الإعلان",seen:"الدخول",hr:"تسجيلات HR",events:"الأحداث",att:"سجل الحضور",security:"الأمان",sheets:"الشيتات",board:"البورد",photos:"الصور",designs:"الديزاينات",follow:"المتابعة",me:"حسابي",leaders:"المسؤولون",bcom:"لجنتي"};
 const ADM_MAIN=["home","members","events","req"];
@@ -1228,6 +1228,77 @@ async function paSave(){const a=PAS.adj,r=await sb.from("design_photo_adjust").u
   if(r.error){alert(r.error.message);return}D.pa=D.pa||{};D.pa[PAS.mid]=Object.assign({},a);toast("اتحفظ ضبط الصورة ✓","ok");paClose()}
 async function paPhoto(f){if(!f||!PAS)return;const mid=PAS.mid;await adminAvatar(mid,f);await dImg(((D.members.find(m=>m.id===mid)||{}).avatar_url)||"");D_LIST.forEach(x=>{if(x.m.id===mid)x.m=D.members.find(m=>m.id===mid)||x.m});paDraw()}
 function paClose(silent){if(D.pat&&PAS)delete D.pat[PAS.mid];const el=$("#pad");if(el)el.remove();document.body.style.overflow="";PAS=null;if(!silent&&S.tab==="designs")dDrawAll()}
+/* ---------- ديزاينات بأسلوب بوستات فروع YLY + شعارات ثابتة ---------- */
+const LOGOK={"@logoL":"logo_l","@logoR":"logo_r","@logoS":"logo_s"};
+const BR=(light)=>{const c=light?"#0d2a66":"#ffffff";return[
+  mkImage({name:"شعار شمال",src:"@logoL",x:98,y:100,w:130,h:130,fit:"contain"}),mkImage({name:"شعار يمين",src:"@logoR",x:982,y:100,w:160,h:130,fit:"contain"}),
+  mkImage({name:"شعار الموسم",src:"@logoS",x:540,y:1034,w:230,h:76,fit:"contain"}),
+  mkText({name:"الموقع",text:"www.ylyunion.com",x:240,y:1034,w:360,size:24,color:c,wt:800,align:"left"}),
+  mkText({name:"سوشيال",text:"/ YLYMINISTRY",x:840,y:1034,w:360,size:22,color:c,wt:800,align:"right"})]};
+const AN="Anton,Impact,Haettenschweiler,sans-serif",PAC="Pacifico,'Brush Script MT',cursive";
+PRESETS.push(
+ {name:"فرع أزرق (زي قنا)",make:()=>({bg:{t:"grad",c1:"#f6f6f8",c2:"#e3e6ee",ang:90},layers:[
+  mkShape({name:"هلال أزرق سفلي شمال",shape:"circle",x:-60,y:1250,w:1000,h:1000,fill:"#1740c0"}),mkShape({name:"فاصل",shape:"circle",x:-20,y:1310,w:1000,h:1000,fill:"#f1f2f6"}),
+  mkShape({name:"هلال أزرق سفلي يمين",shape:"circle",x:1180,y:1240,w:1000,h:1000,fill:"#1740c0"}),mkShape({name:"فاصل 2",shape:"circle",x:1140,y:1310,w:1000,h:1000,fill:"#f1f2f6"}),
+  mkShape({name:"ركن أزرق علوي",shape:"circle",x:-30,y:-60,w:620,h:620,fill:"#1740c0"}),mkShape({name:"ركن فاتح",shape:"circle",x:-90,y:-120,w:560,h:560,fill:"#f1f2f6"}),
+  mkShape({name:"ركن أزرق يمين",shape:"circle",x:1130,y:230,w:560,h:560,fill:"#1740c0",op:.85}),
+  mkShape({name:"ظل الكارت",shape:"rounded",x:628,y:508,w:510,h:730,rot:6,rad:5,fill:"#0a2a9a"}),
+  mkShape({name:"كارت الصورة",shape:"rounded",x:612,y:500,w:510,h:730,rot:-3,rad:5,fill:"#0f4fe0"}),
+  mkPhoto({x:610,y:502,w:464,h:684,shape:"rounded",rad:4,rot:-3,shadow:30}),
+  mkText({name:"رقم",text:"#{r}",x:860,y:215,w:230,size:170,color:"#ffc20e",fam:AN,wt:900,sw:3,sc:"#ffffff",shadow:14}),
+  mkText({name:"شهر",text:"{mon}",x:860,y:325,w:230,size:92,color:"#cfe0ff",fam:AN,wt:900}),
+  mkText({name:"Best member",text:"Best member",x:140,y:560,w:700,size:122,color:"#1740c0",fam:PAC,wt:700,rot:-90,shadow:0}),
+  mkText({name:"اسم الفرع",text:"YLY Dakahlia",x:252,y:580,w:380,size:42,color:"#1a2a66",fam:"Georgia,serif",ital:true,wt:700,rot:-90}),
+  mkText({name:"الاسم",text:"{name}",x:540,y:925,w:760,size:80,color:"#ffc20e",fam:AN,wt:900,shadow:10}),
+  mkText({name:"اللجنة",text:"{cn}",x:540,y:985,w:700,size:44,color:"#ffffff",fam:AN,wt:700}),
+  ...BR(false)]})},
+ {name:"ليدر بنفسجي (زي دمياط)",make:()=>({bg:{t:"grad",c1:"#0e0646",c2:"#3b22d8",ang:165},layers:[
+  mkShape({name:"ظلال داكنة",shape:"circle",x:150,y:620,w:520,h:520,fill:"#05022a",op:.35}),mkShape({name:"ظلال 2",shape:"circle",x:930,y:300,w:420,h:420,fill:"#05022a",op:.3}),
+  mkText({name:"Best",text:"Best",x:345,y:190,w:330,size:118,color:"#ffffff",fam:"Georgia,serif",wt:900,align:"right"}),
+  mkText({name:"Leader",text:"Leader",x:765,y:190,w:440,size:118,color:"#ffb400",fam:"Georgia,serif",wt:900,align:"left"}),
+  mkText({name:"الشهر",text:"{month}",x:540,y:305,w:800,size:124,color:"#ffffff",fam:PAC,wt:700,shadow:12}),
+  mkShape({name:"إطار ذهبي",shape:"rect",x:548,y:610,w:470,h:500,rot:-3,fill:"#ffb400"}),mkShape({name:"إطار أزرق",shape:"rect",x:548,y:610,w:436,h:466,rot:-3,fill:"#1640cf"}),
+  mkPhoto({x:548,y:612,w:392,h:430,shape:"rect",rot:-3}),
+  mkShape({name:"مربع صغير 1",shape:"rect",x:770,y:392,w:38,h:38,rot:-3,fill:"#ffb400"}),mkShape({name:"مربع صغير 2",shape:"rect",x:322,y:836,w:38,h:38,rot:-3,fill:"#ffb400"}),
+  mkShape({name:"شارة اللجنة",shape:"burst",x:860,y:610,w:200,h:200,fill:"#ffb400"}),mkText({name:"اللجنة",text:"{c}",x:860,y:610,w:170,size:88,color:"#ffffff",fam:AN,wt:900}),
+  mkShape({name:"شريط الترتيب",shape:"pent",x:118,y:555,w:236,h:96,fill:"#ffb400"}),mkText({name:"الترتيب",text:"Top {r}",x:132,y:555,w:200,size:70,color:"#ffffff",fam:AN,wt:900}),
+  mkShape({name:"شريط الاسم",shape:"tag",x:500,y:960,w:520,h:112,fill:"#1640cf",stroke:"#ffffff",sw:4}),mkText({name:"الاسم",text:"{name}",x:500,y:960,w:430,size:66,color:"#ffffff",fam:"Georgia,serif",wt:800}),
+  mkShape({name:"شريط الفرع",shape:"tag",x:740,y:850,w:330,h:92,fill:"#1640cf",stroke:"#ffffff",sw:4,rot:-2}),mkText({name:"الفرع",text:"Dakahlia",x:740,y:850,w:250,size:56,color:"#ffffff",fam:"Georgia,serif",wt:800,rot:-2}),
+  ...BR(false)]})},
+ {name:"جدول معلومات (زي إسكندرية)",make:()=>({bg:{t:"grad",c1:"#061a63",c2:"#0b3cb3",ang:150},layers:[
+  mkShape({name:"زاوية برتقالي 1",shape:"rect",x:20,y:230,w:150,h:70,rot:22,fill:"#ff8a00"}),mkShape({name:"زاوية زرقا",shape:"rect",x:10,y:380,w:60,h:200,rot:12,fill:"#1d4fe0"}),
+  mkShape({name:"زاوية برتقالي 2",shape:"rect",x:1060,y:880,w:130,h:150,rot:16,fill:"#ff8a00"}),mkShape({name:"زاوية زرقا 2",shape:"rect",x:20,y:760,w:50,h:200,rot:-8,fill:"#1d4fe0"}),
+  mkShape({name:"حدود الصورة",shape:"rounded",x:315,y:560,w:545,h:715,rad:8,fill:"#1d4fe0"}),mkPhoto({x:315,y:560,w:512,h:683,shape:"rounded",rad:6}),
+  mkText({name:"الشهر",text:"{MONTH}",x:830,y:265,w:440,size:80,color:"#ffffff",fam:AN,wt:900,ital:true,align:"left"}),
+  mkShape({name:"شريط برتقالي",shape:"rect",x:832,y:352,w:450,h:84,fill:"#ff8a00"}),mkText({name:"الفرع",text:"DAKAHLIA",x:832,y:352,w:420,size:70,color:"#111111",fam:AN,wt:900,ital:true}),
+  mkShape({name:"خانة الاسم",shape:"rect",x:687,y:503,w:163,h:90,fill:"#0a0a0a"}),mkShape({name:"قيمة الاسم",shape:"rect",x:908,y:503,w:280,h:90,fill:"#ffffff"}),
+  mkText({name:"عنوان الاسم",text:"Name",x:687,y:503,w:150,size:40,color:"#ffffff",fam:"Georgia,serif",wt:800}),mkText({name:"الاسم",text:"{name}",x:908,y:503,w:262,size:38,color:"#111111",fam:"Georgia,serif",wt:800}),
+  mkShape({name:"خانة اللجنة",shape:"rect",x:687,y:614,w:163,h:90,fill:"#ff8a00"}),mkShape({name:"قيمة اللجنة",shape:"rect",x:908,y:614,w:280,h:90,fill:"#ffffff"}),
+  mkText({name:"عنوان اللجنة",text:"Committee",x:687,y:614,w:150,size:30,color:"#ffffff",fam:"Georgia,serif",wt:800}),mkText({name:"اللجنة",text:"{cn}",x:908,y:614,w:262,size:38,color:"#ff7a00",fam:"Georgia,serif",wt:800}),
+  mkShape({name:"خانة الترتيب",shape:"rect",x:687,y:725,w:163,h:90,fill:"#1d4fe0"}),mkShape({name:"قيمة الترتيب",shape:"rect",x:908,y:725,w:280,h:90,fill:"#ffffff"}),
+  mkText({name:"عنوان الترتيب",text:"Position",x:687,y:725,w:150,size:36,color:"#ffffff",fam:"Georgia,serif",wt:800}),mkText({name:"الترتيب",text:"#{r} Member",x:908,y:725,w:262,size:40,color:"#1d4fe0",fam:"Georgia,serif",wt:800}),
+  ...BR(false)]})},
+ {name:"ورق كراسة وطابع (زي SM)",make:()=>({bg:{t:"solid",c1:"#dbe8f6",c2:"#dbe8f6",ang:0},layers:[
+  mkShape({name:"شبكة الكراسة",shape:"grid",x:540,y:540,w:1080,h:1080,gs:72,stroke:"#7ea2d4",sw:2,op:.55}),
+  mkShape({name:"إطار الطابع",shape:"stamp",x:548,y:660,w:590,h:690,fill:"#0d2a66",rad:20}),
+  mkPhoto({x:548,y:668,w:440,h:560,shape:"rect",shadow:0}),
+  mkShape({name:"ورقة برتقالي علوية",shape:"rect",x:735,y:272,w:450,h:112,rot:-1.5,fill:"#f39a2b"}),
+  mkText({name:"الترتيب",text:"#{r} {c} LEADER",x:735,y:272,w:420,size:62,color:"#0d2a66",fam:AN,wt:900,rot:-1.5}),
+  mkShape({name:"ورقة زرقا",shape:"rect",x:820,y:378,w:380,h:92,rot:1.2,fill:"#34578f"}),
+  mkText({name:"الشهر",text:"{MONTH} | {c}",x:820,y:378,w:350,size:56,color:"#f39a2b",fam:AN,wt:900,rot:1.2}),
+  mkShape({name:"ورقة الاسم",shape:"rect",x:350,y:970,w:470,h:118,rot:1.5,fill:"#f39a2b"}),
+  mkText({name:"الاسم",text:"{name}",x:350,y:970,w:430,size:72,color:"#0d2a66",fam:AN,wt:900,rot:1.5}),
+  mkShape({name:"ختم",shape:"circle",x:858,y:915,w:190,h:190,nofill:true,stroke:"#f39a2b",sw:9,rot:-18}),mkText({name:"ختم نص",text:"THANK YOU",x:858,y:915,w:170,size:34,color:"#f39a2b",fam:AN,wt:900,rot:-18}),
+  ...BR(true)]})}
+);
+const LOGOS=[["logo_l","شعار أعلى الشمال"],["logo_r","شعار أعلى اليمين"],["logo_s","شعار الموسم (تحت)"]];
+async function logoUp(k,f){if(!f)return;try{const ext=/png/i.test(f.type)?"png":"jpg",path="logo-"+k+"-"+Date.now()+"."+ext;
+  const up=await sb.storage.from("designs").upload(path,f,{contentType:f.type||"image/png",upsert:true});if(up.error)throw up.error;
+  const url=sb.storage.from("designs").getPublicUrl(path).data.publicUrl,r=await sb.from("app_settings").upsert({key:k,value:url},{onConflict:"key"});if(r.error)throw r.error;
+  D.cfg=D.cfg||{};D.cfg[k]=url;toast("اتحفظ الشعار ✓","ok");render()}catch(e){alert("تعذر رفع الشعار: "+(e.message||e))}}
+async function logoDel(k){if(!confirm("مسح الشعار ده؟"))return;await sb.from("app_settings").delete().eq("key",k);if(D.cfg)delete D.cfg[k];render()}
+function LOGOCARD(){return`<div class="card"><b>🏷 شعارات الديزاينات الجديدة</b><p class="mu" style="margin:4px 0 8px;font-size:13px">ارفع الشعارات مرة واحدة (PNG بخلفية شفافة) وتظهر تلقائي في كل الديزاينات اللي فيها شعارات (اللي جوّه "الديزاينات الجاهزة" الجديدة)، ولو غيّرتها بتتغيّر في الكل.</p>
+  <div class="row" style="gap:8px;align-items:stretch">${LOGOS.map(([k,n])=>{const u=D.cfg&&D.cfg[k];return`<div style="flex:1;min-width:96px;text-align:center;background:var(--inp);border:1px solid var(--bd);border-radius:14px;padding:8px"><div style="height:64px;display:grid;place-items:center;background:#fff3;border-radius:10px">${u?`<img src="${esc(u)}" style="max-width:100%;max-height:60px;object-fit:contain">`:`<span class="mu">—</span>`}</div><div class="mu" style="font-size:11.5px;margin:5px 0">${n}</div><label class="btn g" style="margin:0;padding:5px 8px;font-size:12px;color:var(--tx);display:block">${u?"تغيير":"رفع"}<input type="file" hidden accept="image/png,image/jpeg,image/webp" onchange="logoUp('${k}',this.files[0]);this.value=''"></label>${u?`<button class="d" style="margin-top:5px;padding:3px 8px;font-size:11px;width:100%" onclick="logoDel('${k}')">مسح</button>`:""}</div>`}).join("")}</div></div>`}
 /* ---------- النوافذ ---------- */
 function modal(){
   const t=S.modal,m=D.members.find(x=>x.id===t.id);
@@ -1389,7 +1460,7 @@ function designsView(){
   const mo=ms.includes(S.dmo)?S.dmo:ms[0],T=dTops(mo),cf=COM4.includes(S.dcf)?S.dcf:"all",L=[];
   COM4.forEach(c=>{if(cf==="all"||cf===c)T[c].forEach((m,i)=>L.push({c,m,r:T[c].ranks[i],mo}))});
   D_LIST=L;
-  return head+PSET()+`<div class="card"><label style="margin-top:0">الشهر</label><select onchange="S.dmo=this.value;render()">${ms.map(k=>`<option value="${k}" ${k===mo?"selected":""}>${ml(k)}${D.ann.includes(k)?"":" — قبل الإعلان"}</option>`).join("")}</select>${D.ann.includes(mo)?"":`<p class="mu" style="margin:8px 0 0;color:var(--warn)">⚠️ الشهر ده لسه ما اتعلنش في الموقع — الديزاينات دي للنشر على فيسبوك الأول، والأعضاء مش شايفين الدرجات.</p>`}
+  return head+PSET()+LOGOCARD()+`<div class="card"><label style="margin-top:0">الشهر</label><select onchange="S.dmo=this.value;render()">${ms.map(k=>`<option value="${k}" ${k===mo?"selected":""}>${ml(k)}${D.ann.includes(k)?"":" — قبل الإعلان"}</option>`).join("")}</select>${D.ann.includes(mo)?"":`<p class="mu" style="margin:8px 0 0;color:var(--warn)">⚠️ الشهر ده لسه ما اتعلنش في الموقع — الديزاينات دي للنشر على فيسبوك الأول، والأعضاء مش شايفين الدرجات.</p>`}
   <label>طبّق تصميم على الكل</label><div class="row">${tl.map(t=>`<button class="g chip" onclick="dAll('${t.id}')">${esc(t.name)}</button>`).join("")}</div></div>
   <div class="tabs"><button class="${cf==="all"?"on":""}" onclick="S.dcf='all';render()">الكل</button>${COM4.map(c=>`<button class="${cf===c?"on":""}" onclick="S.dcf='${c}';render()">${c}</button>`).join("")}</div>
   <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px">${L.map((x,i)=>`<div class="card" style="padding:8px"><canvas id="dc${i}" width="1080" height="1080" style="width:100%;border-radius:10px;display:block;background:#0003"></canvas>
@@ -1430,9 +1501,10 @@ async function dDown(i,btn){
 /* ---- القوالب المخصصة + محرر الطبقات (زي كانفا) ---- */
 const dtDefault=()=>({photo:{x:540,y:520,w:520,h:520,shape:"circle"},name:{on:true,x:540,y:880,size:72,color:"#ffffff",align:"center",max:900,wt:900},rank:{on:true,x:540,y:215,size:60,color:"#f6c453",align:"center",max:900,text:"TOP {r} · {c}",wt:900},month:{on:false,x:540,y:950,size:34,color:"#c9d3ff",align:"center",max:900,text:"{month}",wt:700}});
 const dtCfg=c=>{const d=dtDefault(),o={};Object.keys(d).forEach(k=>o[k]=Object.assign({},d[k],(c&&c[k])||{}));return o};
-const dtPat=(t,o)=>String(t||"").replace(/\{r\}/g,o.r).replace(/\{c\}/g,o.c).replace(/\{name\}/g,o.name).replace(/\{MONTH\}/g,monEn(o.mo).toUpperCase()).replace(/\{month\}/g,monEn(o.mo)).replace(/\{year\}/g,"").trim();
+const dtPat=(t,o)=>String(t||"").replace(/\{r\}/g,o.r).replace(/\{c\}/g,o.c).replace(/\{name\}/g,o.name).replace(/\{cn\}/g,CN_FULL[o.c]||o.c).replace(/\{mon\}/g,monEn(o.mo).slice(0,3).toUpperCase()).replace(/\{MONTH\}/g,monEn(o.mo).toUpperCase()).replace(/\{month\}/g,monEn(o.mo)).replace(/\{year\}/g,"").trim();
+const CN_FULL={PR:"Public Relations",HR:"Human Resources",OR:"Organizing",SM:"Social Media"};
 const LID=()=>"l"+Math.random().toString(36).slice(2,9);
-const FONTS=[["sans-serif","عادي"],["Georgia,serif","كلاسيك (سيريف)"],["Tahoma,sans-serif","Tahoma (عربي)"],["Impact,Haettenschweiler,sans-serif","عريض ضخم"],["'Courier New',monospace","آلة كاتبة"]];
+const FONTS=[["Anton,Impact,Haettenschweiler,sans-serif","Anton (عريض مضغوط)"],["Pacifico,'Brush Script MT',cursive","Pacifico (خط يدوي)"],["sans-serif","عادي"],["Georgia,serif","كلاسيك (سيريف)"],["Tahoma,sans-serif","Tahoma (عربي)"],["Impact,Haettenschweiler,sans-serif","عريض ضخم"],["'Courier New',monospace","آلة كاتبة"]];
 const LBASE=()=>({rot:0,op:1,vis:true,lock:false});
 const mkPhoto=(o)=>Object.assign({id:LID(),t:"photo",name:"صورة العضو",x:540,y:520,w:520,h:520,shape:"circle",rad:12,bw:0,bc:"#ffffff",shadow:0},LBASE(),o);
 const mkText=(o)=>Object.assign({id:LID(),t:"text",name:"نص",x:540,y:540,w:900,h:90,text:"نص جديد",size:72,color:"#ffffff",align:"center",wt:800,fam:"sans-serif",ital:false,up:false,sw:0,sc:"#000000",shadow:0},LBASE(),o);
@@ -1459,10 +1531,10 @@ function tplScene(t){const cfg=t.config||{};if(cfg.v===2&&Array.isArray(cfg.laye
 function builtinScene(n){const fr=DK.includes(n);return{bg:{t:"none",c1:"#000000",c2:"#000000",ang:135},layers:[
   Object.assign({id:LID(),t:"code",name:"التصميم الأساسي",n,x:540,y:540,w:1080,h:1080,noFoot:fr},LBASE()),
   ...(fr?[mkImage({name:"الفريم",src:"@frame"})]:[])]}}
-const srcOf=L=>L.src==="@frame"?FRAME_SRC:L.src;
+const srcOf=L=>L.src==="@frame"?FRAME_SRC:(typeof LOGOK!=="undefined"&&LOGOK[L.src])?((D.cfg&&D.cfg[LOGOK[L.src]])||""):L.src;
 const IMGS={},IPEND={};
 function imgOf(L){const u=srcOf(L);if(!u)return null;if(IMGS[u])return IMGS[u];if(!IPEND[u]){IPEND[u]=1;dImg(u).then(()=>{delete IPEND[u];edQ()})}return null}
-async function scenePre(sc,o){await Promise.all(sc.layers.filter(l=>l.t==="image"&&l.src).map(l=>dImg(srcOf(l))))}
+async function scenePre(sc,o){await Promise.all(sc.layers.filter(l=>l.t==="image"&&l.src).map(l=>dImg(srcOf(l))));const fm=[...new Set(sc.layers.filter(l=>l.t==="text"&&l.fam&&/Anton|Pacifico/.test(l.fam)).map(l=>l.fam.split(",")[0].replace(/['"]/g,"")))];await Promise.all(fm.map(f=>document.fonts?document.fonts.load("700 48px "+f).catch(()=>{}):0))}
 /* رسم الصورة بجودة عالية (تصغير على مراحل) */
 function drawQ(g,im,sx,sy,sw,sh,dx,dy,dw,dh){
   const tr=g.getTransform?g.getTransform():{a:1,b:0},sc=Math.hypot(tr.a,tr.b)||1,tw=Math.max(8,Math.round(dw*sc));
@@ -1474,7 +1546,7 @@ function drawFit(g,im,x,y,w,h,mode,by){
   if(mode==="cover"){const k=Math.max(w/iw,h/ih),sw=w/k,sh=h/k;drawQ(g,im,(iw-sw)/2,(ih-sh)*(by==null?.5:by),sw,sh,x,y,w,h)}
   else if(mode==="contain"){const k=Math.min(w/iw,h/ih),dw=iw*k,dh=ih*k;drawQ(g,im,0,0,iw,ih,x+(w-dw)/2,y+(h-dh)/2,dw,dh)}
   else drawQ(g,im,0,0,iw,ih,x,y,w,h)}
-function shapePath(g,sh,w,h,rad){g.beginPath();if(sh==="circle"||sh==="ellipse")g.ellipse(0,0,w/2,h/2,0,0,7);else if(sh==="rounded")rr(g,-w/2,-h/2,w,h,Math.min(w,h)*(rad==null?12:rad)/100);else if(sh==="hexagon"||sh==="diamond"){const n=sh==="hexagon"?6:4;for(let i=0;i<n;i++){const a=-Math.PI/2+i*2*Math.PI/n,px=Math.cos(a)*w/2,py=Math.sin(a)*h/2;i?g.lineTo(px,py):g.moveTo(px,py)}g.closePath()}else g.rect(-w/2,-h/2,w,h)}
+function shapePath(g,sh,w,h,rad){g.beginPath();if(sh==="circle"||sh==="ellipse")g.ellipse(0,0,w/2,h/2,0,0,7);else if(sh==="rounded")rr(g,-w/2,-h/2,w,h,Math.min(w,h)*(rad==null?12:rad)/100);else if(sh==="burst"){const n=18;for(let i=0;i<n*2;i++){const a=-Math.PI/2+i*Math.PI/n,r=i%2?.86:1,px=Math.cos(a)*w/2*r,py=Math.sin(a)*h/2*r;i?g.lineTo(px,py):g.moveTo(px,py)}g.closePath()}else if(sh==="tag"){const p=Math.min(h*.45,w/3);g.moveTo(-w/2,0);g.lineTo(-w/2+p,-h/2);g.lineTo(w/2-p,-h/2);g.lineTo(w/2,0);g.lineTo(w/2-p,h/2);g.lineTo(-w/2+p,h/2);g.closePath()}else if(sh==="pent"){const p=Math.min(h*.5,w/2);g.moveTo(-w/2,0);g.lineTo(-w/2+p,-h/2);g.lineTo(w/2,-h/2);g.lineTo(w/2,h/2);g.lineTo(-w/2+p,h/2);g.closePath()}else if(sh==="hexagon"||sh==="diamond"){const n=sh==="hexagon"?6:4;for(let i=0;i<n;i++){const a=-Math.PI/2+i*2*Math.PI/n,px=Math.cos(a)*w/2,py=Math.sin(a)*h/2;i?g.lineTo(px,py):g.moveTo(px,py)}g.closePath()}else g.rect(-w/2,-h/2,w,h)}
 function drawLayer(g,L,o){
   if(!L.vis)return;
   g.save();g.globalAlpha=L.op==null?1:L.op;g.translate(L.x,L.y);if(L.rot)g.rotate(L.rot*Math.PI/180);
@@ -1502,9 +1574,12 @@ function drawLayer(g,L,o){
     if(im){if(L.flip)g.scale(-1,1);drawFit(g,im,-w/2,-h/2,w,h,L.fit||"stretch",.5)}
     else if(o._ed){g.fillStyle="rgba(255,255,255,.12)";g.fillRect(-w/2,-h/2,w,h)}
   }else if(L.t==="shape"){
-    shapePath(g,L.shape,w,h,L.rad);if(!L.nofill){if(L.fill2){const a=(L.ang==null?90:L.ang)*Math.PI/180,dx=Math.cos(a)*w/2,dy=Math.sin(a)*h/2,gr=g.createLinearGradient(-dx,-dy,dx,dy);gr.addColorStop(0,L.fill);gr.addColorStop(1,L.fill2);g.fillStyle=gr}else g.fillStyle=L.fill;g.fill()}if(L.sw>0){g.lineWidth=L.sw;g.strokeStyle=L.stroke;g.lineJoin="round";g.stroke()}
+    if(L.shape==="grid"){g.strokeStyle=L.stroke;g.lineWidth=L.sw||2;const gs=Math.max(16,L.gs||72);g.beginPath();for(let x=-w/2;x<=w/2+.1;x+=gs){g.moveTo(x,-h/2);g.lineTo(x,h/2)}for(let y=-h/2;y<=h/2+.1;y+=gs){g.moveTo(-w/2,y);g.lineTo(w/2,y)}g.stroke()}
+    else if(L.shape==="stamp"){const c=document.createElement("canvas"),k=Math.hypot(g.getTransform().a,g.getTransform().b)||1;c.width=Math.ceil(w*k);c.height=Math.ceil(h*k);const t=c.getContext("2d");t.scale(k,k);t.fillStyle=L.fill;t.fillRect(0,0,w,h);t.globalCompositeOperation="destination-out";const r=L.rad||20,st=r*2.9;
+      for(let x=st/2;x<w;x+=st){t.beginPath();t.arc(x,0,r,0,7);t.fill();t.beginPath();t.arc(x,h,r,0,7);t.fill()}for(let y=st/2;y<h;y+=st){t.beginPath();t.arc(0,y,r,0,7);t.fill();t.beginPath();t.arc(w,y,r,0,7);t.fill()}g.drawImage(c,-w/2,-h/2,w,h)}
+    else{shapePath(g,L.shape,w,h,L.rad);if(!L.nofill){if(L.fill2){const a=(L.ang==null?90:L.ang)*Math.PI/180,dx=Math.cos(a)*w/2,dy=Math.sin(a)*h/2,gr=g.createLinearGradient(-dx,-dy,dx,dy);gr.addColorStop(0,L.fill);gr.addColorStop(1,L.fill2);g.fillStyle=gr}else g.fillStyle=L.fill;g.fill()}if(L.sw>0){g.lineWidth=L.sw;g.strokeStyle=L.stroke;g.lineJoin="round";g.stroke()}}
   }else if(L.t==="code"){
-    g.scale(w/1080,h/1080);g.translate(-540,-540);FR_ON=!!L.noFoot;try{DR[L.n](g,o)}finally{FR_ON=false}
+    g.scale(w/1080,h/1080);g.translate(-540,-540);FR_ON=!!L.noFoot;CUR_ADJ=o.adj||null;try{DR[L.n](g,o)}finally{FR_ON=false;CUR_ADJ=null}
   }
   }catch(e){console.error(e)}
   g.restore();
@@ -1643,7 +1718,7 @@ function edPanel(){
     if(L.t==="image"){h+=`<label class="btn g" style="margin:10px 0 0;color:var(--tx)">🔄 استبدال الصورة<input type="file" hidden accept="image/png,image/jpeg,image/webp" onchange="edRepl(this.files[0]);this.value=''"></label>
       ${edS("الملء","fit",[["stretch","تمدد على الصندوق"],["cover","ملء (قص)"],["contain","احتواء"]],L.fit||"stretch")}${edCk("قلب أفقي","flip",L.flip)}
       <div class="row" style="margin-top:8px"><button class="g" onclick="edBox(0)">ملء الصفحة</button><button class="g" onclick="edBox(1)">وسط</button></div>`}
-    if(L.t==="shape"){h+=edS("الشكل","shape",[["rect","مستطيل"],["rounded","حواف مدورة"],["circle","دايرة"],["hexagon","سداسي"],["diamond","معين"]],L.shape)+(L.shape==="rounded"?edR("استدارة","rad",0,50,L.rad):"")+`<div class="row" style="margin-top:6px">${edCk("بدون تعبئة (إطار فقط)","nofill",L.nofill)}${edCk("تدرّج","grad",!!L.fill2)}</div><div class="grid">${L.nofill?"":edC(L.fill2?"اللون 1":"اللون","fill",L.fill)}${!L.nofill&&L.fill2?edC("اللون 2","fill2",L.fill2):""}${edC("لون الحدود","stroke",L.stroke)}</div>`+(!L.nofill&&L.fill2?edR("زاوية التدرّج","ang",0,360,L.ang==null?90:L.ang):"")+edR("سُمك الحدود","sw",0,40,L.sw||0)}
+    if(L.t==="shape"){h+=edS("الشكل","shape",[["rect","مستطيل"],["rounded","حواف مدورة"],["circle","دايرة"],["hexagon","سداسي"],["diamond","معين"],["burst","نجمة مسننة (شارة)"],["tag","شريط بسهمين"],["pent","شريط بسهم"],["stamp","إطار طابع بريد"],["grid","شبكة كراسة"]],L.shape)+(L.shape==="grid"?edR("مسافة الخطوط","gs",24,200,L.gs||72):"")+(L.shape==="stamp"?edR("حجم الفتحات","rad",6,50,L.rad||20):"")+(L.shape==="rounded"?edR("استدارة","rad",0,50,L.rad):"")+`<div class="row" style="margin-top:6px">${edCk("بدون تعبئة (إطار فقط)","nofill",L.nofill)}${edCk("تدرّج","grad",!!L.fill2)}</div><div class="grid">${L.nofill?"":edC(L.fill2?"اللون 1":"اللون","fill",L.fill)}${!L.nofill&&L.fill2?edC("اللون 2","fill2",L.fill2):""}${edC("لون الحدود","stroke",L.stroke)}</div>`+(!L.nofill&&L.fill2?edR("زاوية التدرّج","ang",0,360,L.ang==null?90:L.ang):"")+edR("سُمك الحدود","sw",0,40,L.sw||0)}
     if(L.t==="code"){h+=`<p class="mu">ده التصميم الأساسي الجاهز (مرسوم بالكود، فيه صورة التوب واسمه ولجنته جواه). تقدر تحرّكه/تكبّره/تخفيه، وتضيف فوقه أي نصوص أو فريمات أو صور.</p>${edCk("إخفاء الفوتر (لما يكون فيه فريم)","noFoot",L.noFoot)}`}
   }
   pr.innerHTML=h;
@@ -1785,7 +1860,7 @@ async function edZip(btn){
 const monEn=mo=>new Date(mo+"-01T00:00:00").toLocaleString("en-US",{month:"long"});
 const yrEn=mo=>"";
 function rr(g,x,y,w,h,r){g.beginPath();if(g.roundRect)g.roundRect(x,y,w,h,r);else g.rect(x,y,w,h)}
-function cover(g,img,x,y,w,h){
+function cover(g,img,x,y,w,h){if(CUR_ADJ)return drawPhoto(g,img,x,y,w,h,CUR_ADJ);
   const k=Math.max(w/img.width,h/img.height),sw=w/k,sh=h/k,sc=g.getTransform?Math.hypot(g.getTransform().a,g.getTransform().b)||1:1,tw=Math.max(8,Math.round(w*sc));
   let src=img,cx=(img.width-sw)/2,cy=(img.height-sh)*0.15,cw=sw,ch=sh;
   while(cw>tw*2){const nw=Math.round(cw/2),nh=Math.round(ch/2),t=document.createElement("canvas");t.width=nw;t.height=nh;const tg=t.getContext("2d");tg.imageSmoothingQuality="high";tg.drawImage(src,cx,cy,cw,ch,0,0,nw,nh);src=t;cx=0;cy=0;cw=nw;ch=nh}
