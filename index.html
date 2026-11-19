@@ -1796,7 +1796,7 @@ function edPanel(){
     <div class="grid3">${edN("x","X","x",L.x)}${edN("y","Y","y",L.y)}${edN("rot","دوران°","rot",L.rot||0)}</div>
     <div class="grid">${edN("w","العرض","w",L.w)}${L.t==="text"?`<div><label>حجم الخط</label><input type="number" id="n_size" value="${L.size}" oninput="edSet('size',+this.value)"></div>`:edN("h","الارتفاع","h",L.h)}</div>
     ${edR("الشفافية","op",0,1,L.op==null?1:L.op,.05)}`;
-    if(L.t==="photo")h+=edS("شكل الصورة","shape",[["circle","دايرة"],["rounded","مربع بحواف"],["rect","مستطيل"],["hexagon","سداسي"],["diamond","معين"]],L.shape)+(L.shape==="rounded"?edR("استدارة الحواف","rad",0,50,L.rad):"")+`<div class="grid">${edC("لون الإطار","bc",L.bc)}<div>${edR("سُمك الإطار","bw",0,40,L.bw)}</div></div>`+edR("ظل","shadow",0,80,L.shadow)+`<button class="g" style="margin-top:8px" onclick="edFitHole()">🎯 ضبط تلقائي على فتحة الفريم</button>`+(()=>{const pp=E.pvs[E.pv],a=Object.assign({z:1,x:.5,y:.15},E.o&&E.o.adj||{});
+    if(L.t==="photo")h+=edS("شكل الصورة","shape",[["circle","دايرة"],["rounded","مربع بحواف"],["rect","مستطيل"],["hexagon","سداسي"],["diamond","معين"]],L.shape)+(L.shape==="rounded"?edR("استدارة الحواف","rad",0,50,L.rad):"")+`<div class="grid">${edC("لون الإطار","bc",L.bc)}<div>${edR("سُمك الإطار","bw",0,40,L.bw)}</div></div>`+edR("ظل","shadow",0,80,L.shadow)+`<button class="g" style="margin-top:8px" onclick="edFitHole()">🎯 ضبط تلقائي على فتحة الفريم</button><button class="g" style="margin-top:8px" onclick="edCutout()">✂️ شيل خلفية الصورة</button>`+(()=>{const pp=E.pvs[E.pv],a=Object.assign({z:1,x:.5,y:.15},E.o&&E.o.adj||{});
       return`<div style="margin-top:12px;border-top:1px solid var(--bd);padding-top:10px"><b>🖼 ضبط صورة ${esc(nm2((pp.m&&pp.m.name)||""))}</b><p class="mu" style="font-size:12px;margin:2px 0 6px">بيتحفظ للعضو ده في كل الديزاينات.</p>`+(pp.m&&pp.m.id?`<label>تكبير / تصغير الصورة</label><input type="range" min="0.6" max="3" step="0.02" value="${a.z}" oninput="edAdj('z',+this.value)"><label>إزاحة أفقية</label><input type="range" min="0" max="1" step="0.01" value="${a.x}" oninput="edAdj('x',+this.value)"><label>إزاحة رأسية</label><input type="range" min="0" max="1" step="0.01" value="${a.y}" oninput="edAdj('y',+this.value)"><div class="row" style="margin-top:8px"><button onclick="edAdjSave()">💾 حفظ الضبط</button><button class="g" onclick="edAdjReset()">↺ افتراضي</button></div><label class="btn g" style="margin:8px 0 0;color:var(--tx)">📷 تغيير صورة العضو<input type="file" hidden accept="image/*" onchange="adminAvatar('${pp.m.id}',this.files[0]);this.value=''"></label>`:'<p class="mu">المعاينة دلوقتي عضو تجريبي، اختار عضو حقيقي من القايمة فوق.</p>')+`</div>`})();
     if(L.t==="text"){h+=`<label>النص <span class="mu">(بيتبدّل تلقائي)</span></label><input id="edtx" value="${esc(L.text)}" oninput="edSet('text',this.value)">
       <div class="row" style="margin-top:6px">${[["{name}","الاسم"],["{c}","اللجنة"],["{r}","الترتيب"],["{month}","الشهر"]].map(t=>`<button class="g chip" style="padding:3px 10px;font-size:12px" onclick="edTok('${t[0]}')">${t[1]}</button>`).join("")}</div>
@@ -1823,6 +1823,38 @@ async function edAddImg(f){if(!f)return;const url=URL.createObjectURL(f),im=awai
   E.files[L.id]=f;E.sc.layers.push(L);E.sel=L.id;E.tab="props";edPanel();edQ();
   const hole=await holeOfLayer(L);if(hole){const ph=E.sc.layers.find(l=>l.t==="photo");if(ph&&confirm("اتعرّفت على فتحة شفافة في الفريم. أضبط صورة العضو عليها تلقائي؟")){edPush();Object.assign(ph,hole);edPanel();edQ()}}}
 async function edRepl(f){const L=edSelL();if(!f||!L)return;edPush();const url=URL.createObjectURL(f);await dImg(url);L.src=url;E.files[L.id]=f;edQ()}
+/* ---------- شيل خلفية صورة العضو (داخل المتصفح بدون رفع لأي خدمة) ---------- */
+const MP_VER="0.1.1675465747",MP_BASE="https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation@"+MP_VER+"/";
+let _mpSeg=null;
+function mpLoad(){if(window.SelfieSegmentation)return Promise.resolve();return new Promise((res,rej)=>{const t=document.createElement("script");t.src=MP_BASE+"selfie_segmentation.js";t.onload=()=>res();t.onerror=()=>rej(new Error("تعذر تحميل مكتبة القص"));document.head.appendChild(t)})}
+async function mpSeg(im){
+  await mpLoad();
+  if(!_mpSeg){_mpSeg=new SelfieSegmentation({locateFile:f=>MP_BASE+f});_mpSeg.setOptions({modelSelection:1})}
+  const out=await new Promise((res,rej)=>{_mpSeg.onResults(r=>res(r));_mpSeg.send({image:im}).catch(rej)});
+  const w=im.naturalWidth||im.width,h=im.naturalHeight||im.height,c=document.createElement("canvas");c.width=w;c.height=h;const g=c.getContext("2d");
+  g.drawImage(out.segmentationMask,0,0,w,h);
+  g.globalCompositeOperation="source-in";
+  g.drawImage(out.image,0,0,w,h);
+  return c;
+}
+async function edCutout(){
+  const p=E.pvs&&E.pvs[E.pv],L0=E.sc.layers.find(l=>l.t==="photo"&&l.vis!==false);
+  if(!p||!p.m||!p.m.avatar_url||!L0){alert("مفيش صورة عضو في التصميم");return}
+  toast("جاري شيل الخلفية… (أول مرة بتتحمّل المكتبة)","ok");
+  try{
+    const im=await dImg(p.m.avatar_url);if(!im)throw new Error("تعذر تحميل الصورة");
+    const c=await mpSeg(im);
+    const blob=await new Promise(r=>c.toBlob(r,"image/png"));if(!blob)throw new Error("تعذر حفظ الصورة");
+    const f=new File([blob],"cutout.png",{type:"image/png"}),url=URL.createObjectURL(blob);
+    edPush();
+    const L=mkImage({name:"صورة بدون خلفية",src:url,x:L0.x,y:L0.y,w:L0.w,h:L0.h,fit:"contain",rot:L0.rot||0});
+    E.files[L.id]=f;
+    L0.vis=false;
+    const i=E.sc.layers.indexOf(L0);E.sc.layers.splice(i+1,0,L);E.sel=L.id;E.tab="props";
+    edPanel();edQ();
+    toast("اتشالت الخلفية ✓ الصورة الأصلية اتخفت ومتقدرش تتشال من الطبقات","ok");
+  }catch(e){alert("تعذر شيل الخلفية: "+((e&&e.message)||"جرّب تاني بعد تحديث الصفحة"))}
+}
 function edBox(m){const L=edSelL();if(!L)return;edPush();if(m===0){L.x=540;L.y=540;L.w=1080;L.h=1080}else{L.x=540;L.y=540}edPanel();edQ()}
 function edDup(){const L=edSelL();if(!L)return;edPush();const c=jclone(L);c.id=LID();c.name=L.name+" (نسخة)";c.x+=30;c.y+=30;if(E.files[L.id])E.files[c.id]=E.files[L.id];const i=E.sc.layers.indexOf(L);E.sc.layers.splice(i+1,0,c);E.sel=c.id;edPanel();edQ()}
 function edDel(){const L=edSelL();if(!L)return;edPush();E.sc.layers=E.sc.layers.filter(l=>l.id!==L.id);E.sel=null;edPanel();edQ()}
