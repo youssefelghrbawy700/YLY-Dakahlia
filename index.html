@@ -1814,14 +1814,14 @@ async function edSave(asNew){
       if(L.t==="image"&&L.src&&L.src.startsWith("blob:")){
         const f=E.files[L.id];if(!f)throw new Error("ملف الصورة ضاع، اختاره تاني ("+L.name+")");
         const ext=f.type==="image/png"?"png":f.type==="image/webp"?"webp":"jpg",path=crypto.randomUUID()+"-"+Date.now()+"."+ext;
-        const up=await sb.storage.from("designs").upload(path,f,{contentType:f.type||"image/png",upsert:true});if(up.error)throw up.error;
+        const up=await sb.storage.from("designs").upload(path,f,{contentType:f.type||"image/png",upsert:true});if(up.error)throw new Error("رفع الصورة/الفريم فشل: "+up.error.message+(/row-level|policy|permission/i.test(up.error.message)?" — شغّل fix-designs-storage.sql في Supabase":""));
         L.src=sb.storage.from("designs").getPublicUrl(path).data.publicUrl;delete E.files[L.id];
       }}
     const a=E.sc.layers,first=a.find(l=>l.t==="image"&&l.src&&l.src!=="@frame"),pi=a.findIndex(l=>l.t==="photo"),fi=a.findIndex(l=>l.t==="image"||l.t==="code");
     const row={name:E.name.trim(),image_url:first?first.src:"",mode:(fi>=0&&pi>=0&&fi<pi)?"bg":"frame",bg_color:E.sc.bg.c1||"#0b1b66",canva_url:(E.canva||"").trim()||null,config:{v:2,bg:E.sc.bg,layers:jclone(a)}};
     let id=E.id;
-    if(E.id&&!asNew){const r=await sb.from("design_templates").update(row).eq("id",E.id);if(r.error)throw r.error}
-    else{const r=await sb.from("design_templates").insert(row).select("id").single();if(r.error)throw r.error;id=r.data.id}
+    if(E.id&&!asNew){const r=await sb.from("design_templates").update(row).eq("id",E.id);if(r.error)throw new Error("حفظ الديزاين فشل: "+r.error.message+(/row-level|policy/i.test(r.error.message)?" — شغّل fix-designs-storage.sql في Supabase":""))}
+    else{const r=await sb.from("design_templates").insert(row).select("id").single();if(r.error)throw new Error("حفظ الديزاين فشل: "+r.error.message+(/row-level|policy/i.test(r.error.message)?" — شغّل fix-designs-storage.sql في Supabase":""));id=r.data.id}
     if(E.card){DS[E.card]="c"+id;dSave()}
     E.dirty=false;edClose(true);await loadTpl();render();
   }catch(er){m.style.color="var(--bad)";m.textContent=(er&&er.message)||String(er)}
