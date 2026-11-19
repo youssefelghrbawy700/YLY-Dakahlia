@@ -1218,7 +1218,39 @@ const PRESETS=[
    mkPhoto({x:540,y:520,w:560,h:560,bw:12,bc:NV2,shadow:30}),
    mkText({name:"الاسم",text:"{name}",x:540,y:945,w:900,size:66,color:NV,wt:900}),
    mkShape({name:"خط ذهبي",shape:"rect",x:540,y:1000,w:260,h:6,fill:GL}),
-   mkText({name:"اللجنة",text:"{c} COMMITTEE",x:540,y:1042,size:34,color:NV2,wt:800})]})}];
+   mkText({name:"اللجنة",text:"{c} COMMITTEE",x:540,y:1042,size:34,color:NV2,wt:800})]})},
+ {name:"بولارويد ذهبي",make:()=>({bg:{t:"grad",c1:"#0a1a5c",c2:"#1b3aa6",ang:150},layers:[
+   mkText({name:"عنوان",text:"BEST LEADER",x:540,y:110,size:86,color:GL,wt:900,shadow:10}),
+   mkShape({name:"كارت أبيض",shape:"rect",x:540,y:560,w:640,h:760,rot:-3,fill:"#f7f7f2",rad:6,shadow:30}),
+   mkPhoto({x:540,y:520,w:520,h:560,rot:-3,shape:"rect",rad:4,bw:0,shadow:0}),
+   mkText({name:"الترتيب",text:"TOP {r}",x:150,y:520,size:96,color:GL,wt:900}),
+   mkText({name:"الاسم",text:"{name}",x:540,y:960,w:600,size:58,color:"#0a1a5c",wt:900,rot:-3}),
+   mkText({name:"اللجنة",text:"{c} · {month}",x:540,y:1030,size:34,color:GL2,wt:800})]})},
+ {name:"شريط أزرق وذهبي",make:()=>({bg:{t:"grad",c1:"#0b1f6b",c2:"#1a3aa0",ang:120},layers:[
+   mkShape({name:"إطار ذهبي",shape:"rect",x:540,y:540,w:600,h:640,nofill:true,stroke:GL,sw:6}),
+   mkPhoto({x:540,y:500,w:540,h:560,shape:"rect",rad:4,bw:8,bc:"#ffffff",shadow:30}),
+   mkText({name:"عنوان",text:"BEST MEMBER",x:540,y:110,size:82,color:GL,wt:900}),
+   mkText({name:"الترتيب",text:"TOP {r}",x:130,y:300,size:72,color:GL2,wt:900}),
+   mkShape({name:"شريط الاسم",shape:"diamond",x:540,y:900,w:820,h:130,rad:8,fill:"#1d4fd8",sw:5,stroke:GL}),
+   mkText({name:"الاسم",text:"{name}",x:540,y:900,w:760,size:60,color:"#ffffff",wt:900}),
+   mkText({name:"اللجنة",text:"{c} · {month}",x:540,y:1010,size:34,color:GL2,wt:800})]})},
+ {name:"ترتيب عريض ذهبي",make:()=>({bg:{t:"grad",c1:"#081a5a",c2:"#0d2b8a",ang:90},layers:[
+   mkText({name:"عنوان",text:"MONTHLY RANKING",x:540,y:90,size:52,color:"#ffffff",wt:800}),
+   mkShape({name:"خلفية ذهبية",shape:"rect",x:540,y:560,w:840,h:640,fill:GL,fill2:GL2,ang:90,op:.9}),
+   mkText({name:"الترتيب الرقم",text:"{r}",x:200,y:520,size:520,color:"#ffffff",wt:900,op:.14}),
+   mkPhoto({x:540,y:500,w:560,h:560,shape:"rect",rad:0,bw:0,shadow:0}),
+   mkShape({name:"شريط الاسم",shape:"rect",x:540,y:945,w:900,h:110,fill:"#081a5a",sw:0}),
+   mkText({name:"الاسم",text:"{name}",x:540,y:945,w:860,size:62,color:GL,wt:900}),
+   mkText({name:"اللجنة",text:"{c} COMMITTEE",x:540,y:1030,size:34,color:"#ffffff",wt:700})]})},
+ {name:"سهم وحافة زرقاء",make:()=>({bg:{t:"grad",c1:"#0c2a8c",c2:"#15389f",ang:135},layers:[
+   mkShape({name:"نجمة يسار",shape:"diamond",x:150,y:520,w:220,h:220,fill:GL,op:.9}),
+   mkShape({name:"نجمة يمين",shape:"diamond",x:930,y:520,w:220,h:220,fill:GL,op:.9}),
+   mkPhoto({x:540,y:520,w:520,h:520,shape:"circle",bw:12,bc:"#ffffff",shadow:36}),
+   mkText({name:"عنوان",text:"BEST MEMBER",x:540,y:120,size:80,color:GL,wt:900}),
+   mkText({name:"الترتيب",text:"#{r}",x:150,y:500,size:90,color:"#ffffff",wt:900}),
+   mkShape({name:"شريط الاسم",shape:"rounded",x:540,y:925,w:700,h:112,rad:56,fill:"#ff8a1f",sw:0}),
+   mkText({name:"الاسم",text:"{name}",x:540,y:925,w:660,size:58,color:"#ffffff",wt:900}),
+   mkText({name:"اللجنة",text:"{c} COMMITTEE",x:540,y:1020,size:34,color:GL2,wt:800})]})}];
 function PSET(){return`<div class="card"><b>📚 مكتبة الديزاينات الجاهزة</b><p class="mu" style="margin:4px 0 8px">ديزاينات أزرق وذهبي جاهزة (كل عنصر فيها قابل للتعديل). دوس على أي واحد يفتح في المحرر، تعدّل وتسميه وتحفظه، وبعدها يظهر في "قوالبي" وتطبّقه على الكروت.</p>
   <div class="pset-row">${PRESETS.map((p,i)=>`<button class="pset" onclick="edPreset(${i})"><canvas id="ps${i}" width="260" height="260"></canvas><span>${esc(p.name)}</span></button>`).join("")}</div></div>`}
 async function drawPresets(){
