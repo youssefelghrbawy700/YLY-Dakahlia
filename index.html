@@ -182,6 +182,11 @@ input:focus,select:focus{outline:none;border-color:var(--pr);box-shadow:0 0 0 3p
 .pa-ctl{display:flex;gap:8px;align-items:center;margin-top:10px}.pa-ctl input{flex:1;padding:0}.pa-ctl button{padding:8px 10px;font-size:13px;white-space:nowrap}
 .pa-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px;max-width:300px;margin-inline:auto}.pa-pad button{padding:9px 4px;font-size:14px}
 #pad{z-index:35}
+.act{display:flex;align-items:center;gap:8px;padding:7px 0 6px;border-top:1px dashed var(--bd);font-size:14px}
+.act .an{min-width:0}.act .ap{font-size:15px;white-space:nowrap}
+.as{font-size:12px;font-weight:800;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.as.p{background:rgba(52,211,153,.16);color:var(--ok)}.as.a{background:rgba(248,113,113,.16);color:var(--bad)}.as.x{background:rgba(251,191,36,.16);color:var(--warn)}
+.act-sub{font-size:11.5px;margin:-2px 0 4px}
 </style>
 </head>
 <body>
@@ -239,10 +244,31 @@ function chart(m){
   `<polyline points="${pts.map(p=>p[0]+","+p[1]).join(" ")}" fill="none" stroke="var(--pr)" stroke-width="3" stroke-linejoin="round"/>`+
   pts.map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="4.5" fill="var(--pr)"/><text x="${p[0]}" y="${p[1]-9}" font-size="11" text-anchor="middle" fill="var(--tx)">${p[2]}</text><text x="${p[0]}" y="${H-8}" font-size="10" text-anchor="middle" fill="var(--mu)">${MO[+p[3].split("-")[1]-1]}</text>`).join("")+`</svg>`;
 }
+/* تفاصيل كل نشاط (نزولة / تاسك / سيشن / اجتماع): الاسم + صح/غلط/اكسكيوز + الدرجة */
+const fmtPts=x=>{const v=Math.round((+x||0)*100)/100;return String(v)};
+const dmy=d=>{const p=String(d||"").slice(0,10).split("-");return p.length===3?(+p[2])+"/"+(+p[1]):""};
+function actRows(m,mo,r,g){
+  const o=g[2]||{},q=o.q||0,l=o.dl||0,wAtt=g[1]-q-l;let t=0;g[0].forEach(k=>{t+=(r[k]||[0,0])[1]});if(!t)return"";
+  const sh=wAtt/t,sq=q/t,sl=l/t,rows=[],pts=(cr,e)=>({a:sh*cr,q:e&&e.q!=null?sq*Math.min(5,+e.q||0)/5:0,l:e&&e.l?sl:0});
+  g[0].forEach(k=>{
+    const a=r[k]||[0,0],log=(r.log||{})[k]||[],exc=(r.exc||{})[k]||[],used={};
+    const evs=(r.evk||[]).includes(k)?D.ev.filter(e=>evMo(e.d)===mo&&e.kind===k&&evApplies(e,m)).sort((x,y)=>String(x.d).localeCompare(y.d)):null;
+    if(evs)evs.forEach(e=>{
+      const li=log.findIndex((x,i)=>!used["l"+i]&&x.d===e.d&&x.n===e.title);if(li>=0){used["l"+li]=1;rows.push({st:"p",n:e.title,d:e.d,p:pts(1,log[li]),x:log[li]});return}
+      const ei=exc.findIndex((x,i)=>!used["e"+i]&&x.d===e.d&&x.n===e.title);if(ei>=0){used["e"+ei]=1;rows.push({st:"x",n:e.title,d:e.d,p:pts(exc[ei].a?.5:.25)});return}
+      rows.push({st:"a",n:e.title,d:e.d,p:pts(0)})});
+    log.forEach((x,i)=>{if(!used["l"+i])rows.push({st:"p",n:x.n||KN[k],d:x.d,p:pts(1,x),x})});
+    exc.forEach((x,i)=>{if(!used["e"+i])rows.push({st:"x",n:x.n||KN[k],d:x.d,p:pts(x.a?.5:.25)})});
+    if(!evs){const ep=Math.max(0,a[0]-log.length),ab=Math.max(0,a[1]-a[0]-exc.length);
+      if(ep)rows.push({st:"p",n:KN[k]+" (حضور)",cnt:ep,p:pts(1)});if(ab)rows.push({st:"a",n:KN[k]+" (غياب)",cnt:ab,p:pts(0)})}});
+  rows.sort((x,y)=>String(x.d||"~").localeCompare(String(y.d||"~")));
+  const max=g[1]/t;
+  return rows.map(x=>{const c=x.cnt||1,tot=(x.p.a+x.p.q+x.p.l)*c,tk=!!(o.q||o.dl)&&x.st==="p";
+    return`<div class="act"><span class="an">${esc(x.n)}${x.d?` <span class="mu">(${dmy(x.d)})</span>`:""}${c>1?` <span class="mu">×${c}</span>`:""}</span><span class="as ${x.st}">${x.st==="p"?"✓ صح":x.st==="a"?"✗ غلط":"اكسكيوز"}</span><span style="flex:1"></span><b class="ap" dir="ltr">${fmtPts(tot)}<span class="mu" style="font-weight:500"> / ${fmtPts(max*c)}</span></b></div>${tk?`<div class="mu act-sub">التسليم ${fmtPts(x.p.a*c)} · الجودة ${fmtPts(x.p.q*c)} · الديدلاين ${fmtPts(x.p.l*c)}</div>`:""}`}).join("")}
 function breakdown(m){
   const k=last(m);if(!k)return'<p class="mu">لا توجد تقييمات بعد.</p>';const r=m.rec[k];
   const f=cfg(m.committee);
-  return f.g.map(g=>{let d=0,t=0;g[0].forEach(k=>{const a=r[k]||[0,0];d+=a[0];t+=a[1]});const pp=gparts(r,g),p=r1(pp.b+pp.q+pp.l),o=g[2]||{};return`<div style="margin:9px 0"><div class="row" style="justify-content:space-between"><span>${g[0].map(k=>KN[k]).join(" + ")}</span><span class="mu">${d} / ${t} · <b>${p}</b> من ${g[1]}</span></div><div class="bar"><i style="width:${g[1]?p/g[1]*100:0}%"></i></div>${o.q||o.dl?`<div class="mu">التسليم ${r1(pp.b)} من ${g[1]-(o.q||0)-(o.dl||0)} · الجودة ${r1(pp.q)} من ${o.q||0} · الديدلاين ${r1(pp.l)} من ${o.dl||0}</div>`:""}${g[0].map(k=>logs(r,k)+excs(r,k)).join("")}</div>`}).join("")+xs(m.committee).map(([k,l])=>{const v=Math.min(f.x[k],+r[k]||0);return`<div style="margin:9px 0"><div class="row" style="justify-content:space-between"><span>${l}</span><span class="mu"><b>${v}</b> من ${f.x[k]}</span></div><div class="bar"><i style="width:${f.x[k]?v/f.x[k]*100:0}%"></i></div></div>`}).join("")+`<p class="mu">الاعتذارات المسجلة هذا الشهر: <b>${r.ex||0}</b></p>${r.man!=null?'<p class="mu">الدرجة الإجمالية مُدخلة يدوياً من الأدمن.</p>':""}`;
+  return f.g.map(g=>{let d=0,t=0;g[0].forEach(k=>{const a=r[k]||[0,0];d+=a[0];t+=a[1]});const pp=gparts(r,g),p=r1(pp.b+pp.q+pp.l),o=g[2]||{};return`<div style="margin:9px 0"><div class="row" style="justify-content:space-between"><span>${g[0].map(k=>KN[k]).join(" + ")}</span><span class="mu">${d} / ${t} · <b>${p}</b> من ${g[1]}</span></div><div class="bar"><i style="width:${g[1]?p/g[1]*100:0}%"></i></div>${o.q||o.dl?`<div class="mu">التسليم ${r1(pp.b)} من ${g[1]-(o.q||0)-(o.dl||0)} · الجودة ${r1(pp.q)} من ${o.q||0} · الديدلاين ${r1(pp.l)} من ${o.dl||0}</div>`:""}${actRows(m,k,r,g)}</div>`}).join("")+xs(m.committee).map(([k,l])=>{const v=Math.min(f.x[k],+r[k]||0);return`<div style="margin:9px 0"><div class="row" style="justify-content:space-between"><span>${l}</span><span class="mu"><b>${v}</b> من ${f.x[k]}</span></div><div class="bar"><i style="width:${f.x[k]?v/f.x[k]*100:0}%"></i></div></div>`}).join("")+`<p class="mu">الاعتذارات المسجلة هذا الشهر: <b>${r.ex||0}</b></p>${r.man!=null?'<p class="mu">الدرجة الإجمالية مُدخلة يدوياً من الأدمن.</p>':""}`;
 }
 const curCom=()=>(D.members.find(x=>x.id===(S.modal||{}).id)||{}).committee;
 const hasQ=(c,k)=>cfg(c).g.some(g=>g[0].includes(k)&&g[2]&&(g[2].q||g[2].dl));
@@ -343,7 +369,7 @@ function backup(){
 /* ===== الجولة 3: طلبات التسجيل، متابعة HR، النشاط، البورد، الصور، سجل الشهور، الحفظ التلقائي ===== */
 let touched=false,restored=false,bFile=null,dT=null,PH=[];
 const emptyD=()=>({members:[],warn:[],ann:[],signups:[],follows:[],board:[],ev:[],att:[],nt:[]});
-const nm=n=>String(n||"").trim().split(/\s+/).slice(0,2).join(" ");
+const nm=n=>String(n||"").trim().replace(/\s+/g," ");const nm2=n=>String(n||"").trim().split(/\s+/).slice(0,2).join(" ");
 const bCom=b=>Array.isArray(b.committees)&&b.committees.length?b.committees:(b.committee?[b.committee]:[]);
 const COM4=COM.filter(c=>c!=="Board");
 const myBoard=()=>me?D.board.filter(b=>b.member_id===me.id):[];
@@ -1009,7 +1035,7 @@ function impMonthOf(h,year){
   const t=String(h||"").trim();let m=t.match(/^(\d{4})\s*[-\/]\s*(\d{1,2})$/);if(m&&+m[2]>=1&&+m[2]<=12)return m[1]+"-"+pad2(+m[2]);
   m=t.match(/(?:شهر|month|m)\s*[:\-]?\s*0?(\d{1,2})(?!\d)/i)||t.match(/^0?(\d{1,2})$/);
   if(m){const n=+m[m.length-1];if(n>=1&&n<=12)return year+"-"+pad2(n)}
-  const i=MO.findIndex(x=>t.includes(x));return i>=0?year+"-"+pad2(i+1):null}
+  const i=MO.findIndex(x=>t.includes(x));if(i>=0)return year+"-"+pad2(i+1);const EN=["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"],j=EN.findIndex(x=>t.toLowerCase().startsWith(x));return j>=0?year+"-"+pad2(j+1):null}
 function impBuild(rows,year){
   if(!rows.length)return{rows:[],months:[]};
   const hd=rows[0],hn=hd.map(impNorm),f={},mcol={};
@@ -1074,7 +1100,7 @@ function impHtml(){
   const I=S.imp||{rows:[],months:[]},ok=I.rows.filter(r=>!r.err),bad=I.rows.length-ok.length,nNew=ok.filter(r=>r.mode==="new").length,nUp=ok.length-nNew,nAcc=ok.filter(r=>r.password).length,nSc=ok.reduce((a,r)=>a+Object.keys(r.scores).length,0);
   const dn=I.done;
   return`<div class="ov"><div class="card"><div class="row" style="justify-content:space-between"><b style="font-size:17px">⬆ استيراد أعضاء من شيت</b><button class="g ico" onclick="S.modal=null;S.imp=null;render()">✕</button></div>
-  <p class="mu" style="margin:6px 0;font-size:13px">ملف Excel (xlsx) أو CSV. الأعمدة: <b>الاسم، الإيميل، كلمة السر، اللجنة، المنصب</b> وبعدهم أعمدة التقييم الإجمالي لكل شهر، مثلاً <b>شهر 9</b> و<b>شهر 10</b>. كلهم اختياري ما عدا الإيميل (والاسم واللجنة للعضو الجديد).</p>
+  <p class="mu" style="margin:6px 0;font-size:13px">ملف Excel (xlsx) أو CSV. الأعمدة: <b>الاسم، الإيميل، كلمة السر، اللجنة، المنصب</b> وبعدهم أعمدة التقييم الإجمالي لأي شهر، زي <b>شهر 9</b> أو <b>شهر 11</b> أو <b>2026-11</b> أو اسم الشهر، وتقدر تضيف أي عدد من الشهور. كلهم اختياري ما عدا الإيميل (والاسم واللجنة للعضو الجديد).</p>
   <div class="row"><label class="btn" style="margin:0;color:#fff">📁 اختيار الملف<input type="file" hidden accept=".xlsx,.csv,.txt,text/csv" onchange="impFile(this.files[0]);this.value=''"></label><button class="g" onclick="impTemplate()">⬇ نموذج جاهز</button>
   <label style="display:flex;gap:6px;align-items:center;margin:0">سنة التقييمات<input type="number" style="width:90px;min-height:38px" value="${I.year||new Date().getFullYear()}" onchange="impYear(this.value)"></label></div>
   ${I.err?`<p class="err">${esc(I.err)}</p>`:""}
@@ -1102,7 +1128,7 @@ function drawPhoto(g,im,x,y,w,h,a){
 function edAdj(k,v){const o=E.o;o.adj=Object.assign({z:1,x:.5,y:.15},o.adj||{});o.adj[k]=v;edQ()}
 async function edAdjSave(){const p=E.pvs[E.pv];if(!p||!p.m.id)return;const a=Object.assign({z:1,x:.5,y:.15},E.o.adj||{});
   const r=await sb.from("design_photo_adjust").upsert({member_id:p.m.id,zoom:a.z,x:a.x,y:a.y,updated_by:me.id,updated_at:new Date().toISOString()},{onConflict:"member_id"});
-  if(r.error){alert(r.error.message);return}D.pa=D.pa||{};D.pa[p.m.id]=a;toast("اتحفظ ضبط صورة "+nm(p.m.name)+" ✓","ok");if(S.tab==="designs")dDrawAll()}
+  if(r.error){alert(r.error.message);return}D.pa=D.pa||{};D.pa[p.m.id]=a;toast("اتحفظ ضبط صورة "+nm2(p.m.name)+" ✓","ok");if(S.tab==="designs")dDrawAll()}
 async function edAdjReset(){const p=E.pvs[E.pv];if(!p||!p.m.id)return;await sb.from("design_photo_adjust").delete().eq("member_id",p.m.id);if(D.pa)delete D.pa[p.m.id];E.o.adj=null;edPanel();edQ();if(S.tab==="designs")dDrawAll()}
 /* فريمات جاهزة بتتحط حوالين صورة العضو */
 function edFramePop(show){const p=$("#edpop");if(!p)return;p.style.display=(show===false||p.style.display==="flex")?"none":"flex"}
@@ -1161,11 +1187,42 @@ const PRESETS=[
   mkShape({name:"حلقة",shape:"circle",x:540,y:590,w:590,h:590,nofill:true,stroke:GL2,sw:3,op:.7}),
   mkPhoto({x:540,y:590,w:520,h:520,bw:16,bc:GL,shadow:40}),
   mkText({name:"الاسم",text:"{name}",x:540,y:940,w:900,size:72,color:"#ffffff",wt:900,shadow:14}),
-  mkText({name:"اللجنة",text:"{c} COMMITTEE",x:540,y:1015,size:36,color:GL,wt:800})]})}];
+  mkText({name:"اللجنة",text:"{c} COMMITTEE",x:540,y:1015,size:36,color:GL,wt:800})]})},
+ {name:"زمردي وذهبي",make:()=>({bg:{t:"grad",c1:"#063b2c",c2:"#0f6b50",ang:135},layers:[
+   mkShape({name:"حلقة خارجية",shape:"circle",x:540,y:560,w:700,h:700,nofill:true,stroke:GL,sw:4,op:.5}),
+   mkPhoto({x:540,y:560,w:560,h:560,bw:14,bc:GL,shadow:40}),
+   mkShape({name:"حلقة ذهبية",shape:"circle",x:540,y:560,w:620,h:620,nofill:true,stroke:GL2,sw:6}),
+   mkShape({name:"ورقة يمين",shape:"diamond",x:800,y:200,w:40,h:56,fill:GL2}),mkShape({name:"ورقة شمال",shape:"diamond",x:280,y:200,w:40,h:56,fill:GL2}),
+   mkText({name:"عنوان",text:"TOP MEMBER",x:540,y:74,size:34,color:GL2,wt:700}),
+   mkText({name:"الترتيب",text:"TOP {r}",x:540,y:190,size:88,color:"#ffffff",wt:900,shadow:18}),
+   mkShape({name:"شريط الاسم",shape:"rounded",x:540,y:925,w:820,h:118,rad:22,fill:GL,fill2:GL2,ang:0}),
+   mkText({name:"الاسم",text:"{name}",x:540,y:925,w:760,size:66,color:"#063b2c",wt:900}),
+   mkText({name:"اللجنة",text:"{c} COMMITTEE",x:540,y:1018,size:34,color:"#cdeee2",wt:700})]})},
+ {name:"أسود وفضي",make:()=>({bg:{t:"grad",c1:"#0b0b0f",c2:"#26262e",ang:160},layers:[
+   mkShape({name:"إطار فضي",shape:"rounded",x:540,y:540,w:960,h:960,rad:18,nofill:true,stroke:"#c9ced6",sw:4,op:.6}),
+   mkPhoto({x:540,y:500,w:520,h:520,shape:"rounded",rad:18,bw:12,bc:"#c9ced6",shadow:44}),
+   mkText({name:"الترتيب",text:"TOP {r}",x:540,y:130,size:96,color:"#f1f3f7",wt:900,shadow:12}),
+   mkShape({name:"خط فضي",shape:"rect",x:540,y:820,w:420,h:4,fill:"#c9ced6"}),
+   mkText({name:"الاسم",text:"{name}",x:540,y:895,w:880,size:68,color:"#f1f3f7",wt:900}),
+   mkText({name:"اللجنة",text:"{c} COMMITTEE",x:540,y:985,size:36,color:"#c9ced6",wt:700})]})},
+ {name:"عنابي وذهبي",make:()=>({bg:{t:"grad",c1:"#4a0d1f",c2:"#7a1a33",ang:135},layers:[
+   mkShape({name:"سداسي",shape:"hexagon",x:540,y:520,w:860,h:860,nofill:true,stroke:GL,sw:4,op:.4}),
+   mkPhoto({x:540,y:520,w:600,h:600,shape:"hexagon",bw:14,bc:GL,shadow:40}),
+   mkShape({name:"شريط علوي",shape:"rect",x:540,y:110,w:900,h:100,fill:GL,fill2:GL2,ang:0}),
+   mkText({name:"الترتيب",text:"TOP {r}",x:540,y:112,size:72,color:"#4a0d1f",wt:900}),
+   mkText({name:"الاسم",text:"{name}",x:540,y:925,w:880,size:66,color:"#ffffff",wt:900,shadow:14}),
+   mkText({name:"اللجنة",text:"{c} COMMITTEE",x:540,y:1010,size:36,color:GL2,wt:800})]})},
+ {name:"أبيض وأزرق مينيمال",make:()=>({bg:{t:"solid",c1:"#f4f6ff",c2:"#f4f6ff",ang:90},layers:[
+   mkShape({name:"شريط أزرق",shape:"rect",x:540,y:0,w:1080,h:260,fill:NV2,fill2:NV,ang:0}),
+   mkText({name:"الترتيب",text:"TOP {r}",x:540,y:130,size:96,color:"#ffffff",wt:900}),
+   mkPhoto({x:540,y:520,w:560,h:560,bw:12,bc:NV2,shadow:30}),
+   mkText({name:"الاسم",text:"{name}",x:540,y:945,w:900,size:66,color:NV,wt:900}),
+   mkShape({name:"خط ذهبي",shape:"rect",x:540,y:1000,w:260,h:6,fill:GL}),
+   mkText({name:"اللجنة",text:"{c} COMMITTEE",x:540,y:1042,size:34,color:NV2,wt:800})]})}];
 function PSET(){return`<div class="card"><b>📚 مكتبة الديزاينات الجاهزة</b><p class="mu" style="margin:4px 0 8px">ديزاينات أزرق وذهبي جاهزة (كل عنصر فيها قابل للتعديل). دوس على أي واحد يفتح في المحرر، تعدّل وتسميه وتحفظه، وبعدها يظهر في "قوالبي" وتطبّقه على الكروت.</p>
   <div class="pset-row">${PRESETS.map((p,i)=>`<button class="pset" onclick="edPreset(${i})"><canvas id="ps${i}" width="260" height="260"></canvas><span>${esc(p.name)}</span></button>`).join("")}</div></div>`}
 async function drawPresets(){
-  const x=D_LIST[0],img=x?await dImg(x.m.avatar_url):null,o={name:x?nm(x.m.name):"Youssef Mohamed",c:x?x.c:"HR",r:x?x.r:1,mo:x?x.mo:today().slice(0,7),img};
+  const x=D_LIST[0],img=x?await dImg(x.m.avatar_url):null,o={name:x?nm2(x.m.name):"Youssef Mohamed",c:x?x.c:"HR",r:x?x.r:1,mo:x?x.mo:today().slice(0,7),img};
   for(let i=0;i<PRESETS.length;i++){const c=$("#ps"+i);if(!c)continue;const sc=PRESETS[i].make();try{await scenePre(sc,o);const g=c.getContext("2d");g.setTransform(c.width/1080,0,0,c.width/1080,0,0);g.clearRect(0,0,1080,1080);sceneDraw(g,sc,o)}catch(e){}}}
 function edPreset(i){edStart({sc:PRESETS[i].make(),name:PRESETS[i].name})}
 /* ---------- مزامنة الشيتات (موقع ← Google Sheets) ---------- */
@@ -1204,7 +1261,7 @@ function paOpen(i){
   PAS={i,mid:x.m.id,adj:paClamp(Object.assign({z:1,x:.5,y:.15},PADJ(x.m.id)||{})),drag:null,pts:{}};
   D.pat=D.pat||{};D.pat[PAS.mid]=Object.assign({},PAS.adj);
   const el=document.createElement("div");el.id="pad";el.className="ov";el.onclick=e=>{if(e.target===el)paClose()};document.body.appendChild(el);document.body.style.overflow="hidden";
-  el.innerHTML=`<div class="card"><div class="row" style="justify-content:space-between;margin-bottom:6px"><b style="font-size:16px">🖼 ضبط صورة ${esc(nm(x.m.name))}</b><button class="g ico" onclick="paClose()">✕</button></div>
+  el.innerHTML=`<div class="card"><div class="row" style="justify-content:space-between;margin-bottom:6px"><b style="font-size:16px">🖼 ضبط صورة ${esc(nm2(x.m.name))}</b><button class="g ico" onclick="paClose()">✕</button></div>
   <p class="mu" style="margin:0 0 8px;font-size:12.5px">اسحب الصورة بصباعك أو استخدم الأزرار. الضبط بيتحفظ للعضو ده وبيتطبّق على كل ديزايناته.</p>
   <div style="display:grid;place-items:center"><canvas id="pac" style="width:min(100%,340px);aspect-ratio:1;border-radius:14px;touch-action:none;background:#000;cursor:grab"></canvas></div>
   <div class="pa-ctl"><button class="g" onclick="paZoom(-${PA_ZSTEP})">➖ تصغير</button><input type="range" id="paz" min="${PA_ZMIN}" max="${PA_ZMAX}" step="0.02" oninput="paSet('z',+this.value)"><button class="g" onclick="paZoom(${PA_ZSTEP})">➕ تكبير</button></div>
@@ -1237,7 +1294,7 @@ const BR=(light)=>{const c=light?"#0d2a66":"#ffffff";return[
   mkText({name:"سوشيال",text:"/ YLYMINISTRY",x:840,y:1034,w:360,size:22,color:c,wt:800,align:"right"})]};
 const AN="Anton,Impact,Haettenschweiler,sans-serif",PAC="Pacifico,'Brush Script MT',cursive";
 PRESETS.push(
- {name:"فرع أزرق)",make:()=>({bg:{t:"grad",c1:"#f6f6f8",c2:"#e3e6ee",ang:90},layers:[
+ {name:"فرع أزرق (زي قنا)",make:()=>({bg:{t:"grad",c1:"#f6f6f8",c2:"#e3e6ee",ang:90},layers:[
   mkShape({name:"هلال أزرق سفلي شمال",shape:"circle",x:-60,y:1250,w:1000,h:1000,fill:"#1740c0"}),mkShape({name:"فاصل",shape:"circle",x:-20,y:1310,w:1000,h:1000,fill:"#f1f2f6"}),
   mkShape({name:"هلال أزرق سفلي يمين",shape:"circle",x:1180,y:1240,w:1000,h:1000,fill:"#1740c0"}),mkShape({name:"فاصل 2",shape:"circle",x:1140,y:1310,w:1000,h:1000,fill:"#f1f2f6"}),
   mkShape({name:"ركن أزرق علوي",shape:"circle",x:-30,y:-60,w:620,h:620,fill:"#1740c0"}),mkShape({name:"ركن فاتح",shape:"circle",x:-90,y:-120,w:560,h:560,fill:"#f1f2f6"}),
@@ -1303,11 +1360,11 @@ function LOGOCARD(){return`<div class="card"><b>🏷 شعارات الديزاي
 function modal(){
   const t=S.modal,m=D.members.find(x=>x.id===t.id);
   if(t.t==="imp")return impHtml();
-  if(t.t==="photo"){const x=PH[t.i];if(!x)return"";return`<div class="ov" onclick="if(event.target===this)closeM()"><div class="card" style="text-align:center"><img src="${esc(x.u)}" alt="" style="max-width:100%;max-height:60vh;border-radius:14px" onload="if(this.naturalWidth<800){const q=document.getElementById('lq');q.style.display='block';q.textContent='⚠ الصورة دي مرفوعة بجودة قليلة ('+this.naturalWidth+'×'+this.naturalHeight+' بيكسل). اطلب من العضو يرفعها تاني من حسابه.'}"><p id="lq" class="mu" style="display:none;color:var(--warn);margin:8px 0 0"></p><p><b>${esc(nm(x.n))}</b></p><div class="row" style="justify-content:center"><button onclick="dlPhoto(${t.i})">⬇ تحميل بجودة كاملة</button><button class="g" onclick="closeM()">إغلاق</button></div></div></div>`}
+  if(t.t==="photo"){const x=PH[t.i];if(!x)return"";return`<div class="ov" onclick="if(event.target===this)closeM()"><div class="card" style="text-align:center"><img src="${esc(x.u)}" alt="" style="max-width:100%;max-height:60vh;border-radius:14px" onload="if(this.naturalWidth<800){const q=document.getElementById('lq');q.style.display='block';q.textContent='⚠ الصورة دي مرفوعة بجودة قليلة ('+this.naturalWidth+'×'+this.naturalHeight+' بيكسل). اطلب من العضو يرفعها تاني من حسابه.'}"><p id="lq" class="mu" style="display:none;color:var(--warn);margin:8px 0 0"></p><p><b>${esc(nm2(x.n))}</b></p><div class="row" style="justify-content:center"><button onclick="dlPhoto(${t.i})">⬇ تحميل بجودة كاملة</button><button class="g" onclick="closeM()">إغلاق</button></div></div></div>`}
   if(t.t==="brd"){const b=D.board.find(x=>x.id===t.id);return`<div class="ov"><div class="card"><b>${b?"تعديل":"إضافة"} عضو بورد</b>
     <label>الاسم</label><input id="bn" value="${esc(b?.name)}"><label>المنصب</label><input id="bp" value="${esc(b?.position)}" placeholder="مثال: Vice President">
     <label>مسؤول في لجنة إيه؟ (دوس على واحدة أو أكتر)</label><div class="row" id="bcs">${COM4.map(c=>`<button type="button" class="g chip bcm ${b&&bCom(b).includes(c)?"on":""}" data-c="${c}" onclick="this.classList.toggle('on')">${c}</button>`).join("")}<button type="button" class="g chip" onclick="document.querySelectorAll('#bcs .bcm').forEach(x=>x.classList.add('on'))">كل اللجان</button><button type="button" class="g chip" onclick="document.querySelectorAll('#bcs .bcm').forEach(x=>x.classList.remove('on'))">مسح</button></div>
-    <label>حساب المسؤول (اختياري)</label><select id="bm"><option value="">بدون حساب (عرض فقط في صفحة المسؤولين)</option>${[...D.members].sort((x,y)=>nm(x.name).localeCompare(nm(y.name),"ar")).map(x=>`<option value="${x.id}" ${b?.member_id===x.id?"selected":""}>${esc(nm(x.name))} · ${esc(x.committee)}</option>`).join("")}</select>
+    <label>حساب المسؤول (اختياري)</label><select id="bm"><option value="">بدون حساب (عرض فقط في صفحة المسؤولين)</option>${[...D.members].sort((x,y)=>nm2(x.name).localeCompare(nm2(y.name),"ar")).map(x=>`<option value="${x.id}" ${b?.member_id===x.id?"selected":""}>${esc(nm2(x.name))} · ${esc(x.committee)}</option>`).join("")}</select>
     <p class="mu" style="font-size:12px;margin:4px 0 0">لو اخترت حساب: صاحبه هيشوف تقييمات اللجان المختارة كلها أول بأول حتى قبل الإعلان (عرض فقط).</p>
     <label>الصورة</label><input type="file" accept="image/*" onchange="bFile=this.files[0]">${b?.photo_url?'<p class="mu">سيب الصورة فاضية للإبقاء على الحالية.</p>':""}
     <p class="err" id="mm"></p><div class="row" style="margin-top:12px"><button onclick="saveBoard('${b?.id||""}')">حفظ</button><button class="g" onclick="closeM(true)">إلغاء</button></div></div></div>`}
@@ -1318,7 +1375,7 @@ function modal(){
     <label>اللجنة</label><select id="mc" onchange="togFl()">${comOpts(m?.committee).map(c=>`<option ${c===(m?.committee||"PR")?"selected":""}>${esc(c)}</option>`).join("")}</select>
     ${(()=>{const be=m?D.board.find(b=>b.member_id===m.id):null;return`<div id="bdw" style="display:${roleSel(m?.role)==="Board"?"block":"none"}"><label>مسؤول في لجنة إيه؟ (دوس على واحدة أو أكتر)</label>${chipsHtml(be?bCom(be):[],"mbcs")}<label>المنصب في البورد (اختياري)</label><input id="mbp" value="${esc(be?.position)}" placeholder="مثال: Vice President"></div>`})()}
     <div id="flw" style="display:${(m?.committee||"PR")==="HR"?"block":"none"}"><label>الأعضاء اللي هيضيفهم ويعدّل تقييمهم (هو بس يشوفهم)</label><input placeholder="بحث بالاسم..." oninput="filterFl(this.value)">
-    <div style="max-height:170px;overflow:auto;margin-top:6px">${D.members.filter(x=>x.id!==m?.id).map(x=>`<label class="fli" data-n="${esc(x.name)} ${esc(x.committee)}" style="display:flex;gap:6px;align-items:center;margin:2px 0;color:var(--tx)"><input type="checkbox" class="fl" value="${x.id}" style="width:auto" ${fl.includes(x.id)?"checked":""}>${esc(nm(x.name))} <span class="mu">${esc(x.committee)}</span></label>`).join("")}</div></div>
+    <div style="max-height:170px;overflow:auto;margin-top:6px">${D.members.filter(x=>x.id!==m?.id).map(x=>`<label class="fli" data-n="${esc(x.name)} ${esc(x.committee)}" style="display:flex;gap:6px;align-items:center;margin:2px 0;color:var(--tx)"><input type="checkbox" class="fl" value="${x.id}" style="width:auto" ${fl.includes(x.id)?"checked":""}>${esc(nm2(x.name))} <span class="mu">${esc(x.committee)}</span></label>`).join("")}</div></div>
     ${m?`<div class="card" style="margin:14px 0 0;padding:12px"><b>👤 الصورة والحساب</b>
       <div class="row" style="margin-top:8px">${avatar(m)}<label class="btn g" style="margin:0;color:var(--tx)">📷 ${m.avatar_url?"تغيير":"رفع"} صورة<input type="file" hidden accept="image/*" onchange="adminAvatar('${m.id}',this.files[0]);this.value=''"></label></div>
       ${m.user_id?`<label>كلمة سر جديدة (٦ حروف على الأقل)</label><div class="row" style="flex-wrap:nowrap"><input id="npw" type="text" dir="ltr" autocomplete="off" placeholder="كلمة السر الجديدة"><button type="button" onclick="adminPw('${m.id}')">تغيير</button></div>
@@ -1464,7 +1521,7 @@ function designsView(){
   <label>طبّق تصميم على الكل</label><div class="row">${tl.map(t=>`<button class="g chip" onclick="dAll('${t.id}')">${esc(t.name)}</button>`).join("")}</div></div>
   <div class="tabs"><button class="${cf==="all"?"on":""}" onclick="S.dcf='all';render()">الكل</button>${COM4.map(c=>`<button class="${cf===c?"on":""}" onclick="S.dcf='${c}';render()">${c}</button>`).join("")}</div>
   <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px">${L.map((x,i)=>`<div class="card" style="padding:8px"><canvas id="dc${i}" width="1080" height="1080" style="width:100%;border-radius:10px;display:block;background:#0003"></canvas>
-  <div style="margin:6px 0 2px"><b>${x.c} · TOP ${x.r}</b> <span class="mu">${esc(nm(x.m.name))}</span></div>
+  <div style="margin:6px 0 2px"><b>${x.c} · TOP ${x.r}</b> <span class="mu">${esc(nm2(x.m.name))}</span></div>
   <div class="row" style="justify-content:space-between"><button class="g" onclick="dNext(${i},-1)">◀</button><span class="mu" id="dl${i}">${esc(tplById(dTplId(x)).name)}</span><button class="g" onclick="dNext(${i},1)">▶</button></div>
   <div class="row" style="margin-top:6px"><button onclick="dDown(${i},this)">⬇ تحميل 2160px</button><button class="g" onclick="edOpenCard(${i})">✏️ تعديل</button><button class="g" onclick="paOpen(${i})">🖼 ضبط الصورة</button><button class="g" onclick="dCanva(${i},this)">↗ كانفا</button><button class="g" onclick="dRedraw(${i})">🔄</button></div></div>`).join("")||'<p class="mu">لا يوجد توب في اللجنة دي للشهر ده.</p>'}</div>`;
 }
@@ -1484,7 +1541,7 @@ function dImg(u){
 async function dPaint(c,x,scale){
   const img=await dImg(x.m.avatar_url),id=dTplId(x),T=tplById(id);
   c.width=c.height=1080*scale;const ctx=c.getContext("2d");ctx.setTransform(scale,0,0,scale,0,0);ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality="high";
-  const o={name:nm(x.m.name),c:x.c,r:x.r,mo:x.mo,img,adj:PADJ(x.m.id)},sc=T.t?tplScene(T.t):builtinScene(+id.slice(1));
+  const o={name:nm2(x.m.name),c:x.c,r:x.r,mo:x.mo,img,adj:PADJ(x.m.id)},sc=T.t?tplScene(T.t):builtinScene(+id.slice(1));
   try{await scenePre(sc,o);sceneDraw(ctx,sc,o)}catch(e){console.error(e)}
 }
 async function dDraw(i){const x=D_LIST[i],c=document.getElementById("dc"+i);if(x&&c)await dPaint(c,x,1)}
@@ -1494,7 +1551,7 @@ async function dDown(i,btn){
     const c=document.createElement("canvas");await dPaint(c,x,2);
     const b=await new Promise((res,rej)=>{try{c.toBlob(res,"image/png")}catch(e){rej(e)}});
     if(!b)throw new Error("empty");
-    const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=`${x.c}-TOP${x.r}-${nm(x.m.name)}-${x.mo}.png`;a.click();
+    const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=`${x.c}-TOP${x.r}-${nm2(x.m.name)}-${x.mo}.png`;a.click();
   }catch(e){alert("تعذر التحميل لأن صورة العضو محمية. جرّب زرار 🔄 وحمّل تاني.")}
   if(btn){btn.disabled=false;btn.textContent=old}
 }
@@ -1612,7 +1669,7 @@ async function holeOfLayer(L){
 let E=null,EQ=0;
 function edQ(){if(!E||EQ)return;EQ=1;requestAnimationFrame(()=>{EQ=0;edDraw()})}
 function edPvList(){const ms=dMonthsAll();if(!ms.length)return[];const mo=ms.includes(S.dmo)?S.dmo:ms[0],T=dTops(mo),L=[];COM4.forEach(c=>T[c].forEach((m,i)=>L.push({c,m,r:T[c].ranks[i],mo})));return L}
-async function edLoadPv(){const p=E.pvs[E.pv],img=p.m&&p.m.avatar_url?await dImg(p.m.avatar_url):null;E.o={name:nm(p.m.name||"Youssef Mohamed"),c:p.c,r:p.r,mo:p.mo,img,_ed:true,adj:p.m.id?PADJ(p.m.id):null}}
+async function edLoadPv(){const p=E.pvs[E.pv],img=p.m&&p.m.avatar_url?await dImg(p.m.avatar_url):null;E.o={name:nm2(p.m.name||"Youssef Mohamed"),c:p.c,r:p.r,mo:p.mo,img,_ed:true,adj:p.m.id?PADJ(p.m.id):null}}
 async function edStart(opt){
   const pvs=edPvList();if(!pvs.length)pvs.push({c:"HR",m:{name:"Youssef Mohamed"},r:1,mo:new Date().toISOString().slice(0,7)});
   let pv=0;if(opt.card){const i=pvs.findIndex(p=>dKey(p)===opt.card);if(i>=0)pv=i}
@@ -1663,7 +1720,7 @@ function edMount(){
     <button class="g" onclick="edAdd('shape')">⬛ شكل</button>
     <button class="g" onclick="edAdd('photo')">👤 صورة عضو</button>
     <span style="flex:1"></span>
-    <select id="edpv" onchange="E.pv=+this.value;edLoadPv().then(()=>edQ())" style="width:auto;max-width:190px">${E.pvs.map((p,i)=>`<option value="${i}" ${i===E.pv?"selected":""}>معاينة: ${esc(p.c)} · TOP ${p.r} · ${esc(nm(p.m.name||""))}</option>`).join("")}</select>
+    <select id="edpv" onchange="E.pv=+this.value;edLoadPv().then(()=>edQ())" style="width:auto;max-width:190px">${E.pvs.map((p,i)=>`<option value="${i}" ${i===E.pv?"selected":""}>معاينة: ${esc(p.c)} · TOP ${p.r} · ${esc(nm2(p.m.name||""))}</option>`).join("")}</select>
   </div>
   <div class="ed-main">
     <div class="ed-stage"><canvas id="edc" width="1080" height="1080" onpointerdown="edP(event,0)" onpointermove="edP(event,1)" onpointerup="edP(event,2)" onpointercancel="edP(event,2)"></canvas></div>
@@ -1708,7 +1765,7 @@ function edPanel(){
     <div class="grid">${edN("w","العرض","w",L.w)}${L.t==="text"?`<div><label>حجم الخط</label><input type="number" id="n_size" value="${L.size}" oninput="edSet('size',+this.value)"></div>`:edN("h","الارتفاع","h",L.h)}</div>
     ${edR("الشفافية","op",0,1,L.op==null?1:L.op,.05)}`;
     if(L.t==="photo")h+=edS("شكل الصورة","shape",[["circle","دايرة"],["rounded","مربع بحواف"],["rect","مستطيل"],["hexagon","سداسي"],["diamond","معين"]],L.shape)+(L.shape==="rounded"?edR("استدارة الحواف","rad",0,50,L.rad):"")+`<div class="grid">${edC("لون الإطار","bc",L.bc)}<div>${edR("سُمك الإطار","bw",0,40,L.bw)}</div></div>`+edR("ظل","shadow",0,80,L.shadow)+`<button class="g" style="margin-top:8px" onclick="edFitHole()">🎯 ضبط تلقائي على فتحة الفريم</button>`+(()=>{const pp=E.pvs[E.pv],a=Object.assign({z:1,x:.5,y:.15},E.o&&E.o.adj||{});
-      return`<div style="margin-top:12px;border-top:1px solid var(--bd);padding-top:10px"><b>🖼 ضبط صورة ${esc(nm((pp.m&&pp.m.name)||""))}</b><p class="mu" style="font-size:12px;margin:2px 0 6px">بيتحفظ للعضو ده في كل الديزاينات.</p>`+(pp.m&&pp.m.id?`<label>تكبير / تصغير الصورة</label><input type="range" min="0.6" max="3" step="0.02" value="${a.z}" oninput="edAdj('z',+this.value)"><label>إزاحة أفقية</label><input type="range" min="0" max="1" step="0.01" value="${a.x}" oninput="edAdj('x',+this.value)"><label>إزاحة رأسية</label><input type="range" min="0" max="1" step="0.01" value="${a.y}" oninput="edAdj('y',+this.value)"><div class="row" style="margin-top:8px"><button onclick="edAdjSave()">💾 حفظ الضبط</button><button class="g" onclick="edAdjReset()">↺ افتراضي</button></div><label class="btn g" style="margin:8px 0 0;color:var(--tx)">📷 تغيير صورة العضو<input type="file" hidden accept="image/*" onchange="adminAvatar('${pp.m.id}',this.files[0]);this.value=''"></label>`:'<p class="mu">المعاينة دلوقتي عضو تجريبي، اختار عضو حقيقي من القايمة فوق.</p>')+`</div>`})();
+      return`<div style="margin-top:12px;border-top:1px solid var(--bd);padding-top:10px"><b>🖼 ضبط صورة ${esc(nm2((pp.m&&pp.m.name)||""))}</b><p class="mu" style="font-size:12px;margin:2px 0 6px">بيتحفظ للعضو ده في كل الديزاينات.</p>`+(pp.m&&pp.m.id?`<label>تكبير / تصغير الصورة</label><input type="range" min="0.6" max="3" step="0.02" value="${a.z}" oninput="edAdj('z',+this.value)"><label>إزاحة أفقية</label><input type="range" min="0" max="1" step="0.01" value="${a.x}" oninput="edAdj('x',+this.value)"><label>إزاحة رأسية</label><input type="range" min="0" max="1" step="0.01" value="${a.y}" oninput="edAdj('y',+this.value)"><div class="row" style="margin-top:8px"><button onclick="edAdjSave()">💾 حفظ الضبط</button><button class="g" onclick="edAdjReset()">↺ افتراضي</button></div><label class="btn g" style="margin:8px 0 0;color:var(--tx)">📷 تغيير صورة العضو<input type="file" hidden accept="image/*" onchange="adminAvatar('${pp.m.id}',this.files[0]);this.value=''"></label>`:'<p class="mu">المعاينة دلوقتي عضو تجريبي، اختار عضو حقيقي من القايمة فوق.</p>')+`</div>`})();
     if(L.t==="text"){h+=`<label>النص <span class="mu">(بيتبدّل تلقائي)</span></label><input id="edtx" value="${esc(L.text)}" oninput="edSet('text',this.value)">
       <div class="row" style="margin-top:6px">${[["{name}","الاسم"],["{c}","اللجنة"],["{r}","الترتيب"],["{month}","الشهر"]].map(t=>`<button class="g chip" style="padding:3px 10px;font-size:12px" onclick="edTok('${t[0]}')">${t[1]}</button>`).join("")}</div>
       <div class="grid">${edC("اللون","color",L.color)}${edS("المحاذاة","align",[["center","وسط"],["left","شمال"],["right","يمين"]],L.align||"center")}</div>
@@ -2038,7 +2095,7 @@ function canonTitle(ev){
   var t=String(ev.title||"").trim();return titleHas(t,ev.d)?t:(t+" "+dm(ev.d)).trim()}
 function statusVal(s){return s==="present"?1:s==="ex_ok"?0.5:s==="ex_no"?0.25:s==="absent"?0:null}
 /* model: {v:function(r,c)->value, f5:[], row2:[], maxRow, firstRow} ; exp: export من السيرفر */
-function syncPlan(model,exp){
+function syncPlan(model,exp,prev){prev=prev||[];
   var L=detectLayout(model.f5,model.row2),writes=[],log={unmatched:[],added:[],created:[],noSpace:[]},w=function(r,c,v){writes.push({r:r,c:c,v:v})};
   /* صفوف الأعضاء */
   var rows={},byFirst={},empty=[];
@@ -2058,6 +2115,20 @@ function syncPlan(model,exp){
     if(idx<0)for(var j=0;j<sec.titles.length;j++){var tc2=sec.titles[j],k2=sec.kind+":"+tc2,t2=model.v(3,tc2);if(!used[k2]&&(t2===""||t2==null)){idx=j;w(3,tc2,canonTitle(ev));log.created.push(canonTitle(ev));break}}
     if(idx<0){log.noSpace.push(canonTitle(ev));return}
     used[sec.kind+":"+sec.titles[idx]]=1;colOf[ev.id]={sec:sec,i:idx}});
+  /* امسح الأعمدة اللي كانت بتابع أحداث اتشالت أو اتنقلت (شهر الشيت ده بس) */
+  var usedCols={},managed=[];
+  Object.keys(colOf).forEach(function(eid){var pos=colOf[eid],cols=[pos.sec.parts[0].cells[pos.i]];
+    if(pos.sec.kind==="tk"&&pos.sec.parts.length>=3){cols.push(pos.sec.parts[1].cells[pos.i],pos.sec.parts[2].cells[pos.i])}
+    cols.forEach(function(c){usedCols[c]=1});usedCols[pos.sec.titles[pos.i]]=1;
+    managed.push({id:eid,month:exp.month,title:pos.sec.titles[pos.i],cols:cols})});
+  var presentIds={};(exp.events||[]).forEach(function(e){presentIds[e.id]=1});
+  prev.forEach(function(p){
+    if(p.month!==exp.month){managed.push(p);return}
+    var now=colOf[p.id];
+    if(now&&now.sec.titles[now.i]===p.title)return;
+    if(!usedCols[p.title]){w(3,p.title,"")}
+    p.cols.forEach(function(c){if(usedCols[c])return;for(var r=model.firstRow;r<=model.maxRow;r++)w(r,c,"")});
+  });
   /* قيم الأعضاء */
   (exp.members||[]).forEach(function(m){
     var r=rowOf(m.name);
@@ -2068,10 +2139,11 @@ function syncPlan(model,exp){
       if(sec.kind==="tk"&&sec.parts.length>=3){
         if(a.q!=null)w(r,sec.parts[1].cells[pos.i],+a.q);
         if(a.l!=null)w(r,sec.parts[2].cells[pos.i],a.l?1:0)}});
+    Object.keys(colOf).forEach(function(eid){if(m.att&&m.att[eid])return;var pos=colOf[eid],sec=pos.sec,cols=[sec.parts[0].cells[pos.i]];if(sec.kind==="tk"&&sec.parts.length>=3){cols.push(sec.parts[1].cells[pos.i],sec.parts[2].cells[pos.i])}cols.forEach(function(c){w(r,c,"")})});
     var x=m.x||{};["int","car","bon","tec"].forEach(function(k){if(x[k]!=null&&L.extras[k])w(r,L.extras[k],+x[k])})});
   /* شيل اللي مش بيتغيّر */
   writes=writes.filter(function(o){var cur=model.v(o.r,o.c);return String(cur)!==String(o.v)&&!(cur===""&&o.v==="")});
-  return{writes:writes,log:log,layout:L}}
+  return{writes:writes,log:log,layout:L,managed:managed}}
 if(typeof module!=="undefined")module.exports={syncPlan:syncPlan,detectLayout:detectLayout,normName:normName,colNum:colNum,colLetter:colLetter,canonTitle:canonTitle};
 
 /* ===== التشغيل داخل Google Sheets ===== */
@@ -2098,9 +2170,10 @@ function sync_(force){
     var maxR=Math.min(sh.getLastRow(),400),maxC=sh.getLastColumn();
     var vals=sh.getRange(1,1,maxR,maxC).getValues(),f5=sh.getRange(5,1,1,maxC).getFormulas()[0];
     var model={v:function(r,c){var x=vals[r-1]&&vals[r-1][c-1];return x==null?"":x},f5:f5,row2:vals[1],maxRow:maxR,firstRow:5};
-    var plan=syncPlan(model,exp);
+    var prev=[];try{prev=JSON.parse(P.getProperty("MANAGED")||"[]")}catch(e){}
+    var plan=syncPlan(model,exp,prev);
     plan.writes.forEach(function(o){sh.getRange(o.r,o.c).setValue(o.v)});
-    P.setProperty("VER",exp.version);
+    P.setProperty("VER",exp.version);P.setProperty("MANAGED",JSON.stringify(plan.managed));
     var msg="اتحدّث "+plan.writes.length+" خانة (شهر "+exp.month+")";
     if(plan.log.unmatched.length)msg+=" · أسماء مش لاقيها: "+plan.log.unmatched.join("، ");
     if(plan.log.noSpace.length)msg+=" · مفيش مكان لـ: "+plan.log.noSpace.join("، ");
