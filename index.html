@@ -400,7 +400,8 @@ const isMgr=()=>!!(me&&!me.is_admin&&(D.follows.some(f=>f.manager_id===me.id)||m
 const curMonth=()=>new Date().toISOString().slice(0,7);
 const ago=t=>{if(!t)return"لم يدخل بعد";const s=(Date.now()-new Date(t))/1000;if(s<90)return"دلوقتي";if(s<3600)return"من "+Math.round(s/60)+" دقيقة";if(s<86400)return"من "+Math.round(s/3600)+" ساعة";return"من "+Math.round(s/86400)+" يوم"};
 const dk=(id,mo)=>`tm-draft:${id}:${mo}`;
-const myFollows=()=>{const ids=new Set(D.follows.filter(f=>f.manager_id===(me&&me.id)).map(f=>f.member_id)),ec=myEvalCom();return D.members.filter(x=>ids.has(x.id)||(ec.includes(x.committee)&&!(me&&x.id===me.id)))};
+const isHRHead=()=>!!(me&&D.board.some(b=>b.member_id===me.id&&isHeadPos(b.position)&&evCom(b).includes("HR")));
+const myFollows=()=>{const ids=new Set(D.follows.filter(f=>f.manager_id===(me&&me.id)).map(f=>f.member_id)),ec=myEvalCom(),hr=isHRHead();return D.members.filter(x=>ids.has(x.id)||(ec.includes(x.committee)&&!(me&&x.id===me.id)&&(x.role!=="Board"||hr)))};
 const tabBar=l=>{NAV=l;return""};
 
 async function load(){
@@ -727,8 +728,15 @@ function mgrList(mine){
   const cmp={name_asc:(a,b)=>nm(a.name).localeCompare(nm(b.name),"ar"),name_desc:(a,b)=>nm(b.name).localeCompare(nm(a.name),"ar"),score_desc:(a,b)=>score(b)-score(a),score_asc:(a,b)=>score(a)-score(b)}[k]||((a,b)=>0);
   const opts=[["name_asc","الاسم ↑"],["name_desc","الاسم ↓"],["score_desc","التقييم ↓"],["score_asc","التقييم ↑"]];
   const bar=`<div class="row" style="gap:6px;flex-wrap:wrap;margin-bottom:10px">${opts.map(([v,t])=>`<button class="g" style="padding:5px 11px;font-size:12px;${k===v?"background:var(--pr);color:#fff;border-color:transparent":""}" onclick="S.msort='${v}';render()">${t}</button>`).join("")}</div>`;
-  const cs=[...new Set(mine.map(m=>m.committee))].sort();
-  return bar+cs.map(c=>{const L=mine.filter(m=>m.committee===c).sort(cmp);return`<div style="font-weight:800;margin:12px 2px 6px">${esc(c)} <span class="mu">(${L.length})</span></div>`+L.map(m=>memberCard(m,false)).join("")}).join("");
+  const isB=m=>m.role==="Board",BT="🏛 البورد";
+  const hasBoard=isHRHead()&&mine.some(isB);
+  const comms=[...new Set(mine.filter(m=>!isB(m)).map(m=>m.committee))].sort();
+  const tabsList=[...comms,...(hasBoard?[BT]:[])];
+  if(!tabsList.length)return bar;
+  const cur=S.mgt&&tabsList.includes(S.mgt)?S.mgt:tabsList[0];
+  const inTab=m=>cur===BT?isB(m):(!isB(m)&&m.committee===cur);
+  const tabs=`<div class="tabs" style="flex-wrap:wrap">${tabsList.map(t=>`<button class="${t===cur?"on":""}" onclick="S.mgt='${t}';render()">${esc(t)} (${mine.filter(m=>t===BT?isB(m):(!isB(m)&&m.committee===t)).length})</button>`).join("")}</div>`;
+  return bar+tabs+mine.filter(inTab).sort(cmp).map(m=>memberCard(m,false)).join("");
 }
 function mgrView(){
   const mine=myFollows();
