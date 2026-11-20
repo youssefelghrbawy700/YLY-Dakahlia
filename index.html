@@ -880,12 +880,22 @@ function navHtml(){
   const b=id=>`<button class="${S.tab===id?"on":""}" onclick="navGo('${id}')"><i>${NI[id]||"•"}</i><span>${NLB[id]||id}</span>${id==="req"&&pend?`<em>${pend}</em>`:""}</button>`;
   return`<div class="nav"><div class="nav-in">${main.map(b).join("")}<button class="${rest.includes(S.tab)||S.more?"on":""}" onclick="S.more=!S.more;render()"><i>☰</i><span>المزيد</span></button></div></div>`}
 function navGo(id){if(id==="security")S.auLoaded=0;if(id==="sheets")S.ssLoaded=0;S.tab=id;S.more=false;render()}
+const MM_GROUPS=[["👥 الأعضاء",["members","req","committees","board","leaders"]],["📊 التقييم والحضور",["dash","hr","att","events"]],["📢 المحتوى",["announce","photos","designs"]],["⚙️ النظام",["security","sheets","seen"]]];
 function moreHtml(){
   if(!S.more||!NAV||!me)return"";const[,rest]=navSplit(),ios=/iphone|ipad/i.test(navigator.userAgent)&&!navigator.standalone;
-  return`<div class="ov" onclick="if(event.target===this){S.more=false;render()}"><div class="card"><div class="row" style="justify-content:space-between;margin-bottom:10px"><b style="font-size:17px">القائمة</b><button class="g ico" onclick="S.more=false;render()">✕</button></div>
-  ${rest.length?`<div class="mgrid">${rest.map(id=>`<button class="g" onclick="navGo('${id}')"><i>${NI[id]||"•"}</i>${NLB[id]||id}</button>`).join("")}</div>`:""}
-  <div class="mgrid">${isAdm()?`<button class="g" onclick="S.more=false;S.modal={t:'mem'};render()"><i>➕</i>عضو جديد</button><button class="g" onclick="S.more=false;S.modal={t:'imp'};render()"><i>⬆</i>استيراد أعضاء</button><button class="g" onclick="backup()"><i>⬇</i>نسخة Excel</button>`:""}<button class="g" onclick="theme()"><i>🌓</i>الوضع</button>${DEFI?`<button class="g" onclick="installApp()"><i>📲</i>تثبيت التطبيق</button>`:""}<button class="g" onclick="logout()"><i>🚪</i>خروج</button></div>
-  ${ios?`<p class="mu" style="margin:10px 0 0">لتثبيت التطبيق على الآيفون: زرار المشاركة ثم "إضافة إلى الشاشة الرئيسية".</p>`:""}</div></div>`}
+  const used=new Set(),btn=id=>`<button class="mm-btn" onclick="navGo('${id}')"><i>${NI[id]||"•"}</i><span>${NLB[id]||id}</span></button>`;
+  const sec=(t,items)=>items.length?`<div class="mm-sec"><div class="mm-h">${t}</div><div class="mm-grid">${items.join("")}</div></div>`:"";
+  const groups=MM_GROUPS.map(([t,ids])=>{const L=ids.filter(id=>rest.includes(id));L.forEach(id=>used.add(id));return sec(t,L.map(btn))}).join("");
+  const other=sec("🧭 أخرى",rest.filter(id=>!used.has(id)).map(btn));
+  const acts=[];
+  if(isAdm()){acts.push(`<button class="mm-btn" onclick="S.more=false;S.modal={t:'mem'};render()"><i>➕</i><span>عضو جديد</span></button>`,`<button class="mm-btn" onclick="S.more=false;S.modal={t:'imp'};render()"><i>⬆</i><span>استيراد أعضاء</span></button>`,`<button class="mm-btn" onclick="backup()"><i>⬇</i><span>نسخة Excel</span></button>`)}
+  acts.push(`<button class="mm-btn" onclick="theme()"><i>🌓</i><span>الوضع</span></button>`);
+  if(DEFI)acts.push(`<button class="mm-btn" onclick="installApp()"><i>📲</i><span>تثبيت التطبيق</span></button>`);
+  acts.push(`<button class="mm-btn mm-out" onclick="logout()"><i>🚪</i><span>خروج</span></button>`);
+  const css=`<style>.mm-sec{margin-bottom:16px}.mm-h{font-size:13px;font-weight:800;opacity:.85;margin:0 4px 8px}.mm-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.mm-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:86px;padding:10px 6px;border-radius:16px;font-size:13px;text-align:center;background:var(--inp);border:1px solid var(--bd);color:var(--tx)}.mm-btn i{font-style:normal;font-size:24px;line-height:1}.mm-btn span{line-height:1.25}.mm-out{color:#fca5a5}</style>`;
+  return`${css}<div class="ov" onclick="if(event.target===this){S.more=false;render()}"><div class="card"><div class="row" style="justify-content:space-between;margin-bottom:12px"><b style="font-size:17px">القائمة</b><button class="g ico" onclick="S.more=false;render()">✕</button></div>
+  ${groups}${other}${sec("⚡ إجراءات",acts)}
+  ${ios?`<p class="mu" style="margin:6px 0 0">لتثبيت التطبيق على الآيفون: زرار المشاركة ثم "إضافة إلى الشاشة الرئيسية".</p>`:""}</div></div>`}
 async function installApp(){if(!DEFI)return;DEFI.prompt();try{await DEFI.userChoice}catch(e){}DEFI=null;S.more=false;render()}
 window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();DEFI=e;if(S.more)render()});
 /* تحديث الـDOM بدل استبداله (من غير رمشة ولا فقدان للسكرول) */
@@ -929,7 +939,7 @@ function homeView(){
   <div class="qa"><button onclick="S.modal={t:'mem'};render()"><i>➕</i>عضو</button><button onclick="S.tab='events';render();evForm()"><i>📅</i>حدث جديد</button><button onclick="navGo('announce')"><i>📢</i>إعلان</button><button onclick="navGo('att')"><i>📋</i>الحضور</button></div>
   <div class="card"><div class="row" style="justify-content:space-between"><b>📅 أحداث النهارده</b><button class="g" style="padding:5px 12px;font-size:13px" onclick="navGo('events')">كل الأحداث</button></div>
   ${evT.length?evT.map(e=>{const n=(D.att||[]).filter(a=>a.event_id===e.id&&a.status==="present").length;return`<div class="lb"><span style="font-size:22px">${EVI[e.kind]||"•"}</span><div style="flex:1;min-width:0"><b>${esc(e.title)}</b><div class="mu">حضر ${n} · ${esc(KN[e.kind]||e.kind)}</div></div><button onclick="scnOpen('${e.id}')">📷 مسح</button></div>`}).join(""):`<p class="mu" style="margin:8px 0 0">مفيش أحداث النهارده.</p>`}</div>
-  <div class="card"><b>🏆 أفضل 5 في الفريق</b>${top.map((m,i)=>`<div class="lb"><span class="rk">${i+1}</span>${avatar(m)}<span style="flex:1;min-width:0">${esc(nm(m.name))} <span class="mu">· ${esc(m.committee)}</span></span>${trend(delta(m))}<b>${score(m)}</b></div>`).join("")}</div>
+  <div class="card"><b>🏆 أفضل 5 في الفريق</b>${top.map((m,i)=>`<div class="lb"><span class="rk" style="${i<3?['background:#f6c453;color:#1a1200','background:#c9d3ff;color:#101532','background:#d89a5b;color:#1f1000'][i]:''}">${i+1}</span>${avatar(m)}<span style="flex:1;min-width:0">${esc(nm(m.name))} <span class="mu">· ${esc(m.committee)}</span></span>${trend(delta(m))}<b>${score(m)}</b></div>`).join("")}</div>
   ${warns?`<div class="card"><div class="row" style="justify-content:space-between"><span>🚨 ${warns} أعضاء عليهم إنذارات</span><button class="g" style="padding:5px 12px;font-size:13px" onclick="navGo('dash')">عرض</button></div></div>`:""}`}
 const ringSvg=(p,t)=>{const r=34,c=2*Math.PI*r,pp=Math.max(0,Math.min(1,p));return`<svg class="ring" viewBox="0 0 84 84" width="84" height="84"><circle cx="42" cy="42" r="${r}" fill="none" stroke="var(--bd)" stroke-width="8"/><circle cx="42" cy="42" r="${r}" fill="none" stroke="url(#rg)" stroke-width="8" stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${c*(1-pp)}" transform="rotate(-90 42 42)" style="transition:stroke-dashoffset .9s cubic-bezier(.22,.8,.28,1)"/><defs><linearGradient id="rg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#34d399"/><stop offset="1" stop-color="#22d3ee"/></linearGradient></defs><text x="42" y="47" text-anchor="middle" font-size="19" font-weight="800" fill="currentColor">${t}</text></svg>`};
 function badgesHtml(m,pos,total){
@@ -1072,7 +1082,7 @@ async function xlsxSheets(buf){
   });
 }
 const impNorm=h=>String(h||"").trim().toLowerCase().replace(/[\s_\-.:]+/g,"").replace(/[أإآ]/g,"ا").replace(/ة/g,"ه").replace(/ى/g,"ي");
-const IMPH={name:["name","fullname","الاسم","اسم","الاسمالكامل"],email:["email","mail","emailaddress","الايميل","البريد","البريدالالكتروني","ايميل"],password:["password","pass","pwd","كلمهالسر","كلمهالمرور","الباسورد","باسورد","الرقمالسري"],committee:["committee","com","اللجنه","لجنه"],role:["role","position","المنصب","منصب","الدور"]};
+const IMPH={name:["name","fullname","الاسم","اسم","الاسمالكامل"],email:["email","mail","emailaddress","الايميل","البريد","البريدالالكتروني","ايميل"],password:["password","pass","pwd","كلمهالسر","كلمهالمرور","الباسورد","باسورد","الرقمالسري"],committee:["committee","com","اللجنه","لجنه"],role:["role","position","المنصب","منصب","الدور"],photo:["photo","image","pic","الصورة","صورة","لينكالصورة","رابطالصورة","صورةالعضو"]};
 const pad2=n=>String(n).padStart(2,"0");
 function impMonthOf(h,year){
   const raw=String(h||"").trim();if(!raw)return null;const t=raw.toLowerCase();
@@ -1094,11 +1104,11 @@ function impBuild(rows,year,defMonth){
   hd.forEach((h,i)=>{if(Object.values(f).includes(i))return;const mo=impMonthOf(h,year);if(mo)mcol[i]=mo});
   if(defMonth&&!Object.keys(mcol).length){const k=hd.findIndex((h,i)=>!Object.values(f).includes(i)&&/اجمالي|مجموع|تقييم|درجه|total|score/.test(impNorm(h)));if(k>=0)mcol[k]=defMonth}
   let idx,start=0;
-  if(Object.keys(f).length>=2){idx=Object.assign({name:-1,email:-1,password:-1,committee:-1,role:-1},f);start=1}
-  else idx={name:0,email:1,committee:2,role:3,password:-1};
+  if(Object.keys(f).length>=2){idx=Object.assign({name:-1,email:-1,password:-1,committee:-1,role:-1,photo:-1},f);start=1}
+  else idx={name:0,email:1,committee:2,role:3,password:-1,photo:-1};
   const have=new Map(D.members.map(m=>[String(m.email).toLowerCase(),m])),seen=new Set(),out=[];
   rows.slice(start).forEach((r,i)=>{
-    const g=k=>idx[k]>=0?String(r[idx[k]]==null?"":r[idx[k]]).trim():"",name=g("name").replace(/\s+/g," "),email=g("email").toLowerCase(),password=g("password"),comRaw=g("committee"),roleRaw=g("role");
+    const g=k=>idx[k]>=0?String(r[idx[k]]==null?"":r[idx[k]]).trim():"",name=g("name").replace(/\s+/g," "),email=g("email").toLowerCase(),password=g("password"),comRaw=g("committee"),roleRaw=g("role"),photo=g("photo");
     const com=COM4.find(c=>c.toLowerCase()===comRaw.toLowerCase()),err=[],scores={};let role="Member";
     Object.keys(mcol).forEach(ci=>{const raw=String(r[ci]==null?"":r[ci]).trim();if(raw==="")return;const v=parseFloat(raw.replace(",","."));if(isNaN(v))err.push("تقييم "+mcol[ci]+" مش رقم");else scores[mcol[ci]]=Math.round(v*100)/100});
     const exist=have.get(email),hasS=Object.keys(scores).length>0;let mode="new";
@@ -1111,7 +1121,7 @@ function impBuild(rows,year,defMonth){
       if(roleRaw&&/^board$/i.test(roleRaw))err.push("منصب Board يتضاف من تعديل العضو");else if(roleRaw&&!/^(member|عضو)$/i.test(roleRaw))role=roleRaw;
       if(password&&password.length<6)err.push("كلمة السر أقل من 6 حروف")}
     if(!err.length)seen.add(email);
-    out.push({line:i+start+1,mode,name:mode==="update"?exist.name:name,email,password:mode==="new"?password:"",committee:mode==="update"?exist.committee:(com||comRaw),role,scores,err:err.join(" · ")})});
+    out.push({line:i+start+1,mode,name:mode==="update"?exist.name:name,email,password:mode==="new"?password:"",committee:mode==="update"?exist.committee:(com||comRaw),role,scores,photo,err:err.join(" · ")})});
   return{rows:out,months:[...new Set(Object.values(mcol))]}}
 function impMerge(parts){
   const by=new Map(),nomail=[],months=new Set();
@@ -1148,6 +1158,20 @@ async function impMakeAccount(x){
     if(t.error)return{ok:false,msg:errAr?errAr(t.error.message):t.error.message};
     if(t.data&&t.data.user&&t.data.user.identities&&!t.data.user.identities.length)return{ok:false,msg:"الإيميل عنده حساب قبل كده"};
     return{ok:true,fb:true}}catch(e){return{ok:false,msg:(r.error.message||"")}}}
+async function impPhoto(mid,link){
+  const id=(String(link).match(/\/d\/([\w-]{10,})/)||String(link).match(/[?&]id=([\w-]{10,})/)||String(link).match(/\/file\/d\/([\w-]{10,})/)||[])[1];
+  if(!id)return{ok:false,msg:"لينك الصورة مش صحيح"};
+  try{
+    const res=await fetch(SUPABASE_URL+"/functions/v1/drive-photo?url="+encodeURIComponent(link),{headers:{apikey:SUPABASE_ANON_KEY,Authorization:"Bearer "+SUPABASE_ANON_KEY}});
+    if(!res.ok)return{ok:false,msg:"الصورة مش متحمّلة (تأكد إنها مفتوحة لأي حد عنده اللينك)"};
+    const blob=await res.blob(),big=await resizeImg(blob,4096,.97),p="m_"+mid+".jpg";
+    let up=await sb.storage.from("avatars").upload(p,big,{upsert:true,contentType:"image/jpeg"});if(up.error)throw up.error;
+    try{const tb=await resizeImg(blob,640,.9);await sb.storage.from("avatars").upload("m_"+mid+"_t.jpg",tb,{upsert:true,contentType:"image/jpeg"})}catch(e){}
+    const url=sb.storage.from("avatars").getPublicUrl(p).data.publicUrl+"?v="+Date.now();
+    const r=await sb.from("members").update({avatar_url:url}).eq("id",mid);if(r.error)throw r.error;
+    return{ok:true};
+  }catch(e){return{ok:false,msg:e.message||"فشل رفع الصورة"}}
+}
 async function impGo(){
   const I=S.imp,ok=I.rows.filter(r=>!r.err);if(!ok.length||I.busy)return;I.busy=true;render();
   const res={members:0,accounts:0,scores:0,fails:[]},fbEmails=[],ids=new Map(D.members.map(m=>[m.email.toLowerCase(),m.id]));
@@ -1160,14 +1184,15 @@ async function impGo(){
     if(fbEmails.length){const c=await sb.rpc("admin_confirm_emails",{p_emails:fbEmails});if(c.error)res.fails.push("حسابات اتعملت لكن محتاجة تأكيد الإيميل (شغّل setup.sql): "+c.error.message)}
     const recs=[];ok.forEach(x=>{const mid=ids.get(x.email);if(!mid)return;const m=D.members.find(z=>z.id===mid);Object.keys(x.scores).forEach(mo=>recs.push({member_id:mid,month:mo,data:Object.assign({},(m&&m.rec&&m.rec[mo])||{},{man:x.scores[mo]})}))});
     for(let i=0;i<recs.length;i+=100){const r=await sb.from("records").upsert(recs.slice(i,i+100),{onConflict:"member_id,month"});if(r.error){res.fails.push("حفظ التقييمات توقف بعد "+i+": "+r.error.message);break}res.scores+=Math.min(100,recs.length-i)}
+    for(const x of ok.filter(r=>r.photo&&ids.has(r.email))){const p=await impPhoto(ids.get(x.email),x.photo);if(p.ok)res.photos=(res.photos||0)+1;else res.fails.push(x.name+" (صورة): "+p.msg)}
   }catch(e){res.fails.push(e.message||String(e))}
   I.busy=false;I.done=res;I.rows=[];await load();render();
-  if(!res.fails.length){toast(`اتضاف ${res.members} عضو · ${res.accounts} حساب · ${res.scores} تقييم ✓`,"ok");S.imp=null;S.modal=null;render()}}
+  if(!res.fails.length){toast(`اتضاف ${res.members} عضو · ${res.accounts} حساب · ${res.scores} تقييم${res.photos?` · ${res.photos} صورة`:""} ✓`,"ok");S.imp=null;S.modal=null;render()}}
 function impHtml(){
   const I=S.imp||{rows:[],months:[]},ok=I.rows.filter(r=>!r.err),bad=I.rows.length-ok.length,nNew=ok.filter(r=>r.mode==="new").length,nUp=ok.length-nNew,nAcc=ok.filter(r=>r.password).length,nSc=ok.reduce((a,r)=>a+Object.keys(r.scores).length,0);
   const dn=I.done;
   return`<div class="ov"><div class="card"><div class="row" style="justify-content:space-between"><b style="font-size:17px">⬆ استيراد أعضاء من شيت</b><button class="g ico" onclick="S.modal=null;S.imp=null;render()">✕</button></div>
-  <p class="mu" style="margin:6px 0;font-size:13px">ملف Excel (xlsx) أو CSV. لو الملف فيه أكتر من شيت، كل شيت بيتقري، ولو اسم الشيت شهر (زي أكتوبر أو Oct) بيتحسب تقييماته على الشهر ده. الأعمدة: <b>الاسم، الإيميل، كلمة السر، اللجنة، المنصب</b> وبعدهم أعمدة التقييم الإجمالي لأي شهر، زي <b>شهر 9</b> أو <b>شهر 11</b> أو <b>2026-11</b> أو اسم الشهر، وتقدر تضيف أي عدد من الشهور. كلهم اختياري ما عدا الإيميل (والاسم واللجنة للعضو الجديد).</p>
+  <p class="mu" style="margin:6px 0;font-size:13px">ملف Excel (xlsx) أو CSV. لو الملف فيه أكتر من شيت، كل شيت بيتقري، ولو اسم الشيت شهر (زي أكتوبر أو Oct) بيتحسب تقييماته على الشهر ده. الأعمدة: <b>الاسم، الإيميل، كلمة السر، اللجنة، المنصب، الصورة (لينك درايف، اختياري)</b> وبعدهم أعمدة التقييم الإجمالي لأي شهر، زي <b>شهر 9</b> أو <b>شهر 11</b> أو <b>2026-11</b> أو اسم الشهر، وتقدر تضيف أي عدد من الشهور. كلهم اختياري ما عدا الإيميل (والاسم واللجنة للعضو الجديد).</p>
   <div class="row"><label class="btn" style="margin:0;color:#fff">📁 اختيار الملف<input type="file" hidden accept=".xlsx,.csv,.txt,text/csv" onchange="impFile(this.files[0]);this.value=''"></label><button class="g" onclick="impTemplate()">⬇ نموذج جاهز</button>
   <label style="display:flex;gap:6px;align-items:center;margin:0">سنة التقييمات<input type="number" style="width:90px;min-height:38px" value="${I.year||new Date().getFullYear()}" onchange="impYear(this.value)"></label></div>
   ${I.err?`<p class="err">${esc(I.err)}</p>`:""}
