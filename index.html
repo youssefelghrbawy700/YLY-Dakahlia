@@ -381,17 +381,20 @@ const roleSel=cur=>cur==="Board"?"Board":(!cur||cur==="عضو"||cur==="Member")?
 const comOpts=cur=>[...COM4,...(cur&&!COM4.includes(cur)?[cur]:[])];
 const chipsHtml=(sel,cid)=>`<div class="row" id="${cid}">${COM4.map(c=>`<button type="button" class="g chip bcm ${sel.includes(c)?"on":""}" data-c="${c}" onclick="this.classList.toggle('on');draftSave()">${c}</button>`).join("")}</div>`;
 const chipsVal=cid=>[...document.querySelectorAll("#"+cid+" .bcm.on")].map(x=>x.dataset.c);
+const evCom=b=>Array.isArray(b.eval_committees)?b.eval_committees:[];
+const evChipsHtml=(sel,cid)=>`<div class="row" id="${cid}">${COM4.map(c=>`<button type="button" class="g chip evc ${sel.includes(c)?"on":""}" data-c="${c}" onclick="this.classList.toggle('on')">${c}</button>`).join("")}</div>`;
+const evVal=cid=>[...document.querySelectorAll("#"+cid+" .evc.on")].map(x=>x.dataset.c);
 const bPhoto=b=>b.photo_url||((D.members.find(x=>x.id===b.member_id)||{}).avatar_url)||null;
-async function syncBoard(mid,name,isB,cs,pos,ev){
+async function syncBoard(mid,name,isB,cs,pos,evs){
   const ex=D.board.find(b=>b.member_id===mid);
   if(!isB){if(!ex)return null;return(await sb.from("board").delete().eq("member_id",mid)).error}
-  const row={name,position:pos||(ex&&ex.position)||"Board",committees:cs,committee:cs.length===1?cs[0]:null,member_id:mid,can_evaluate:ev===undefined?(ex?!!ex.can_evaluate:false):!!ev};
+  const row={name,position:pos||(ex&&ex.position)||"Board",committees:cs,committee:cs.length===1?cs[0]:null,member_id:mid,eval_committees:(evs===undefined?(ex&&Array.isArray(ex.eval_committees)?ex.eval_committees:[]):evs),can_evaluate:(evs===undefined?(ex&&Array.isArray(ex.eval_committees)?ex.eval_committees:[]):evs).length>0};
   return(ex?await sb.from("board").update(row).eq("id",ex.id):await sb.from("board").insert(row)).error;
 }
 function togRole(){const w=document.getElementById("bdw"),r=document.getElementById("mr");if(w&&r)w.style.display=r.value==="Board"?"block":"none"}
-const myEvalCom=()=>me?[...new Set(D.board.filter(b=>b.member_id===me.id&&b.can_evaluate).flatMap(bCom))]:[];
+const myEvalCom=()=>me?[...new Set(D.board.filter(b=>b.member_id===me.id).flatMap(evCom))]:[];
 const isHeadPos=p=>/head|هيد|رئيس|vice|فايس|فيس|نائب/i.test(String(p||""));
-const myWarnCom=()=>me?[...new Set(D.board.filter(b=>b.member_id===me.id&&b.can_evaluate&&isHeadPos(b.position)).flatMap(bCom))]:[];
+const myWarnCom=()=>me?[...new Set(D.board.filter(b=>b.member_id===me.id&&isHeadPos(b.position)).flatMap(evCom))]:[];
 const canWarnFor=m=>!!(me&&(isAdm()||myWarnCom().includes(m.committee)));
 const isMgr=()=>!!(me&&!me.is_admin&&(D.follows.some(f=>f.manager_id===me.id)||myEvalCom().length));
 const curMonth=()=>new Date().toISOString().slice(0,7);
@@ -1634,7 +1637,7 @@ function modal(){
   if(t.t==="brd"){const b=D.board.find(x=>x.id===t.id);return`<div class="ov"><div class="card"><b>${b?"تعديل":"إضافة"} عضو بورد</b>
     <label>الاسم</label><input id="bn" value="${esc(b?.name)}"><label>المنصب</label><select id="bp">${(()=>{const P=["Head","Vice Head","Leader","Advisor"],cur=b?.position||"";const L=cur&&!P.includes(cur)?[cur,...P]:P;return L.map(p=>`<option value="${esc(p)}" ${p===cur?"selected":""}>${esc(p)}</option>`).join("")})()}</select>
     <label>مسؤول في لجنة إيه؟ (دوس على واحدة أو أكتر)</label><div class="row" id="bcs">${COM4.map(c=>`<button type="button" class="g chip bcm ${b&&bCom(b).includes(c)?"on":""}" data-c="${c}" onclick="this.classList.toggle('on')">${c}</button>`).join("")}<button type="button" class="g chip" onclick="document.querySelectorAll('#bcs .bcm').forEach(x=>x.classList.add('on'))">كل اللجان</button><button type="button" class="g chip" onclick="document.querySelectorAll('#bcs .bcm').forEach(x=>x.classList.remove('on'))">مسح</button></div>
-    <label class="row" style="gap:8px;align-items:center;margin:8px 0"><input type="checkbox" id="bev" ${b?.can_evaluate?"checked":""} style="width:auto"> يقيّم ويراجع ويكتب إنذارات لكل اللجان اللي اخترتها</label>
+    <label>يقيّم تقييمات لجان إيه؟</label>${evChipsHtml(b?evCom(b):[],"bevcs")}
     <label>حساب المسؤول (اختياري)</label><select id="bm"><option value="">بدون حساب (عرض فقط في صفحة المسؤولين)</option>${[...D.members].sort((x,y)=>nm2(x.name).localeCompare(nm2(y.name),"ar")).map(x=>`<option value="${x.id}" ${b?.member_id===x.id?"selected":""}>${esc(nm2(x.name))} · ${esc(x.committee)}</option>`).join("")}</select>
     <p class="mu" style="font-size:12px;margin:4px 0 0">لو اخترت حساب: صاحبه هيشوف تقييمات اللجان المختارة كلها أول بأول حتى قبل الإعلان (عرض فقط).</p>
     <label>الصورة</label><input type="file" accept="image/*" onchange="bFile=this.files[0]">${b?.photo_url?'<p class="mu">سيب الصورة فاضية للإبقاء على الحالية.</p>':""}
@@ -1644,7 +1647,7 @@ function modal(){
     return`<div class="ov"><div class="card"><b>${m?"تعديل عضو":"إضافة عضو"}</b> <span class="mu" id="ds"></span>
     <label>الإيميل (هيسجل بيه)</label><input id="me" type="email" dir="ltr" value="${esc(m?.email)}"><label>الاسم</label><input id="mn" value="${esc(m?.name)}"><label>المنصب</label><select id="mr" onchange="togRole()">${roleOpts(m?.role).map(r=>`<option ${r===roleSel(m?.role)?"selected":""}>${esc(r)}</option>`).join("")}</select>
     <label>اللجنة</label><select id="mc" onchange="togFl()">${comOpts(m?.committee).map(c=>`<option ${c===(m?.committee||"PR")?"selected":""}>${esc(c)}</option>`).join("")}</select>
-    ${(()=>{const be=m?D.board.find(b=>b.member_id===m.id):null;return`<div id="bdw" style="display:${roleSel(m?.role)==="Board"?"block":"none"}"><label>مسؤول في لجنة إيه؟ (دوس على واحدة أو أكتر)</label>${chipsHtml(be?bCom(be):[],"mbcs")}<label>المنصب في البورد</label><select id="mbp">${(()=>{const P=["Head","Vice Head","Leader","Advisor"],cur=be?.position||"";const L=cur&&!P.includes(cur)?[cur,...P]:P;return L.map(p=>`<option value="${esc(p)}" ${p===cur?"selected":""}>${esc(p)}</option>`).join("")})()}</select><button type="button" class="g chip" style="margin-top:6px" onclick="document.querySelectorAll('#mbcs .bcm').forEach(x=>x.classList.add('on'));draftSave()">كل اللجان</button><label class="row" style="gap:8px;align-items:center;margin:8px 0"><input type="checkbox" id="mbev" ${be?.can_evaluate?"checked":""} style="width:auto"> يقيّم ويعدّل تقييمات اللجان دي (الليدر والهيد)، والهيد والفايس هيد بيكتبوا ويشيلوا الإنذارات</label></div>`})()}
+    ${(()=>{const be=m?D.board.find(b=>b.member_id===m.id):null;return`<div id="bdw" style="display:${roleSel(m?.role)==="Board"?"block":"none"}"><label>مسؤول في لجنة إيه؟ (دوس على واحدة أو أكتر)</label>${chipsHtml(be?bCom(be):[],"mbcs")}<label>المنصب في البورد</label><select id="mbp">${(()=>{const P=["Head","Vice Head","Leader","Advisor"],cur=be?.position||"";const L=cur&&!P.includes(cur)?[cur,...P]:P;return L.map(p=>`<option value="${esc(p)}" ${p===cur?"selected":""}>${esc(p)}</option>`).join("")})()}</select><button type="button" class="g chip" style="margin-top:6px" onclick="document.querySelectorAll('#mbcs .bcm').forEach(x=>x.classList.add('on'))">كل اللجان (مسؤول فيها)</button><label>يقيّم تقييمات لجان إيه؟ (مستقل عن المسؤولية)</label>${evChipsHtml(be?evCom(be):[],"mbevcs")}<button type="button" class="g chip" style="margin-top:6px" onclick="document.querySelectorAll('#mbevcs .evc').forEach(x=>x.classList.add('on'))">كل اللجان (تقييم)</button><p class="mu" style="font-size:12px;margin:6px 0 0">الهيد والفايس هيد بيكتبوا ويشيلوا الإنذارات في اللجان دي. الليدر بيعدّل التقييمات بس.</p></div>`})()}
     <div id="flw" style="display:${(m?.committee||"PR")==="HR"?"block":"none"}"><label>الأعضاء اللي هيضيفهم ويعدّل تقييمهم (هو بس يشوفهم)</label><input placeholder="بحث بالاسم..." oninput="filterFl(this.value)">
     <div style="max-height:170px;overflow:auto;margin-top:6px">${D.members.filter(x=>x.id!==m?.id).map(x=>`<label class="fli" data-n="${esc(x.name)} ${esc(x.committee)}" style="display:flex;gap:6px;align-items:center;margin:2px 0;color:var(--tx)"><input type="checkbox" class="fl" value="${x.id}" style="width:auto" ${fl.includes(x.id)?"checked":""}>${esc(nm2(x.name))} <span class="mu">${esc(x.committee)}</span></label>`).join("")}</div></div>
     ${m?`<div class="card" style="margin:14px 0 0;padding:12px"><b>👤 الصورة والحساب</b>
@@ -1679,12 +1682,12 @@ async function saveMem(id){
   const picks=row.committee==="HR"?[...document.querySelectorAll(".fl:checked")].map(x=>x.value):[];
   const d=await sb.from("follows").delete().eq("manager_id",mid);if(d.error){$("#mm").textContent=d.error.message;return}
   if(picks.length){const f=await sb.from("follows").insert(picks.map(p=>({manager_id:mid,member_id:p})));if(f.error){$("#mm").textContent=f.error.message;return}}
-  const be=await syncBoard(mid,row.name,isB,bcs,v("#mbp"),!!$("#mbev")?.checked);if(be){$("#mm").textContent="اتحفظ العضو لكن البورد ما اتحفظش: "+be.message;await load();return}
+  const be=await syncBoard(mid,row.name,isB,bcs,v("#mbp"),evVal("mbevcs"));if(be){$("#mm").textContent="اتحفظ العضو لكن البورد ما اتحفظش: "+be.message;await load();return}
   try{localStorage.removeItem("tm-draft:mem:"+(id||"new"))}catch(e){}
   S.modal=null;await load();render();
 }
 async function saveBoard(id){
-  const v=s=>$(s).value.trim(),cs=[...document.querySelectorAll("#bcs .bcm.on")].map(x=>x.dataset.c),row={name:v("#bn"),position:v("#bp"),committees:cs,committee:cs.length===1?cs[0]:null,member_id:v("#bm")||null,can_evaluate:!!$("#bev")?.checked};
+  const v=s=>$(s).value.trim(),cs=[...document.querySelectorAll("#bcs .bcm.on")].map(x=>x.dataset.c),row={name:v("#bn"),position:v("#bp"),committees:cs,committee:cs.length===1?cs[0]:null,member_id:v("#bm")||null,eval_committees:evVal("bevcs"),can_evaluate:evVal("bevcs").length>0};
   if(!row.name||!row.position){$("#mm").textContent="الاسم والمنصب مطلوبين";return}
   if(row.member_id&&!cs.length){$("#mm").textContent="اختار لجنة واحدة على الأقل لحساب المسؤول";return}
   try{
