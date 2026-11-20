@@ -1219,38 +1219,68 @@ const PRESETS=[
    mkText({name:"الاسم",text:"{name}",x:540,y:945,w:900,size:66,color:NV,wt:900}),
    mkShape({name:"خط ذهبي",shape:"rect",x:540,y:1000,w:260,h:6,fill:GL}),
    mkText({name:"اللجنة",text:"{c} COMMITTEE",x:540,y:1042,size:34,color:NV2,wt:800})]})},
- {name:"بولارويد ذهبي",make:()=>({bg:{t:"grad",c1:"#0a1a5c",c2:"#1b3aa6",ang:150},layers:[
-   mkText({name:"عنوان",text:"BEST LEADER",x:540,y:110,size:86,color:GL,wt:900,shadow:10}),
-   mkShape({name:"كارت أبيض",shape:"rect",x:540,y:560,w:640,h:760,rot:-3,fill:"#f7f7f2",rad:6,shadow:30}),
-   mkPhoto({x:540,y:520,w:520,h:560,rot:-3,shape:"rect",rad:4,bw:0,shadow:0}),
-   mkText({name:"الترتيب",text:"TOP {r}",x:150,y:520,size:96,color:GL,wt:900}),
-   mkText({name:"الاسم",text:"{name}",x:540,y:960,w:600,size:58,color:"#0a1a5c",wt:900,rot:-3}),
-   mkText({name:"اللجنة",text:"{c} · {month}",x:540,y:1030,size:34,color:GL2,wt:800})]})},
- {name:"شريط أزرق وذهبي",make:()=>({bg:{t:"grad",c1:"#0b1f6b",c2:"#1a3aa0",ang:120},layers:[
-   mkShape({name:"إطار ذهبي",shape:"rect",x:540,y:540,w:600,h:640,nofill:true,stroke:GL,sw:6}),
-   mkPhoto({x:540,y:500,w:540,h:560,shape:"rect",rad:4,bw:8,bc:"#ffffff",shadow:30}),
-   mkText({name:"عنوان",text:"BEST MEMBER",x:540,y:110,size:82,color:GL,wt:900}),
-   mkText({name:"الترتيب",text:"TOP {r}",x:130,y:300,size:72,color:GL2,wt:900}),
-   mkShape({name:"شريط الاسم",shape:"diamond",x:540,y:900,w:820,h:130,rad:8,fill:"#1d4fd8",sw:5,stroke:GL}),
-   mkText({name:"الاسم",text:"{name}",x:540,y:900,w:760,size:60,color:"#ffffff",wt:900}),
-   mkText({name:"اللجنة",text:"{c} · {month}",x:540,y:1010,size:34,color:GL2,wt:800})]})},
- {name:"ترتيب عريض ذهبي",make:()=>({bg:{t:"grad",c1:"#081a5a",c2:"#0d2b8a",ang:90},layers:[
-   mkText({name:"عنوان",text:"MONTHLY RANKING",x:540,y:90,size:52,color:"#ffffff",wt:800}),
-   mkShape({name:"خلفية ذهبية",shape:"rect",x:540,y:560,w:840,h:640,fill:GL,fill2:GL2,ang:90,op:.9}),
-   mkText({name:"الترتيب الرقم",text:"{r}",x:200,y:520,size:520,color:"#ffffff",wt:900,op:.14}),
-   mkPhoto({x:540,y:500,w:560,h:560,shape:"rect",rad:0,bw:0,shadow:0}),
-   mkShape({name:"شريط الاسم",shape:"rect",x:540,y:945,w:900,h:110,fill:"#081a5a",sw:0}),
-   mkText({name:"الاسم",text:"{name}",x:540,y:945,w:860,size:62,color:GL,wt:900}),
-   mkText({name:"اللجنة",text:"{c} COMMITTEE",x:540,y:1030,size:34,color:"#ffffff",wt:700})]})},
- {name:"سهم وحافة زرقاء",make:()=>({bg:{t:"grad",c1:"#0c2a8c",c2:"#15389f",ang:135},layers:[
-   mkShape({name:"نجمة يسار",shape:"diamond",x:150,y:520,w:220,h:220,fill:GL,op:.9}),
-   mkShape({name:"نجمة يمين",shape:"diamond",x:930,y:520,w:220,h:220,fill:GL,op:.9}),
-   mkPhoto({x:540,y:520,w:520,h:520,shape:"circle",bw:12,bc:"#ffffff",shadow:36}),
-   mkText({name:"عنوان",text:"BEST MEMBER",x:540,y:120,size:80,color:GL,wt:900}),
-   mkText({name:"الترتيب",text:"#{r}",x:150,y:500,size:90,color:"#ffffff",wt:900}),
-   mkShape({name:"شريط الاسم",shape:"rounded",x:540,y:925,w:700,h:112,rad:56,fill:"#ff8a1f",sw:0}),
-   mkText({name:"الاسم",text:"{name}",x:540,y:925,w:660,size:58,color:"#ffffff",wt:900}),
-   mkText({name:"اللجنة",text:"{c} COMMITTEE",x:540,y:1020,size:34,color:GL2,wt:800})]})}];
+ {name:"أفضل ليدر أكتوبر (أزرق بنفسجي)",make:()=>({bg:{t:"grad",c1:"#2a1fa8",c2:"#0b1f7a",ang:160},layers:[
+   mkText({name:"Best",text:"Best",x:380,y:150,w:420,size:120,color:"#ffffff",fam:"Pacifico,'Brush Script MT',cursive",wt:400,shadow:8}),
+   mkText({name:"Leader",text:"Leader",x:740,y:150,w:460,size:120,color:GL,fam:"Pacifico,'Brush Script MT',cursive",wt:400,shadow:8}),
+   mkText({name:"october",text:"october",x:540,y:330,w:700,size:110,color:"#ffffff",fam:"Pacifico,'Brush Script MT',cursive",wt:400}),
+   mkShape({name:"ظل ذهبي",shape:"rect",x:545,y:625,w:600,h:620,rot:-2,fill:GL}),
+   mkShape({name:"إطار أزرق",shape:"rect",x:540,y:615,w:560,h:600,rot:1,fill:"#1d4fd8"}),
+   mkPhoto({x:540,y:615,w:500,h:520,shape:"rect",rad:0,bw:0}),
+   mkShape({name:"شريط التوب",shape:"rect",x:120,y:820,w:260,h:110,fill:GL}),
+   mkText({name:"الترتيب",text:"Top {r}",x:120,y:820,w:240,size:70,color:"#ffffff",fam:"Anton,Impact,Haettenschweiler,sans-serif",wt:400}),
+   mkShape({name:"شارة القسم",shape:"circle",x:960,y:780,w:250,h:250,fill:GL}),
+   mkText({name:"اللجنة",text:"{c}",x:960,y:780,w:240,size:76,color:"#ffffff",fam:"Anton,Impact,Haettenschweiler,sans-serif",wt:400}),
+   mkShape({name:"شريط الاسم ١",shape:"rect",x:800,y:1120,w:460,h:100,rot:-4,fill:"#1d4fd8",sw:4,stroke:"#ffffff"}),
+   mkShape({name:"شريط الاسم ٢",shape:"rect",x:560,y:1205,w:700,h:100,rot:2,fill:"#1d4fd8",sw:4,stroke:"#ffffff"}),
+   mkText({name:"الاسم",text:"{name}",x:560,y:1205,w:660,size:56,color:"#ffffff",wt:800})]})},
+ {name:"عضو أكتوبر هالويين",make:()=>({bg:{t:"grad",c1:"#0b2a9a",c2:"#1a3fb8",ang:90},layers:[
+   mkText({name:"عنوان",text:"BEST MEMBER OF OCTOBER",x:540,y:110,w:1000,size:78,color:"#ffffff",fam:"Anton,Impact,Haettenschweiler,sans-serif",wt:400}),
+   mkShape({name:"قوس برتقالي",shape:"rounded",x:540,y:620,w:660,h:780,rad:330,fill:"#f09a2b"}),
+   mkShape({name:"سهم أزرق خلفي",shape:"rounded",x:540,y:780,w:920,h:640,rad:40,fill:"#2a52b8",op:.7}),
+   mkPhoto({x:540,y:640,w:460,h:520,shape:"rounded",rad:230,bw:0}),
+   mkText({name:"الترتيب",text:"TOP {r}",x:820,y:380,w:360,size:110,color:"#ffffff",fam:"Anton,Impact,Haettenschweiler,sans-serif",wt:400}),
+   mkText({name:"اللجنة",text:"{c}",x:820,y:490,w:360,size:72,color:"#ffffff",fam:"Anton,Impact,Haettenschweiler,sans-serif",wt:400}),
+   mkText({name:"الاسم",text:"{name}",x:540,y:955,w:900,size:58,color:"#ffffff",fam:"Pacifico,'Brush Script MT',cursive",wt:400,shadow:10}),
+   mkText({name:"اللجنة السفلية",text:"{c} COMMITTEE",x:540,y:1030,w:700,size:30,color:"#ffe08a",wt:800})]})},
+ {name:"بولارويد أفضل ليدر",make:()=>({bg:{t:"grad",c1:"#0f2a7a",c2:"#0a1d55",ang:135},layers:[
+   mkText({name:"BEST",text:"BEST",x:380,y:130,w:520,size:150,color:"#ffffff",fam:"Impact,Haettenschweiler,sans-serif",wt:400}),
+   mkText({name:"LEADER",text:"LEADER",x:760,y:130,w:560,size:150,color:GL,fam:"Impact,Haettenschweiler,sans-serif",wt:400}),
+   mkShape({name:"ورقة خلفية ٢",shape:"rect",x:560,y:650,w:760,h:800,rot:5,fill:"#dfe4ee",rad:4}),
+   mkShape({name:"ورقة خلفية ١",shape:"rect",x:540,y:630,w:780,h:800,rot:-1,fill:"#ffffff",rad:4,shadow:24}),
+   mkPhoto({x:540,y:580,w:620,h:620,shape:"rect",rad:0,bw:0}),
+   mkText({name:"الترتيب",text:"#{r}",x:130,y:620,w:260,size:110,color:GL,fam:"Anton,Impact,Haettenschweiler,sans-serif",wt:400}),
+   mkText({name:"الشهر",text:"{month}",x:950,y:920,w:260,size:90,color:GL,fam:"Anton,Impact,Haettenschweiler,sans-serif",wt:400}),
+   mkText({name:"اللجنة",text:"{c}",x:150,y:920,w:260,size:90,color:GL,fam:"Anton,Impact,Haettenschweiler,sans-serif",wt:400}),
+   mkText({name:"الاسم",text:"{name}",x:540,y:1015,w:760,size:66,color:"#0b3fa0",fam:"Impact,Haettenschweiler,sans-serif",wt:400})]})},
+ {name:"أفضل عضو نجوم",make:()=>({bg:{t:"solid",c1:"#1d3fa3",c2:"#1d3fa3",ang:90},layers:[
+   mkText({name:"عنوان",text:"BEST MEMBER",x:540,y:170,w:1000,size:170,color:"#f5c518",fam:"Anton,Impact,Haettenschweiler,sans-serif",wt:400}),
+   mkText({name:"oct",text:"oct",x:660,y:340,w:300,size:110,color:"#ffffff",fam:"Pacifico,'Brush Script MT',cursive",wt:400,sw:6,sc:"#1d3fa3"}),
+   mkShape({name:"إطار مايل",shape:"rect",x:540,y:745,w:620,h:640,rot:2,fill:"#ffffff"}),
+   mkPhoto({x:540,y:745,w:580,h:600,rot:2,shape:"rect",rad:0,bw:0}),
+   mkShape({name:"نجمة يسار",shape:"diamond",x:150,y:760,w:380,h:380,fill:"#f5c518"}),
+   mkShape({name:"نجمة يمين",shape:"diamond",x:880,y:520,w:300,h:300,fill:"#f5c518"}),
+   mkText({name:"SM",text:"{c}",x:150,y:760,w:300,size:90,color:"#1d3fa3",fam:"Anton,Impact,Haettenschweiler,sans-serif",wt:400}),
+   mkText({name:"الترتيب",text:"#{r}",x:880,y:520,w:260,size:80,color:"#1d3fa3",fam:"Anton,Impact,Haettenschweiler,sans-serif",wt:400}),
+   mkShape({name:"شريط الاسم",shape:"rounded",x:540,y:1040,w:680,h:100,rad:50,fill:"#ff8a1f"}),
+   mkText({name:"الاسم",text:"{name}",x:540,y:1040,w:640,size:52,color:"#ffffff",fam:"Anton,Impact,Haettenschweiler,sans-serif",wt:400})]})},
+ {name:"ترتيب اجتماعي بإطار مربع",make:()=>{const L=[];
+   const cx=540,cy=485,hs=240,tk=[];
+   mkPhoto;
+   L.push(mkShape({name:"خلفية الصورة",shape:"rect",x:cx,y:cy,w:hs*2,h:hs*2,fill:"#0f1e7a"}));
+   for(let i=0;i<7;i++){const d=-180+i*60;
+     L.push(mkShape({name:"علامة علوية",shape:"rect",x:cx+d,y:cy-hs-22,w:10,h:26,fill:GL}));
+     L.push(mkShape({name:"علامة سفلية",shape:"rect",x:cx+d,y:cy+hs+22,w:10,h:26,fill:GL}));}
+   for(let i=0;i<6;i++){const d=-150+i*60;
+     L.push(mkShape({name:"علامة يسار",shape:"rect",x:cx-hs-40,y:cy+d,w:26,h:10,fill:GL}));
+     L.push(mkShape({name:"علامة يمين",shape:"rect",x:cx+hs+40,y:cy+d,w:26,h:10,fill:GL}));}
+   L.push(mkPhoto({x:cx,y:cy,w:hs*2,h:hs*2,shape:"rect",rad:0,bw:0}));
+   L.push(mkText({name:"عنوان",text:"BEST MEMBER",x:540,y:120,w:1000,size:120,color:GL,fam:"Anton,Impact,Haettenschweiler,sans-serif",wt:400}));
+   L.push(mkText({name:"الترتيب",text:"TOP {r}",x:150,y:480,w:240,size:84,color:GL,fam:"Anton,Impact,Haettenschweiler,sans-serif",wt:400}));
+   L.push(mkText({name:"اللجنة",text:"{c}",x:930,y:480,w:240,size:84,color:GL,fam:"Anton,Impact,Haettenschweiler,sans-serif",wt:400}));
+   L.push(mkText({name:"الشهر يسار",text:"SOCIAL MEDIA",x:300,y:830,w:460,size:60,color:GL,fam:"Anton,Impact,Haettenschweiler,sans-serif",wt:400}));
+   L.push(mkText({name:"الشهر يمين",text:"{month}",x:780,y:830,w:400,size:60,color:GL,fam:"Anton,Impact,Haettenschweiler,sans-serif",wt:400}));
+   L.push(mkText({name:"الاسم",text:"{name}",x:540,y:950,w:1000,size:110,color:"#ffffff",fam:"Anton,Impact,Haettenschweiler,sans-serif",wt:400}));
+   return{bg:{t:"solid",c1:"#1b2b9e",c2:"#1b2b9e",ang:90},layers:L}}}];
 function PSET(){return`<div class="card"><b>📚 مكتبة الديزاينات الجاهزة</b><p class="mu" style="margin:4px 0 8px">ديزاينات أزرق وذهبي جاهزة (كل عنصر فيها قابل للتعديل). دوس على أي واحد يفتح في المحرر، تعدّل وتسميه وتحفظه، وبعدها يظهر في "قوالبي" وتطبّقه على الكروت.</p>
   <div class="pset-row">${PRESETS.map((p,i)=>`<button class="pset" onclick="edPreset(${i})"><canvas id="ps${i}" width="260" height="260"></canvas><span>${esc(p.name)}</span></button>`).join("")}</div></div>`}
 async function drawPresets(){
