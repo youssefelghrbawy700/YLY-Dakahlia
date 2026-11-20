@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0b1020">
 <meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="تيم ميتر">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="YLY Dakahlia">
 <link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Anton&family=Pacifico&display=swap">
-<title>YLY Dakahlia · تيم ميتر</title>
+<title>YLY Dakahlia</title>
 <style>
 :root{--card:rgba(15,21,46,.42);--tx:#f1f4ff;--mu:#a6aecd;--bd:rgba(255,255,255,.13);--pr:#5b7cff;--pr2:#7c5cff;--ok:#34d399;--bad:#f87171;--warn:#fbbf24;--inp:rgba(255,255,255,.07);--bg:#0b1020;--o1:rgba(7,12,34,.3);--o2:rgba(7,12,34,.55)}
 :root[data-theme="light"]{--card:rgba(255,255,255,.62);--tx:#131a33;--mu:#59628a;--bd:rgba(19,26,51,.12);--pr:#2f4fdc;--pr2:#5b3fd6;--ok:#10b981;--bad:#ef4444;--warn:#d97706;--inp:#fff;--bg:#eef1fb;--o1:rgba(238,241,251,.28);--o2:rgba(238,241,251,.5)}
@@ -313,7 +313,7 @@ function recoverView(){
   return`<div class="auth"><div class="box"><div class="crest">YLY</div><h1 class="ttl">كلمة مرور جديدة</h1>
   <div class="card" style="margin-top:18px"><label>كلمة المرور الجديدة</label><input id="np" type="password" dir="ltr" autocomplete="new-password"><p class="err">${esc(S.msg)}</p><button style="width:100%;padding:12px" onclick="setNewPw()">حفظ</button></div></div></div>`;
 }
-const topbar=(extra)=>`<div class="top"><div class="row" style="gap:10px;flex-wrap:nowrap">${me?avatar(me):""}<div><div class="logo">YLY Dakahlia</div><div class="mu" style="font-size:11.5px;margin-top:-2px">تيم ميتر</div></div></div><div class="row" style="flex-wrap:nowrap">${extra||""}${me?`<button class="g ico bellb" onclick="ntOpen()" aria-label="الإشعارات">🔔${ntCnt()?`<em>${ntCnt()}</em>`:""}</button>`:""}<button class="g ico" onclick="theme()" aria-label="الوضع">🌓</button>${me?"":`<button class="g" onclick="logout()">خروج</button>`}</div></div>`;
+const topbar=(extra)=>`<div class="top"><div class="row" style="gap:10px;flex-wrap:nowrap">${me?avatar(me):""}<div><div class="logo">YLY Dakahlia</div></div></div><div class="row" style="flex-wrap:nowrap">${extra||""}${me?`<button class="g ico bellb" onclick="ntOpen()" aria-label="الإشعارات">🔔${ntCnt()?`<em>${ntCnt()}</em>`:""}</button>`:""}<button class="g ico" onclick="theme()" aria-label="الوضع">🌓</button>${me?"":`<button class="g" onclick="logout()">خروج</button>`}</div></div>`;
 
 function avatarBanner(){
   return`<div class="card" style="border-color:var(--pr)"><b>📸 ارفع صورتك الشخصية</b><p class="mu" style="margin:4px 0 10px">هتظهر في حسابك وعند الإدارة.</p><label class="btn" style="margin:0;color:#fff">اختيار صورة<input type="file" accept="image/*" hidden onchange="upAvatar(this.files[0])"></label></div>`;
@@ -342,7 +342,7 @@ function exportPDF(id){
   const w=(me&&m.id===me.id&&!isAdm())?myWarn:D.warn.filter(x=>x.member_id===m.id).length;
   const el=document.createElement("div");el.id="rpt";
   el.innerHTML=`<div dir="rtl" style="font-family:'Segoe UI',Tahoma,'Noto Sans Arabic',sans-serif">
-  <div class="rh"><div><div style="font-size:20px;font-weight:800">YLY Dakahlia</div><div style="opacity:.85;font-size:13px">تقرير تقييم الأداء · TeamMeter</div></div><div style="font-size:13px">${new Date().toLocaleDateString("ar-EG")}</div></div>
+  <div class="rh"><div><div style="font-size:20px;font-weight:800">YLY Dakahlia</div><div style="opacity:.85;font-size:13px">تقرير تقييم الأداء</div></div><div style="font-size:13px">${new Date().toLocaleDateString("ar-EG")}</div></div>
   <div class="card"><div class="row">${avatar(m,1)}<div style="flex:1"><b style="font-size:20px">${esc(nm(m.name))}</b><div class="mu">${esc(m.role||"عضو")} · لجنة ${esc(m.committee)}</div></div>${ms.length?gpill(m):""}</div></div>
   ${ms.length?`<div class="grid3"><div class="card"><div class="mu">التقييم الحالي</div><div class="big">${score(m)}<span class="mu">/${mx}</span></div></div><div class="card"><div class="mu">الترتيب في اللجنة</div><div class="big">${pos}<span class="mu">/${rk.length}</span></div></div><div class="card"><div class="mu">الإنذارات</div><div class="big">${w}</div></div></div>
   <div class="card" style="margin-top:12px"><b>تطور الأداء</b>${chart(m)}</div>
@@ -364,7 +364,7 @@ function backup(){
   const H=["الاسم","الإيميل","اللجنة","الشهر","الدرجة","النزولات","التاسكات","السيشنات","الاجتماعات","TEC","التفاعل","التدرج","البونص","الإنذارات"],R=[];
   D.members.forEach(m=>{const w=wc(m);months(m).forEach(k=>{const r=m.rec[k],a=x=>r[x]?r[x][0]+"/"+r[x][1]:"";R.push([m.name,m.email,m.committee,k,mscore(r,m.committee),a("sh"),a("tk"),a("se"),a("mt"),r.tec??"",r.int??"",r.car??"",r.bon??"",w])})});
   const csv="\ufeff"+[H,...R].map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(",")).join("\n");
-  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));a.download="teammeter-backup.csv";a.click();
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));a.download="backup.csv";a.click();
 }
 /* ===== الجولة 3: طلبات التسجيل، متابعة HR، النشاط، البورد، الصور، سجل الشهور، الحفظ التلقائي ===== */
 let touched=false,restored=false,bFile=null,dT=null,PH=[];
@@ -442,7 +442,7 @@ async function doAuth(signup){
 function loginView(){
   const su=S.auth==="up";
   return`<div class="auth"><div class="box">
-  <div class="crest">YLY</div><h1 class="ttl">YLY Dakahlia</h1><p class="sub">منصة تقييم الأداء · TeamMeter</p>
+  <div class="crest">YLY</div><h1 class="ttl">YLY Dakahlia</h1><p class="sub">منصة تقييم الأداء</p>
   <div class="chips"><span>📊 تقييم شهري</span><span>🏆 ترتيب اللجان</span><span>📄 تقارير PDF</span></div>
   <div class="card" style="margin-top:18px">
   <div class="seg"><button class="${su?"g":""}" onclick="S.auth='in';S.msg='';render()">تسجيل الدخول</button><button class="${su?"":"g"}" onclick="S.auth='up';S.msg='';render()">حساب جديد</button></div>
@@ -976,7 +976,7 @@ async function loadAudit(more){
 async function loadBk(){const r=await sb.from("backups").select("id,at,kind,counts").order("at",{ascending:false}).limit(30);D.bk=r.error?[]:(r.data||[]);S.bkErr=r.error?r.error.message:null;S.bkLoaded=1;render()}
 async function bkNow(btn){btn.disabled=true;const r=await sb.rpc("take_backup",{p_kind:"manual"});btn.disabled=false;if(r.error){alert(r.error.message);return}toast("اتاخدت نسخة احتياطية ✓","ok");loadBk()}
 async function bkDl(id){const r=await sb.from("backups").select("data,at").eq("id",id).single();if(r.error){alert(r.error.message);return}
-  dlBlob(new Blob([JSON.stringify(r.data.data)],{type:"application/json"}),"teammeter-backup-"+String(r.data.at).slice(0,10)+".json")}
+  dlBlob(new Blob([JSON.stringify(r.data.data)],{type:"application/json"}),"backup-"+String(r.data.at).slice(0,10)+".json")}
 const auTime=t=>{const d=new Date(t);return d.toLocaleDateString("en-GB",{day:"2-digit",month:"2-digit"})+" "+d.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})};
 function auScore(e){
   if(e.tbl!=="records"||e.action==="delete"&&!e.old_data)return"";const m=D.members.find(x=>x.id===e.target_id);if(!m)return"";
@@ -1354,8 +1354,8 @@ function sheetsView(){
   <div class="row" style="flex-wrap:nowrap"><input type="number" min="1" max="28" value="${cy}" id="cyc" style="width:100px"><button onclick="ssCycle($('#cyc').value)">حفظ</button><span class="mu" style="font-size:12px">الحدث يوم ${cy} أو بعده بيتحسب على الشهر اللي بعده. اكتب 1 لو عايز شهور تقويمية.</span></div></div>`;
   const body=S.ssErr?`<div class="card"><p class="err">${esc(S.ssErr)} — شغّل setup.sql في Supabase.</p></div>`:COM4.map(c=>{const s=D.ss&&D.ss[c];return`<div class="card"><div class="row" style="justify-content:space-between"><b>لجنة ${c}</b><span class="pill ${s?"up":"st"}">${s?"الرمز جاهز":"لسه"}</span></div>
     <div class="row" style="margin-top:8px"><button class="${s?"g":""}" onclick="ssRotate('${c}')">${s?"🔄 تجديد الرمز":"🔑 إنشاء الرمز"}</button>${s?`<button onclick="ssCopy('${c}')">📋 انسخ كود الشيت</button><button class="g" onclick="ssTest('${c}')">🔌 اختبار</button>`:""}</div></div>`}).join("");
-  const how=`<div class="card"><b>طريقة التركيب (مرة واحدة لكل لجنة)</b><ol class="mu" style="margin:8px 0 0;padding-inline-start:20px;line-height:1.9"><li>اضغط <b>إنشاء الرمز</b> ثم <b>📋 انسخ كود الشيت</b> للجنة.</li><li>افتح شيت اللجنة في Google Sheets ← <b>Extensions</b> ← <b>Apps Script</b>.</li><li>امسح أي كود موجود، <b>الصق الكود</b> واحفظ (💾).</li><li>اختار الدالة <b>setup</b> من القايمة فوق ودوس <b>Run</b>، ووافق على الصلاحيات.</li><li>اكتب الشهر اللي الشيت ده بيمثله (مثلاً <b>2026-10</b>).</li><li>خلاص ✅ بيتحدّث كل دقيقة. وفي الشيت قايمة <b>TeamMeter</b> فيها "مزامنة الآن".</li></ol>
-  <p class="mu" style="font-size:12px;margin:8px 0 0">الكود بيكتب في الخانات اللي بتتسجّل من الموقع بس (النزولات والتاسكات والسيشنات والاجتماعات والتفاعل والتدرج والبونص و TEC)، وما بيمسحش حاجة اتكتبت يدوي في الشيت. أول شهر جديد: انسخ الشيت وغيّر الشهر من قايمة TeamMeter.</p></div>`;
+  const how=`<div class="card"><b>طريقة التركيب (مرة واحدة لكل لجنة)</b><ol class="mu" style="margin:8px 0 0;padding-inline-start:20px;line-height:1.9"><li>اضغط <b>إنشاء الرمز</b> ثم <b>📋 انسخ كود الشيت</b> للجنة.</li><li>افتح شيت اللجنة في Google Sheets ← <b>Extensions</b> ← <b>Apps Script</b>.</li><li>امسح أي كود موجود، <b>الصق الكود</b> واحفظ (💾).</li><li>اختار الدالة <b>setup</b> من القايمة فوق ودوس <b>Run</b>، ووافق على الصلاحيات.</li><li>اكتب الشهر اللي الشيت ده بيمثله (مثلاً <b>2026-10</b>).</li><li>خلاص ✅ بيتحدّث كل دقيقة. وفي الشيت قايمة <b>مزامنة</b> فيها "مزامنة الآن".</li></ol>
+  <p class="mu" style="font-size:12px;margin:8px 0 0">الكود بيكتب في الخانات اللي بتتسجّل من الموقع بس (النزولات والتاسكات والسيشنات والاجتماعات والتفاعل والتدرج والبونص و TEC)، وما بيمسحش حاجة اتكتبت يدوي في الشيت. أول شهر جديد: انسخ الشيت وغيّر الشهر من قايمة مزامنة.</p></div>`;
   return head+body+how}
 /* ---------- ضبط صورة العضو جوا الديزاين (رفع / تنزيل / تكبير / تصغير / سحب) ---------- */
 const PA_STEP=0.04,PA_ZSTEP=0.1,PA_ZMIN=0.6,PA_ZMAX=3;
@@ -2202,7 +2202,7 @@ if("serviceWorker" in navigator&&/^https?:/.test(location.protocol))navigator.se
 boot();
 
 </script>
-<script type="text/plain" id="gs-src">/* ===== TeamMeter → Google Sheet sync (core: pure functions) ===== */
+<script type="text/plain" id="gs-src">/* ===== Site → Google Sheet sync (core: pure functions) ===== */
 function colNum(s){var n=0;for(var i=0;i<s.length;i++)n=n*26+s.charCodeAt(i)-64;return n}
 function colLetter(n){var s="";while(n>0){var m=(n-1)%26;s=String.fromCharCode(65+m)+s;n=Math.floor((n-1)/26)}return s}
 function refCols(list){return list.split(",").map(function(x){x=x.trim();var m=x.match(/^([A-Z]+)\d+$/);return m?colNum(m[1]):0}).filter(Boolean)}
@@ -2285,8 +2285,8 @@ if(typeof module!=="undefined")module.exports={syncPlan:syncPlan,detectLayout:de
 
 /* ===== التشغيل داخل Google Sheets ===== */
 var SUPABASE_URL="__URL__",SUPABASE_KEY="__KEY__",TOKEN="__TOKEN__",COMMITTEE="__COMMITTEE__",SHEET_NAME="Member Evaluation";
-function onOpen(){SpreadsheetApp.getUi().createMenu("TeamMeter").addItem("مزامنة الآن","syncNow").addItem("تحديد الشهر","setMonth").addItem("تشغيل المزامنة التلقائية","setup").addToUi()}
-function setMonth(){var ui=SpreadsheetApp.getUi(),r=ui.prompt("TeamMeter","اكتب الشهر اللي الشيت ده بيمثله بالشكل 2026-10 (سيبه فاضي عشان يتحدد تلقائي حسب تاريخ النهارده):",ui.ButtonSet.OK_CANCEL);
+function onOpen(){SpreadsheetApp.getUi().createMenu("مزامنة").addItem("مزامنة الآن","syncNow").addItem("تحديد الشهر","setMonth").addItem("تشغيل المزامنة التلقائية","setup").addToUi()}
+function setMonth(){var ui=SpreadsheetApp.getUi(),r=ui.prompt("مزامنة","اكتب الشهر اللي الشيت ده بيمثله بالشكل 2026-10 (سيبه فاضي عشان يتحدد تلقائي حسب تاريخ النهارده):",ui.ButtonSet.OK_CANCEL);
   if(r.getSelectedButton()!==ui.Button.OK)return;var P=PropertiesService.getScriptProperties();P.setProperty("MONTH",r.getResponseText().trim());P.deleteProperty("VER");syncNow()}
 function setup(){
   ScriptApp.getProjectTriggers().forEach(function(t){if(t.getHandlerFunction()==="syncAuto")ScriptApp.deleteTrigger(t)});
@@ -2300,7 +2300,7 @@ function sync_(force){
   try{
     var P=PropertiesService.getScriptProperties(),month=P.getProperty("MONTH")||"";
     var res=UrlFetchApp.fetch(SUPABASE_URL+"/rest/v1/rpc/sheet_export",{method:"post",contentType:"application/json",headers:{apikey:SUPABASE_KEY,Authorization:"Bearer "+SUPABASE_KEY},payload:JSON.stringify({p_token:TOKEN,p_month:month||null}),muteHttpExceptions:true});
-    if(res.getResponseCode()!==200){console.error("sheet_export "+res.getResponseCode()+": "+res.getContentText().slice(0,300));if(force)SpreadsheetApp.getActive().toast("فشل الاتصال بالموقع ("+res.getResponseCode()+")","TeamMeter");return}
+    if(res.getResponseCode()!==200){console.error("sheet_export "+res.getResponseCode()+": "+res.getContentText().slice(0,300));if(force)SpreadsheetApp.getActive().toast("فشل الاتصال بالموقع ("+res.getResponseCode()+")","مزامنة");return}
     var exp=JSON.parse(res.getContentText());
     if(!force&&P.getProperty("VER")===exp.version)return;
     var sh=SpreadsheetApp.getActive().getSheetByName(SHEET_NAME)||SpreadsheetApp.getActiveSheet();
@@ -2314,7 +2314,7 @@ function sync_(force){
     var msg="اتحدّث "+plan.writes.length+" خانة (شهر "+exp.month+")";
     if(plan.log.unmatched.length)msg+=" · أسماء مش لاقيها: "+plan.log.unmatched.join("، ");
     if(plan.log.noSpace.length)msg+=" · مفيش مكان لـ: "+plan.log.noSpace.join("، ");
-    console.log(msg);if(force)SpreadsheetApp.getActive().toast(msg,"TeamMeter",8);
+    console.log(msg);if(force)SpreadsheetApp.getActive().toast(msg,"مزامنة",8);
   }finally{lock.releaseLock()}
 }
 </script>
