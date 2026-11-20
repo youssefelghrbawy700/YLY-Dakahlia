@@ -405,7 +405,7 @@ async function load(){
   if(a.error||b.error){S.msg=(a.error||b.error).message;D.members=[];loaded=true;return}
   const by={};a.data.forEach(m=>{m.rec={};m.meta={};by[m.id]=m});
   b.data.forEach(r=>{const m=by[r.member_id];if(m){m.rec[r.month]=r.data;m.meta[r.month]={by:r.by_member,at:r.updated_at}}});
-  D.members=a.data;D.warn=w.data||[];D.ann=(n.data||[]).map(x=>x.month);D.signups=su.data||[];D.follows=fo.data||[];D.board=bd.data||[];{const al=await sb.from("event_albums").select("*").order("event_date",{ascending:false}),ap=await sb.from("event_photos").select("*").order("created_at");D.albums=al.data||[];D.albPhotos=ap.data||[]}await loadEv();
+  D.members=a.data;D.warn=w.data||[];D.ann=(n.data||[]).map(x=>x.month);D.signups=su.data||[];D.follows=fo.data||[];D.board=bd.data||[];{const al=await sb.from("event_albums").select("*").order("event_date",{ascending:false}),ap=await sb.from("event_photos").select("*").order("created_at");D.albums=al.data||[];D.albPhotos=ap.data||[];D.albUrl={};const ps=D.albPhotos.map(p=>p.path);for(let i=0;i<ps.length;i+=200){const sg=await sb.storage.from("event-photos").createSignedUrls(ps.slice(i,i+200),3600);(sg.data||[]).forEach(x=>{if(x.signedUrl)D.albUrl[x.path]=x.signedUrl})}}await loadEv();
   me=D.members.find(m=>m.user_id===session.user.id)||null;setTimeout(evReconcile,0);if(isAdm())setTimeout(()=>{try{sb.rpc("backup_if_due").then(()=>{},()=>{})}catch(e){}},2000);setTimeout(()=>loadNt().then(()=>render()),0);loadCfg().then(()=>{RECB=false;evReconcile()});
   const c=await sb.rpc("my_warning_count");myWarn=c.data||0;
   if(me&&!touched){touched=true;startPing()}
@@ -469,8 +469,8 @@ async function upAvatar(f){
   if(!f)return;
   try{
     const blob=await resizeImg(f,4096,.97),path=session.user.id+".jpg";
-    const up=await sb.storage.from("avatars").upload(path,blob,{upsert:true,contentType:"image/jpeg"});if(up.error)throw up.error;
-    try{const tb=await resizeImg(f,640,.9);await sb.storage.from("avatars").upload(session.user.id+"_t.jpg",tb,{upsert:true,contentType:"image/jpeg"})}catch(e){}
+    const up=await upXhr("avatars",path,blob,true,"image/jpeg");if(up.error)throw up.error;
+    try{const tb=await resizeImg(f,640,.9);await upXhr("avatars",session.user.id+"_t.jpg",tb,true,"image/jpeg")}catch(e){}
     const url=sb.storage.from("avatars").getPublicUrl(path).data.publicUrl+"?v="+Date.now();
     const r=await sb.rpc("set_my_avatar",{u:url});if(r.error)throw r.error;
     await load();render();
@@ -590,6 +590,27 @@ function boardAdminView(){
   return`<div class="row" style="margin-bottom:12px"><button onclick="bFile=null;S.modal={t:'brd'};render()">+ إضافة للبورد</button></div>`+(D.board.length?`<div class="grid">${D.board.map(b=>boardCard(b,true)).join("")}</div>`:'<div class="card"><p class="mu" style="margin:0">لسه مفيش أعضاء بورد.</p></div>');
 }
 
+
+let ALBPEND={aid:null,fail:[],msg:""};
+function prgShow(t){let e=document.getElementById("prg");if(!e){e=document.createElement("div");e.id="prg";e.style.cssText="position:fixed;top:0;left:0;right:0;z-index:99;background:#151a33;color:#fff;padding:8px 14px;font-size:13px;box-shadow:0 2px 10px #0008";e.innerHTML='<div id="prgt"></div><div style="height:6px;background:#2a3050;border-radius:6px;margin-top:6px;overflow:hidden"><i id="prgb" style="display:block;height:100%;width:0;background:linear-gradient(90deg,#5b7cff,#8b5cf6);transition:width .15s"></i></div>';document.body.appendChild(e)}e.style.display="block";document.getElementById("prgt").textContent=t||"";prgSet(0)}
+function prgSet(f){const b=document.getElementById("prgb");if(b)b.style.width=Math.round(Math.max(0,Math.min(1,f||0))*100)+"%"}
+function prgHide(){const e=document.getElementById("prg");if(e)e.style.display="none"}
+function upXhr(bucket,path,file,upsert,ct){return new Promise(res=>{const x=new XMLHttpRequest();const p=String(path).split("/").map(encodeURIComponent).join("/");x.open("POST",SUPABASE_URL+"/storage/v1/object/"+bucket+"/"+p);x.setRequestHeader("apikey",SUPABASE_ANON_KEY);x.setRequestHeader("Authorization","Bearer "+(session&&session.access_token||SUPABASE_ANON_KEY));x.setRequestHeader("x-upsert",upsert?"true":"false");x.setRequestHeader("Content-Type",ct||file.type||"application/octet-stream");x.upload.onprogress=e=>{if(e.lengthComputable)prgSet(e.loaded/e.total)};x.onload=()=>res(x.status<300?{error:null}:{error:{message:"رفع الملف فشل ("+x.status+")"}});x.onerror=()=>res({error:{message:"مشكلة في الاتصال، جرّب تاني"}});x.send(file)})}
+async function dlUrl(url,name){
+  const ext=(String(url).split("?")[0].split(".").pop()||"jpg").toLowerCase();
+  const fn=String(name||"photo").endsWith("."+ext)?String(name||"photo"):String(name||"photo")+"."+ext;
+  prgShow("جاري تحميل: "+fn);
+  try{
+    const res=await fetch(url);if(!res.ok)throw new Error("status "+res.status);
+    const total=+res.headers.get("content-length")||0,reader=res.body.getReader(),chunks=[];let got=0;
+    while(true){const {done,value}=await reader.read();if(done)break;chunks.push(value);got+=value.length;if(total)prgSet(got/total)}
+    const blob=new Blob(chunks,{type:res.headers.get("content-type")||"image/jpeg"});
+    const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=fn;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+  }catch(e){alert("تعذر التحميل، جرّب تاني")}finally{prgHide()}
+}
+async function dlEl(el){dlUrl(el.dataset.u,el.dataset.n)}
+async function dlPhoto(i){const x=PH[i];if(!x)return;dlUrl(x.u,nm(x.n||"photo"))}
+const urlOf=p=>(D.albUrl&&D.albUrl[p.path])||"";
 function albumsView(){
   const A=D.albums||[],P=D.albPhotos||[];
   if(S.alb&&A.some(a=>a.id===S.alb))return albumDetail(S.alb);
@@ -597,36 +618,72 @@ function albumsView(){
   const months=Object.keys(byMo).sort().reverse();
   const head=`<div class="row" style="justify-content:space-between;margin-bottom:10px"><b>📸 صور الفعاليات</b><button onclick="S.modal={t:'album'};render()">+ فعالية جديدة</button></div>`;
   if(!months.length)return head+`<p class="mu">لسه مفيش فعاليات. اضغط + وابدأ.</p>`;
-  return head+months.map(mo=>`<div style="font-weight:800;margin:14px 2px 8px">📅 ${ml(mo)}</div>`+byMo[mo].map(a=>{const ps=P.filter(p=>p.album_id===a.id);return`<div class="card" style="margin-bottom:8px;cursor:pointer" onclick="S.alb='${a.id}';render()"><b>${esc(a.name)}</b><div class="mu">${fmtD(a.event_date)} · ${ps.length} صورة</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:8px">${ps.slice(0,4).map(p=>`<img loading="lazy" src="${esc(p.url)}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px">`).join("")}</div></div>`}).join("")).join("");
+  return head+months.map(mo=>`<div style="font-weight:800;margin:14px 2px 8px">📅 ${ml(mo)}</div>`+byMo[mo].map(a=>{const ps=P.filter(p=>p.album_id===a.id);return`<div class="card" style="margin-bottom:8px;cursor:pointer" onclick="S.alb='${a.id}';render()"><b>${esc(a.name)}</b><div class="mu">${fmtD(a.event_date)} · ${ps.length} صورة</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:8px">${ps.slice(0,4).map(p=>`<img loading="lazy" src="${esc(urlOf(p))}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;background:#0003">`).join("")}</div></div>`}).join("")).join("");
 }
 function albumDetail(id){
   const a=D.albums.find(x=>x.id===id),ps=(D.albPhotos||[]).filter(p=>p.album_id===id);
-  return `<div class="row" style="justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:6px"><button class="g" onclick="S.alb=null;render()">→ رجوع</button><b>${esc(a.name)}</b><span class="mu">${fmtD(a.event_date)} · ${ps.length} صورة</span></div>
-  <div class="grid3">${ps.map((p,i)=>`<div class="card" style="padding:6px;text-align:center"><img loading="lazy" src="${esc(p.url)}" onclick="S.modal={t:'albphoto',i:${i},alb:'${id}'};render()" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;cursor:pointer"><button class="g" style="margin-top:6px;padding:4px 8px;font-size:12px" data-u="${esc(p.url)}" data-n="${esc(a.name)}_${i+1}" onclick="dlEl(this)">⬇ تحميل</button></div>`).join("")}</div>`;
+  return `<div class="row" style="justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:6px"><button class="g" onclick="S.alb=null;render()">→ رجوع</button><b>${esc(a.name)}</b><span class="mu">${fmtD(a.event_date)} · ${ps.length} صورة</span></div>
+  <div class="row" style="gap:6px;margin-bottom:10px;flex-wrap:wrap"><button class="g" onclick="S.modal={t:'albedit',alb:'${id}'};render()">✏️ تعديل</button><button class="g" onclick="S.modal={t:'albadd',alb:'${id}'};render()">+ صور</button><button class="g" style="color:#fca5a5" onclick="albDelAlbum('${id}')">🗑 حذف الفعالية</button></div>
+  <div class="grid3">${ps.map((p,i)=>`<div class="card" style="padding:6px;text-align:center"><img loading="lazy" src="${esc(urlOf(p))}" onclick="S.modal={t:'albphoto',i:${i},alb:'${id}'};render()" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;cursor:pointer;background:#0003"><div class="row" style="justify-content:center;gap:4px;margin-top:6px"><button class="g" style="padding:4px 8px;font-size:12px" data-u="${esc(urlOf(p))}" data-n="${esc(a.name)}_${i+1}" onclick="dlEl(this)">⬇</button><button class="g" style="padding:4px 8px;font-size:12px;color:#fca5a5" onclick="albDelPhoto('${p.id}')">🗑</button></div></div>`).join("")}</div>`;
 }
-async function dlEl(el){try{const b=await (await fetch(el.dataset.u)).blob(),a=document.createElement("a"),ext=(b.type.split("/")[1]||"jpg").replace("jpeg","jpg");a.href=URL.createObjectURL(b);a.download=(el.dataset.n||"photo")+"."+ext;a.click()}catch(e){alert("تعذر التحميل، جرّب تاني")}}
+async function albUpload(aid,files){
+  let ok=0;const fail=[];
+  for(let i=0;i<files.length;i++){
+    const f=files[i];prgShow(`جاري رفع ${i+1} من ${files.length}: ${f.name}`);
+    const ext=((f.name.split(".").pop()||"jpg").toLowerCase().replace(/[^a-z0-9]/g,""))||"jpg";
+    const path=aid+"/"+crypto.randomUUID()+"."+ext;
+    const up=await upXhr("event-photos",path,f,false,f.type||"image/jpeg");
+    if(up.error){fail.push(f);continue}
+    const r=await sb.from("event_photos").insert({album_id:aid,path});
+    if(r.error){fail.push(f);continue}
+    ok++;
+  }
+  prgHide();
+  return{ok,fail};
+}
+async function albRun(aid,files){
+  const r=await albUpload(aid,files);
+  ALBPEND={aid,fail:r.fail,msg:r.fail.length?`اتحفظ ${r.ok} صورة، و${r.fail.length} فشلت. اضغط إعادة الرفع.`:`اتحفظ ${r.ok} صورة ✓`};
+  if(!r.fail.length)S.modal=null;
+  S.alb=aid;await load();render();
+  if(!r.fail.length)toast(ALBPEND.msg,"ok");
+}
 async function albSave(){
   const name=$("#an").value.trim(),date=$("#ad").value,files=[...$("#af").files];
   if(!name||!date){$("#mm").textContent="الاسم والتاريخ مطلوبين";return}
   if(!files.length){$("#mm").textContent="اختار صورة واحدة على الأقل";return}
-  let done=0;
-  try{
-    const ins=await sb.from("event_albums").insert({name,event_date:date,created_by:me.id}).select("id").single();
-    if(ins.error)throw ins.error;
-    const aid=ins.data.id;
-    for(const f of files){
-      $("#mm").textContent=`جاري الرفع ${done+1} من ${files.length}…`;
-      const ext=((f.name.split(".").pop()||"jpg").toLowerCase().replace(/[^a-z0-9]/g,""))||"jpg";
-      const path=aid+"/"+crypto.randomUUID()+"."+ext;
-      const up=await sb.storage.from("event-photos").upload(path,f,{contentType:f.type||"image/jpeg",upsert:false});
-      if(up.error)throw up.error;
-      const url=sb.storage.from("event-photos").getPublicUrl(path).data.publicUrl;
-      const r=await sb.from("event_photos").insert({album_id:aid,path,url});
-      if(r.error)throw r.error;
-      done++;
-    }
-    S.modal=null;S.alb=aid;await load();render();toast(`اتحفظت ${done} صورة ✓`,"ok");
-  }catch(e){$("#mm").textContent="حصلت مشكلة: "+(e.message||e)+" (اتحفظ "+done+" صورة)"}
+  const ins=await sb.from("event_albums").insert({name,event_date:date,created_by:me.id}).select("id").single();
+  if(ins.error){$("#mm").textContent=ins.error.message;return}
+  await albRun(ins.data.id,files);
+}
+async function albAddSave(aid){
+  const files=[...$("#af").files];
+  if(!files.length){$("#mm").textContent="اختار صورة واحدة على الأقل";return}
+  await albRun(aid,files);
+}
+async function albRetry(){const aid=ALBPEND.aid,files=ALBPEND.fail;if(!aid||!files.length)return;ALBPEND.fail=[];await albRun(aid,files)}
+async function albEditSave(aid){
+  const name=$("#an").value.trim(),date=$("#ad").value;
+  if(!name||!date){$("#mm").textContent="الاسم والتاريخ مطلوبين";return}
+  const r=await sb.from("event_albums").update({name,event_date:date}).eq("id",aid);
+  if(r.error){$("#mm").textContent=r.error.message;return}
+  S.modal=null;await load();render();toast("اتحفظ التعديل ✓","ok");
+}
+async function albDelPhoto(pid){
+  if(!confirm("حذف الصورة نهائياً؟"))return;
+  const p=(D.albPhotos||[]).find(x=>x.id===pid);if(!p)return;
+  await sb.storage.from("event-photos").remove([p.path]);
+  const r=await sb.from("event_photos").delete().eq("id",pid);
+  if(r.error)return alert(r.error.message);
+  S.modal=null;await load();render();
+}
+async function albDelAlbum(aid){
+  if(!confirm("حذف الفعالية وكل صورها نهائياً؟"))return;
+  const paths=(D.albPhotos||[]).filter(p=>p.album_id===aid).map(p=>p.path);
+  for(let i=0;i<paths.length;i+=100)await sb.storage.from("event-photos").remove(paths.slice(i,i+100));
+  const r=await sb.from("event_albums").delete().eq("id",aid);
+  if(r.error)return alert(r.error.message);
+  S.alb=null;S.modal=null;await load();render();
 }
 function photosView(){
   const g=COM.includes(S.pg)?S.pg:COM[0],grp=c=>D.members.filter(m=>m.committee===c);
@@ -1006,8 +1063,8 @@ function badgesHtml(m,pos,total){
 async function adminAvatar(mid,f){
   if(!f||!(isAdm()||canDesign()))return;
   try{const blob=await resizeImg(f,4096,.97),p="m_"+mid+".jpg";
-    let up=await sb.storage.from("avatars").upload(p,blob,{upsert:true,contentType:"image/jpeg"});if(up.error)throw up.error;
-    try{const tb=await resizeImg(f,640,.9);await sb.storage.from("avatars").upload("m_"+mid+"_t.jpg",tb,{upsert:true,contentType:"image/jpeg"})}catch(e){}
+    let up=await upXhr("avatars",p,blob,true,"image/jpeg");if(up.error)throw up.error;
+    try{const tb=await resizeImg(f,640,.9);await upXhr("avatars","m_"+mid+"_t.jpg",tb,true,"image/jpeg")}catch(e){}
     const url=sb.storage.from("avatars").getPublicUrl(p).data.publicUrl+"?v="+Date.now(),r=isAdm()?await sb.from("members").update({avatar_url:url}).eq("id",mid):await sb.rpc("set_member_avatar",{p_member:mid,p_url:url});
     if(r.error)throw r.error;await load();render();toast("اتحدّثت الصورة ✓");
     if(E){const id=E.pvs[E.pv]&&E.pvs[E.pv].m.id;E.pvs=edPvList();if(!E.pvs.length)E.pvs.push({c:"HR",m:{name:"Youssef Mohamed"},r:1,mo:today().slice(0,7)});const i=E.pvs.findIndex(x=>x.m.id===id);E.pv=i>=0?i:0;await edLoadPv();edPanel();edQ()}
@@ -1221,8 +1278,8 @@ async function impPhoto(mid,link){
     const res=await fetch(SUPABASE_URL+"/functions/v1/drive-photo?url="+encodeURIComponent(link),{headers:{apikey:SUPABASE_ANON_KEY,Authorization:"Bearer "+SUPABASE_ANON_KEY}});
     if(!res.ok)return{ok:false,msg:"الصورة مش متحمّلة (تأكد إنها مفتوحة لأي حد عنده اللينك)"};
     const blob=await res.blob(),big=await resizeImg(blob,4096,.97),p="m_"+mid+".jpg";
-    let up=await sb.storage.from("avatars").upload(p,big,{upsert:true,contentType:"image/jpeg"});if(up.error)throw up.error;
-    try{const tb=await resizeImg(blob,640,.9);await sb.storage.from("avatars").upload("m_"+mid+"_t.jpg",tb,{upsert:true,contentType:"image/jpeg"})}catch(e){}
+    let up=await upXhr("avatars",p,big,true,"image/jpeg");if(up.error)throw up.error;
+    try{const tb=await resizeImg(blob,640,.9);await upXhr("avatars","m_"+mid+"_t.jpg",tb,true,"image/jpeg")}catch(e){}
     const url=sb.storage.from("avatars").getPublicUrl(p).data.publicUrl+"?v="+Date.now();
     const r=await sb.from("members").update({avatar_url:url}).eq("id",mid);if(r.error)throw r.error;
     return{ok:true};
@@ -1560,7 +1617,7 @@ PRESETS.push(
 );
 const LOGOS=[["logo_l","شعار أعلى الشمال"],["logo_r","شعار أعلى اليمين"],["logo_s","شعار الموسم (تحت)"]];
 async function logoUp(k,f){if(!f)return;try{const ext=/png/i.test(f.type)?"png":"jpg",path="logo-"+k+"-"+Date.now()+"."+ext;
-  const up=await sb.storage.from("designs").upload(path,f,{contentType:f.type||"image/png",upsert:true});if(up.error)throw up.error;
+  const up=await upXhr("designs",path,f,true,f.type||"image/png");if(up.error)throw up.error;
   const url=sb.storage.from("designs").getPublicUrl(path).data.publicUrl,r=await sb.from("app_settings").upsert({key:k,value:url},{onConflict:"key"});if(r.error)throw r.error;
   D.cfg=D.cfg||{};D.cfg[k]=url;toast("اتحفظ الشعار ✓","ok");render()}catch(e){alert("تعذر رفع الشعار: "+(e.message||e))}}
 async function logoDel(k){if(!confirm("مسح الشعار ده؟"))return;await sb.from("app_settings").delete().eq("key",k);if(D.cfg)delete D.cfg[k];render()}
@@ -1570,8 +1627,9 @@ function LOGOCARD(){return`<div class="card"><b>🏷 شعارات الديزاي
 function modal(){
   const t=S.modal,m=D.members.find(x=>x.id===t.id);
   if(t.t==="imp")return impHtml();
-  if(t.t==="album"){return`<div class="ov" onclick="if(event.target===this)closeM()"><div class="card"><b>فعالية جديدة</b><label>اسم الفعالية</label><input id="an"><label>التاريخ</label><input id="ad" type="date" value="${today()}"><label>الصور (تقدر تختار أكتر من صورة، بتترفع بأعلى جودة)</label><input id="af" type="file" accept="image/*" multiple><p class="err" id="mm"></p><div class="row"><button onclick="albSave()">حفظ ورفع</button><button class="g" onclick="closeM()">إلغاء</button></div></div></div>`}
-   if(t.t==="albphoto"){const p=(D.albPhotos||[]).filter(x=>x.album_id===t.alb)[t.i];if(!p)return"";const a=D.albums.find(x=>x.id===t.alb)||{};return`<div class="ov" onclick="if(event.target===this)closeM()"><div class="card" style="text-align:center"><img src="${esc(p.url)}" alt="" style="max-width:100%;max-height:70vh;border-radius:12px"><p class="mu">${esc(a.name||"")} · ${fmtD(a.event_date||"")}</p><div class="row" style="justify-content:center"><button data-u="${esc(p.url)}" data-n="${esc(a.name||"photo")}_${t.i+1}" onclick="dlEl(this)">⬇ تحميل بجودة كاملة</button><button class="g" onclick="closeM()">إغلاق</button></div></div></div>`}
+  if(t.t==="album"||t.t==="albadd"){const isNew=t.t==="album";const a=isNew?null:D.albums.find(x=>x.id===t.alb);return`<div class="ov" onclick="if(event.target===this)closeM()"><div class="card"><b>${isNew?"فعالية جديدة":"إضافة صور لـ "+esc(a?a.name:"")}</b>${isNew?`<label>اسم الفعالية</label><input id="an"><label>التاريخ</label><input id="ad" type="date" value="${today()}">`:""}<label>الصور (تقدر تختار كذا صورة، بترفع بالحجم الأصلي)</label><input id="af" type="file" accept="image/*" multiple><p class="mu" id="mm" style="margin:8px 0">${esc(ALBPEND.msg||"")}</p>${ALBPEND.fail.length?`<button onclick="albRetry()">🔁 إعادة رفع اللي فشل (${ALBPEND.fail.length})</button>`:""}<div class="row"><button onclick="${isNew?"albSave()":`albAddSave('${t.alb}')`}">رفع</button><button class="g" onclick="closeM()">إلغاء</button></div></div></div>`}
+   if(t.t==="albedit"){const a=D.albums.find(x=>x.id===t.alb)||{};return`<div class="ov" onclick="if(event.target===this)closeM()"><div class="card"><b>تعديل الفعالية</b><label>الاسم</label><input id="an" value="${esc(a.name||"")}"><label>التاريخ</label><input id="ad" type="date" value="${esc(a.event_date||"")}"><p class="err" id="mm"></p><div class="row"><button onclick="albEditSave('${t.alb}')">حفظ</button><button class="g" onclick="closeM()">إلغاء</button></div></div></div>`}
+   if(t.t==="albphoto"){const ps=(D.albPhotos||[]).filter(x=>x.album_id===t.alb),p=ps[t.i];if(!p)return"";const a=D.albums.find(x=>x.id===t.alb)||{};return`<div class="ov" onclick="if(event.target===this)closeM()"><div class="card" style="text-align:center"><img src="${esc(urlOf(p))}" alt="" style="max-width:100%;max-height:68vh;border-radius:12px"><p class="mu">${esc(a.name||"")} · ${fmtD(a.event_date||"")}</p><div class="row" style="justify-content:center"><button data-u="${esc(urlOf(p))}" data-n="${esc(a.name||"photo")}_${t.i+1}" onclick="dlEl(this)">⬇ تحميل بجودة كاملة</button><button class="g" style="color:#fca5a5" onclick="albDelPhoto('${p.id}')">🗑</button><button class="g" onclick="closeM()">إغلاق</button></div></div></div>`}
    if(t.t==="photo"){const x=PH[t.i];if(!x)return"";return`<div class="ov" onclick="if(event.target===this)closeM()"><div class="card" style="text-align:center"><img src="${esc(x.u)}" alt="" style="max-width:100%;max-height:60vh;border-radius:14px" onload="if(this.naturalWidth<800){const q=document.getElementById('lq');q.style.display='block';q.textContent='⚠ الصورة دي مرفوعة بجودة قليلة ('+this.naturalWidth+'×'+this.naturalHeight+' بيكسل). اطلب من العضو يرفعها تاني من حسابه.'}"><p id="lq" class="mu" style="display:none;color:var(--warn);margin:8px 0 0"></p><p><b>${esc(nm2(x.n))}</b></p><div class="row" style="justify-content:center"><button onclick="dlPhoto(${t.i})">⬇ تحميل بجودة كاملة</button><button class="g" onclick="closeM()">إغلاق</button></div></div></div>`}
   if(t.t==="brd"){const b=D.board.find(x=>x.id===t.id);return`<div class="ov"><div class="card"><b>${b?"تعديل":"إضافة"} عضو بورد</b>
     <label>الاسم</label><input id="bn" value="${esc(b?.name)}"><label>المنصب</label><select id="bp">${(()=>{const P=["Head","Vice Head","Leader","Advisor"],cur=b?.position||"";const L=cur&&!P.includes(cur)?[cur,...P]:P;return L.map(p=>`<option value="${esc(p)}" ${p===cur?"selected":""}>${esc(p)}</option>`).join("")})()}</select>
@@ -1631,19 +1689,14 @@ async function saveBoard(id){
   if(row.member_id&&!cs.length){$("#mm").textContent="اختار لجنة واحدة على الأقل لحساب المسؤول";return}
   try{
     if(bFile){const base=id||crypto.randomUUID(),blob=await resizeImg(bFile,4096,.97),path=base+".jpg";
-      const up=await sb.storage.from("board").upload(path,blob,{upsert:true,contentType:"image/jpeg"});if(up.error)throw up.error;
-      try{await sb.storage.from("board").upload(base+"_t.jpg",await resizeImg(bFile,640,.9),{upsert:true,contentType:"image/jpeg"})}catch(e){}
+      const up=await upXhr("board",path,blob,true,"image/jpeg");if(up.error)throw up.error;
+      try{await upXhr("board",base+"_t.jpg",await resizeImg(bFile,640,.9),true,"image/jpeg")}catch(e){}
       row.photo_url=sb.storage.from("board").getPublicUrl(path).data.publicUrl+"?v="+Date.now()}
     const r=id?await sb.from("board").update(row).eq("id",id):await sb.from("board").insert(row);if(r.error)throw r.error;
   }catch(e){$("#mm").textContent=e.message||String(e);return}
   bFile=null;S.modal=null;await load();render();
 }
 async function delBoard(id){if(!confirm("حذف من البورد؟"))return;const r=await sb.from("board").delete().eq("id",id);if(r.error)return alert(r.error.message);await load();render()}
-async function dlPhoto(i){
-  const x=PH[i];if(!x)return;
-  try{const b=await (await fetch(x.u)).blob(),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=nm(x.n||"photo")+".jpg";a.click()}
-  catch(e){window.open(x.u,"_blank")}
-}
 async function editTotal(id,k){
   const m=D.members.find(x=>x.id===id),r={...m.rec[k]},mx=maxS(m.committee);
   const v=prompt(`الدرجة الإجمالية لشهر ${ml(k)} (من ${mx}).\nسيبها فاضية للرجوع للحساب التلقائي.`,r.man!=null?r.man:mscore(r,m.committee));
@@ -2117,7 +2170,7 @@ async function edSave(asNew){
       if(L.t==="image"&&L.src&&L.src.startsWith("blob:")){
         const f=E.files[L.id];if(!f)throw new Error("ملف الصورة ضاع، اختاره تاني ("+L.name+")");
         const ext=f.type==="image/png"?"png":f.type==="image/webp"?"webp":"jpg",path=crypto.randomUUID()+"-"+Date.now()+"."+ext;
-        const up=await sb.storage.from("designs").upload(path,f,{contentType:f.type||"image/png",upsert:true});if(up.error)throw new Error("رفع الصورة/الفريم فشل: "+up.error.message+(/row-level|policy|permission/i.test(up.error.message)?" — شغّل fix-designs-storage.sql في Supabase":""));
+        const up=await upXhr("designs",path,f,true,f.type||"image/png");if(up.error)throw new Error("رفع الصورة/الفريم فشل: "+up.error.message+(/row-level|policy|permission/i.test(up.error.message)?" — شغّل fix-designs-storage.sql في Supabase":""));
         L.src=sb.storage.from("designs").getPublicUrl(path).data.publicUrl;delete E.files[L.id];
       }}
     const a=E.sc.layers,first=a.find(l=>l.t==="image"&&l.src&&l.src!=="@frame"),pi=a.findIndex(l=>l.t==="photo"),fi=a.findIndex(l=>l.t==="image"||l.t==="code");
@@ -2291,7 +2344,7 @@ function render(){
   else if(isMgr())h=mgrView();
   else if(isBoardAcc())h=topbar()+tabBar([["bcom","📊 تقييمات لجنتي"],["me","حسابي"],["leaders","👥 مسؤولو اللجنة"]].concat(dTab(),evTab(),phTab()))+(S.tab==="me"?memberView(me,true):S.tab==="leaders"?leadersView(me.committee):S.tab==="events"&&evOk()?eventsView():S.tab==="designs"&&canDesign()?designsView():S.tab==="photos"&&canDesign()?photosView():S.tab==="albums"&&canDesign()?albumsView():bcomView());
   else h=topbar()+tabBar([["me","حسابي"],["leaders","👥 مسؤولو اللجنة"]].concat(dTab(),evTab(),phTab()))+(S.tab==="leaders"?leadersView(me.committee):S.tab==="events"&&evOk()?eventsView():S.tab==="designs"&&canDesign()?designsView():S.tab==="photos"&&canDesign()?photosView():S.tab==="albums"&&canDesign()?albumsView():memberView(me,true));
-  const ok=!!(S.modal&&me&&(isAdm()||(canDesign()&&["photo","album","albphoto"].includes(S.modal.t))||(isMgr()&&["rec","view","hist"].includes(S.modal.t))||(S.modal.t==="warn"&&myWarnCom().length>0)||(isBoardAcc()&&["view","hist"].includes(S.modal.t))));
+  const ok=!!(S.modal&&me&&(isAdm()||(canDesign()&&["photo","album","albadd","albedit","albphoto"].includes(S.modal.t))||(isMgr()&&["rec","view","hist"].includes(S.modal.t))||(S.modal.t==="warn"&&myWarnCom().length>0)||(isBoardAcc()&&["view","hist"].includes(S.modal.t))));
   const navH=navHtml(),key=[session?1:0,loaded?1:0,me?me.id:0,S.tab,S.recover?1:0,S.signup||""].join("|"),same=key===RKEY&&!S.hard;RKEY=key;S.hard=false;
   const app=$("#app"),mdl=$("#mdl"),y=window.scrollY,mc0=mdl.querySelector(".card"),my=mc0?mc0.scrollTop:0;
   if(same&&app.firstElementChild&&!app.querySelector(".sk")){try{morphInto(app,h)}catch(e){console.error(e);app.innerHTML=h}}
