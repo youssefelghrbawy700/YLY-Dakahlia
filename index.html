@@ -1014,7 +1014,7 @@ async function zipEntries(buf){
   const u=new Uint8Array(buf),dv=new DataView(buf);let e=u.length-22;while(e>=0&&dv.getUint32(e,true)!==0x06054b50)e--;if(e<0)throw new Error("zip");
   const n=dv.getUint16(e+10,true);let p=dv.getUint32(e+16,true);const out={},dec=new TextDecoder();
   for(let i=0;i<n;i++){const meth=dv.getUint16(p+10,true),cs=dv.getUint32(p+20,true),nl=dv.getUint16(p+28,true),xl=dv.getUint16(p+30,true),cl=dv.getUint16(p+32,true),lo=dv.getUint32(p+42,true),name=dec.decode(u.subarray(p+46,p+46+nl));
-    p+=46+nl+xl+cl;if(!/^xl\/(sharedStrings\.xml|worksheets\/sheet\d+\.xml)$/.test(name))continue;
+    p+=46+nl+xl+cl;if(!/^xl\/(sharedStrings\.xml|workbook\.xml|_rels\/workbook\.xml\.rels|worksheets\/[^\/]+\.xml)$/.test(name))continue;
     const ln=dv.getUint16(lo+26,true),lx=dv.getUint16(lo+28,true),st=lo+30+ln+lx,data=u.subarray(st,st+cs);let bytes;
     if(meth===0)bytes=data;else if(meth===8){const ds=new DecompressionStream("deflate-raw"),w=ds.writable.getWriter();w.write(data);w.close();bytes=new Uint8Array(await new Response(ds.readable).arrayBuffer())}else continue;
     out[name]=dec.decode(bytes)}
@@ -1028,19 +1028,47 @@ async function xlsxRows(buf){
     let val="";if(t==="s"&&v)val=ss[+v.textContent]||"";else if(t==="inlineStr")val=[...c.getElementsByTagName("t")].map(x=>x.textContent).join("");else if(v)val=v.textContent;row[col]=String(val).trim()});
     for(let i=0;i<row.length;i++)if(row[i]==null)row[i]="";if(row.some(x=>x!==""))rows.push(row)});
   return rows}
+
+async function xlsxSheets(buf){
+  const z=await zipEntries(buf),P=new DOMParser(),ss=[];
+  if(z["xl/sharedStrings.xml"])P.parseFromString(z["xl/sharedStrings.xml"],"application/xml").querySelectorAll("si").forEach(si=>ss.push([...si.getElementsByTagName("t")].map(t=>t.textContent).join("")));
+  const list=[];
+  if(z["xl/workbook.xml"]&&z["xl/_rels/workbook.xml.rels"]){
+    const rmap={};P.parseFromString(z["xl/_rels/workbook.xml.rels"],"application/xml").querySelectorAll("Relationship").forEach(r=>{rmap[r.getAttribute("Id")]=r.getAttribute("Target")});
+    P.parseFromString(z["xl/workbook.xml"],"application/xml").querySelectorAll("sheet").forEach(sh=>{const tg=rmap[sh.getAttribute("r:id")];if(tg)list.push({name:sh.getAttribute("name")||"",path:"xl/"+tg.replace(/^\/?xl\//,"")})});
+  }
+  if(!list.length)Object.keys(z).filter(k=>/^xl\/worksheets\//.test(k)).sort((a,b)=>parseInt((a.match(/\d+/)||[0])[0])-parseInt((b.match(/\d+/)||[0])[0])).forEach(k=>list.push({name:"",path:k}));
+  if(!list.length)throw new Error("sheet");
+  return list.filter(x=>z[x.path]).map(x=>{
+    const doc=P.parseFromString(z[x.path],"application/xml"),rows=[];
+    doc.querySelectorAll("row").forEach(r=>{const row=[];r.querySelectorAll("c").forEach(c=>{const ref=c.getAttribute("r")||"",col=[...ref.replace(/\d+/g,"")].reduce((a,ch)=>a*26+ch.charCodeAt(0)-64,0)-1,t=c.getAttribute("t"),v=c.querySelector("v");
+      let val="";if(t==="s"&&v)val=ss[+v.textContent]||"";else if(t==="inlineStr")val=[...c.getElementsByTagName("t")].map(y=>y.textContent).join("");else if(v)val=v.textContent;row[col]=String(val).trim()});
+      for(let i=0;i<row.length;i++)if(row[i]==null)row[i]="";if(row.some(y=>y!==""))rows.push(row)});
+    return{name:x.name,rows:rows};
+  });
+}
 const impNorm=h=>String(h||"").trim().toLowerCase().replace(/[\s_\-.:]+/g,"").replace(/[أإآ]/g,"ا").replace(/ة/g,"ه").replace(/ى/g,"ي");
 const IMPH={name:["name","fullname","الاسم","اسم","الاسمالكامل"],email:["email","mail","emailaddress","الايميل","البريد","البريدالالكتروني","ايميل"],password:["password","pass","pwd","كلمهالسر","كلمهالمرور","الباسورد","باسورد","الرقمالسري"],committee:["committee","com","اللجنه","لجنه"],role:["role","position","المنصب","منصب","الدور"]};
 const pad2=n=>String(n).padStart(2,"0");
 function impMonthOf(h,year){
-  const t=String(h||"").trim();let m=t.match(/^(\d{4})\s*[-\/]\s*(\d{1,2})$/);if(m&&+m[2]>=1&&+m[2]<=12)return m[1]+"-"+pad2(+m[2]);
+  const raw=String(h||"").trim();if(!raw)return null;const t=raw.toLowerCase();
+  let m=t.match(/^(\d{4})\s*[-\/]\s*(\d{1,2})$/);if(m&&+m[2]>=1&&+m[2]<=12)return m[1]+"-"+pad2(+m[2]);
+  m=t.match(/^(\d{1,2})\s*[-\/]\s*(\d{4})$/);if(m&&+m[1]>=1&&+m[1]<=12)return m[2]+"-"+pad2(+m[1]);
   m=t.match(/(?:شهر|month|m)\s*[:\-]?\s*0?(\d{1,2})(?!\d)/i)||t.match(/^0?(\d{1,2})$/);
   if(m){const n=+m[m.length-1];if(n>=1&&n<=12)return year+"-"+pad2(n)}
-  const i=MO.findIndex(x=>t.includes(x));if(i>=0)return year+"-"+pad2(i+1);const EN=["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"],j=EN.findIndex(x=>t.toLowerCase().startsWith(x));return j>=0?year+"-"+pad2(j+1):null}
-function impBuild(rows,year){
+  const nt=impNorm(raw),ar=["يناير","فبراير","مارس","ابريل","مايو","يونيو","يوليو","اغسطس","سبتمبر","اكتوبر","نوفمبر","ديسمبر"],
+        en=["january","february","march","april","may","june","july","august","september","october","november","december"],
+        sh=["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"];
+  let i=ar.findIndex(x=>nt.includes(impNorm(x)));
+  if(i<0)i=en.findIndex(x=>t.includes(x));
+  if(i<0)i=sh.findIndex(x=>new RegExp("(^|[^a-z])"+x+"([^a-z]|$)").test(t));
+  return i>=0?year+"-"+pad2(i+1):null}
+function impBuild(rows,year,defMonth){
   if(!rows.length)return{rows:[],months:[]};
   const hd=rows[0],hn=hd.map(impNorm),f={},mcol={};
   Object.keys(IMPH).forEach(k=>{const i=hn.findIndex(h=>IMPH[k].map(impNorm).includes(h));if(i>=0)f[k]=i});
   hd.forEach((h,i)=>{if(Object.values(f).includes(i))return;const mo=impMonthOf(h,year);if(mo)mcol[i]=mo});
+  if(defMonth&&!Object.keys(mcol).length){const k=hd.findIndex((h,i)=>!Object.values(f).includes(i)&&/اجمالي|مجموع|تقييم|درجه|total|score/.test(impNorm(h)));if(k>=0)mcol[k]=defMonth}
   let idx,start=0;
   if(Object.keys(f).length>=2){idx=Object.assign({name:-1,email:-1,password:-1,committee:-1,role:-1},f);start=1}
   else idx={name:0,email:1,committee:2,role:3,password:-1};
@@ -1061,15 +1089,30 @@ function impBuild(rows,year){
     if(!err.length)seen.add(email);
     out.push({line:i+start+1,mode,name:mode==="update"?exist.name:name,email,password:mode==="new"?password:"",committee:mode==="update"?exist.committee:(com||comRaw),role,scores,err:err.join(" · ")})});
   return{rows:out,months:[...new Set(Object.values(mcol))]}}
+function impMerge(parts){
+  const by=new Map(),nomail=[],months=new Set();
+  parts.forEach(p=>{p.months.forEach(m=>months.add(m));p.rows.forEach(r=>{if(!r.email){nomail.push(r);return}if(!by.has(r.email))by.set(r.email,[]);by.get(r.email).push(r)})});
+  const out=[];
+  by.forEach(group=>{const ok=group.filter(r=>!r.err),base=Object.assign({},ok[0]||group[0]);
+    base.scores=Object.assign({},...group.map(r=>r.scores||{}));
+    base.err=ok.length?"":(group.map(r=>r.err).filter(Boolean)[0]||"");
+    out.push(base)});
+  return{rows:[...nomail,...out].sort((x,y)=>x.line-y.line),months:[...months].sort()}}
+function impCompute(I){
+  const parts=(I.sheets||[]).filter(s=>s.rows&&s.rows.length).map(s=>impBuild(s.rows,I.year,impMonthOf(s.name,I.year)));
+  const m=impMerge(parts);I.rows=m.rows;I.months=m.months;I.sheetCount=parts.length;
+  I.err=I.rows.length?"":"الملف فاضي أو شكله مش مفهوم.";
+}
 async function impFile(f){
-  if(!f)return;const year=(S.imp&&S.imp.year)||new Date().getFullYear();S.imp={fn:f.name,rows:[],months:[],busy:false,err:"",year,file:f,done:null};
-  try{let rows;if(/\.xlsx$/i.test(f.name))rows=await xlsxRows(await f.arrayBuffer());
+  if(!f)return;const year=(S.imp&&S.imp.year)||new Date().getFullYear();S.imp={fn:f.name,rows:[],months:[],busy:false,err:"",year,file:f,done:null,sheets:[]};
+  try{
+    if(/\.xlsx$/i.test(f.name))S.imp.sheets=await xlsxSheets(await f.arrayBuffer());
     else if(/\.xls$/i.test(f.name)){S.imp.err="الملف بصيغة xls القديمة. افتحه في Excel واحفظه بصيغة xlsx أو CSV وارفعه تاني.";render();return}
-    else rows=csvParse(await f.text());
-    S.imp.raw=rows;const b=impBuild(rows,year);S.imp.rows=b.rows;S.imp.months=b.months;if(!b.rows.length)S.imp.err="الملف فاضي أو شكله مش مفهوم."}
-  catch(e){S.imp.err="مقدرتش أقرا الملف. اتأكد إنه xlsx أو CSV."}
+    else S.imp.sheets=[{name:"",rows:csvParse(await f.text())}];
+    impCompute(S.imp);
+  }catch(e){S.imp.err="مقدرتش أقرا الملف. اتأكد إنه xlsx أو CSV."}
   render()}
-function impYear(v){if(!S.imp)return;S.imp.year=Math.max(2000,Math.min(2100,+v||new Date().getFullYear()));if(S.imp.raw){const b=impBuild(S.imp.raw,S.imp.year);S.imp.rows=b.rows;S.imp.months=b.months}render()}
+function impYear(v){if(!S.imp)return;S.imp.year=Math.max(2000,Math.min(2100,+v||new Date().getFullYear()));if(S.imp.sheets&&S.imp.sheets.length)impCompute(S.imp);render()}
 function impTemplate(){const y=new Date().getFullYear();csvDl([["الاسم","الإيميل","كلمة السر","اللجنة","المنصب","شهر 9","شهر 10"],["أحمد محمد","ahmed@example.com","Pass1234","PR","Member","85","90"],["سارة علي","sara@example.com","Pass5678","HR","Member","78","88"]],"members-template.csv")}
 let _tc=null;
 const impTmpClient=()=>_tc||(_tc=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false,storageKey:"tm-import-tmp"}}));
@@ -1100,7 +1143,7 @@ function impHtml(){
   const I=S.imp||{rows:[],months:[]},ok=I.rows.filter(r=>!r.err),bad=I.rows.length-ok.length,nNew=ok.filter(r=>r.mode==="new").length,nUp=ok.length-nNew,nAcc=ok.filter(r=>r.password).length,nSc=ok.reduce((a,r)=>a+Object.keys(r.scores).length,0);
   const dn=I.done;
   return`<div class="ov"><div class="card"><div class="row" style="justify-content:space-between"><b style="font-size:17px">⬆ استيراد أعضاء من شيت</b><button class="g ico" onclick="S.modal=null;S.imp=null;render()">✕</button></div>
-  <p class="mu" style="margin:6px 0;font-size:13px">ملف Excel (xlsx) أو CSV. الأعمدة: <b>الاسم، الإيميل، كلمة السر، اللجنة، المنصب</b> وبعدهم أعمدة التقييم الإجمالي لأي شهر، زي <b>شهر 9</b> أو <b>شهر 11</b> أو <b>2026-11</b> أو اسم الشهر، وتقدر تضيف أي عدد من الشهور. كلهم اختياري ما عدا الإيميل (والاسم واللجنة للعضو الجديد).</p>
+  <p class="mu" style="margin:6px 0;font-size:13px">ملف Excel (xlsx) أو CSV. لو الملف فيه أكتر من شيت، كل شيت بيتقري، ولو اسم الشيت شهر (زي أكتوبر أو Oct) بيتحسب تقييماته على الشهر ده. الأعمدة: <b>الاسم، الإيميل، كلمة السر، اللجنة، المنصب</b> وبعدهم أعمدة التقييم الإجمالي لأي شهر، زي <b>شهر 9</b> أو <b>شهر 11</b> أو <b>2026-11</b> أو اسم الشهر، وتقدر تضيف أي عدد من الشهور. كلهم اختياري ما عدا الإيميل (والاسم واللجنة للعضو الجديد).</p>
   <div class="row"><label class="btn" style="margin:0;color:#fff">📁 اختيار الملف<input type="file" hidden accept=".xlsx,.csv,.txt,text/csv" onchange="impFile(this.files[0]);this.value=''"></label><button class="g" onclick="impTemplate()">⬇ نموذج جاهز</button>
   <label style="display:flex;gap:6px;align-items:center;margin:0">سنة التقييمات<input type="number" style="width:90px;min-height:38px" value="${I.year||new Date().getFullYear()}" onchange="impYear(this.value)"></label></div>
   ${I.err?`<p class="err">${esc(I.err)}</p>`:""}
