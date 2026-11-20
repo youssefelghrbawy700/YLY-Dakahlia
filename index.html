@@ -501,7 +501,31 @@ function bcomView(){
 }
 function leadersView(c){
   const L=D.board.filter(b=>!bCom(b).length||bCom(b).includes(c));
-  return`<div class="card"><b>👥 مسؤولو لجنة ${esc(c)}</b></div>`+(L.length?`<div class="grid">${L.map(b=>boardCard(b,false)).join("")}</div>`:'<div class="card"><p class="mu" style="margin:0">لم تتم إضافة مسؤولين بعد.</p></div>');
+  const tier=b=>{const p=String(b.position||"");if(/vice|فايس|فيس|نائب/i.test(p))return 1;if(/head|هيد|رئيس/i.test(p))return 0;return 2};
+  const top=L.filter(b=>tier(b)<2).sort((x,y)=>tier(x)-tier(y)),rest=L.filter(b=>tier(b)===2);
+  const node=b=>`<div class="lt-n">${boardCard(b,false)}</div>`;
+  const css=`<style>
+.lt-tree{display:flex;flex-direction:column;align-items:center}
+.lt-tier{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;width:100%}
+.lt-n{flex:0 0 calc(50% - 6px);max-width:300px;position:relative}
+.lt-n>.card{margin:0;height:100%}
+.lt-line{width:2px;height:24px;background:#5b7cff;opacity:.7;margin:0 auto}
+.lt-bus{height:2px;width:calc(100% - 40px);background:#5b7cff;opacity:.7;margin:0 auto}
+.lt-two{margin-top:0}
+.lt-two .lt-n{margin-top:24px}
+.lt-two .lt-n::before{content:"";position:absolute;top:-24px;left:50%;width:2px;height:24px;background:#5b7cff;opacity:.7}
+.lt-solo .lt-n{margin-top:0}
+</style>`;
+  let tree="";
+  if(top.length){
+    tree+=`<div class="lt-tier">${top.map(node).join("")}</div>`;
+    if(rest.length){
+      tree+=`<div class="lt-line"></div>`+(rest.length>1?`<div class="lt-bus"></div>`:"")+`<div class="lt-tier lt-two">${rest.map(node).join("")}</div>`;
+    }
+  }else if(rest.length){
+    tree+=`<div class="lt-tier">${rest.map(node).join("")}</div>`;
+  }
+  return`${css}<div class="card"><b>👥 مسؤولو لجنة ${esc(c)}</b></div>`+(L.length?`<div class="lt-tree">${tree}</div>`:'<div class="card"><p class="mu" style="margin:0">لم تتم إضافة مسؤولين بعد.</p></div>');
 }
 function reqView(){
   const P=D.signups.filter(s=>s.status==="pending"),R=D.signups.filter(s=>s.status==="rejected");
