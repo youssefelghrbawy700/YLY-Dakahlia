@@ -385,15 +385,19 @@ const bPhoto=b=>b.photo_url||((D.members.find(x=>x.id===b.member_id)||{}).avatar
 async function syncBoard(mid,name,isB,cs,pos){
   const ex=D.board.find(b=>b.member_id===mid);
   if(!isB){if(!ex)return null;return(await sb.from("board").delete().eq("member_id",mid)).error}
-  const row={name,position:pos||(ex&&ex.position)||"Board",committees:cs,committee:cs.length===1?cs[0]:null,member_id:mid};
+  const row={name,position:pos||(ex&&ex.position)||"Board",committees:cs,committee:cs.length===1?cs[0]:null,member_id:mid,can_evaluate:ex?!!ex.can_evaluate:false};
   return(ex?await sb.from("board").update(row).eq("id",ex.id):await sb.from("board").insert(row)).error;
 }
 function togRole(){const w=document.getElementById("bdw"),r=document.getElementById("mr");if(w&&r)w.style.display=r.value==="Board"?"block":"none"}
-const isMgr=()=>!!(me&&!me.is_admin&&D.follows.some(f=>f.manager_id===me.id));
+const myEvalCom=()=>me?[...new Set(D.board.filter(b=>b.member_id===me.id&&b.can_evaluate).flatMap(bCom))]:[];
+const isHeadPos=p=>/head|هيد|رئيس|vice|فايس|فيس|نائب/i.test(String(p||""));
+const myWarnCom=()=>me?[...new Set(D.board.filter(b=>b.member_id===me.id&&b.can_evaluate&&isHeadPos(b.position)).flatMap(bCom))]:[];
+const canWarnFor=m=>!!(me&&(isAdm()||myWarnCom().includes(m.committee)));
+const isMgr=()=>!!(me&&!me.is_admin&&(D.follows.some(f=>f.manager_id===me.id)||myEvalCom().length));
 const curMonth=()=>new Date().toISOString().slice(0,7);
 const ago=t=>{if(!t)return"لم يدخل بعد";const s=(Date.now()-new Date(t))/1000;if(s<90)return"دلوقتي";if(s<3600)return"من "+Math.round(s/60)+" دقيقة";if(s<86400)return"من "+Math.round(s/3600)+" ساعة";return"من "+Math.round(s/86400)+" يوم"};
 const dk=(id,mo)=>`tm-draft:${id}:${mo}`;
-const myFollows=()=>D.follows.filter(f=>f.manager_id===(me&&me.id)).map(f=>D.members.find(x=>x.id===f.member_id)).filter(Boolean);
+const myFollows=()=>{const ids=new Set(D.follows.filter(f=>f.manager_id===(me&&me.id)).map(f=>f.member_id)),ec=myEvalCom();return D.members.filter(x=>ids.has(x.id)||(ec.includes(x.committee)&&!(me&&x.id===me.id)))};
 const tabBar=l=>{NAV=l;return""};
 
 async function load(){
@@ -484,7 +488,7 @@ function memberCard(m,adm){
   <div class="bar" style="margin:8px 0"><i style="width:${Math.min(100,score(m)/mx*100)}%"></i></div>
   <div class="row">${gpill(m)}${trend(delta(m))}${w?`<span class="pill dn">⚠️ ${w} إنذار</span>`:""}<span style="flex:1"></span>
   <button class="g" onclick="S.modal={t:'rec',id:'${m.id}'};render()">+ تقييم شهر</button><button class="g" onclick="S.modal={t:'hist',id:'${m.id}'};render()">الشهور</button><button class="g" onclick="S.modal={t:'view',id:'${m.id}'};render()">عرض</button>
-  ${adm?`<button class="g" onclick="S.modal={t:'warn',id:'${m.id}'};render()">إنذار</button><button class="g" onclick="S.modal={t:'mem',id:'${m.id}'};render()">تعديل</button>`:""}</div></div>`;
+  ${adm||canWarnFor(m)?`<button class="g" onclick="S.modal={t:'warn',id:'${m.id}'};render()">إنذار</button>`:""}${adm?`<button class="g" onclick="S.modal={t:'mem',id:'${m.id}'};render()">تعديل</button>`:""}</div></div>`;
 }
 const boardCard=(b,adm,two)=>`<div class="card" style="text-align:center">${bPhoto(b)?`<div class="${adm?"":"nodl"}">${imgT(bPhoto(b),"","width:96px;height:96px;border-radius:24px;object-fit:cover")}</div>`:`<div class="av lg" style="margin:0 auto;width:96px;height:96px;font-size:36px">${esc((b.name||"?")[0])}</div>`}<div style="margin-top:8px"><b>${esc(two?nm2(b.name):nm(b.name))}</b></div><div class="mu">${esc(b.position)}</div><div class="mu">${(()=>{const c=bCom(b);return!c.length||c.length>=COM4.length?"كل اللجان":"لجنة "+c.map(esc).join(" + ")})()}</div>${adm&&b.member_id?`<div class="mu" style="font-size:12px">🔑 ${esc(nm((D.members.find(x=>x.id===b.member_id)||{}).name||"حساب"))} · يشوف تقييمات لجنته أول بأول</div>`:""}${adm?`<div class="row" style="justify-content:center;margin-top:8px"><button class="g" onclick="bFile=null;S.modal={t:'brd',id:'${b.id}'};render()">تعديل</button><button class="g" onclick="delBoard('${b.id}')">حذف</button></div>`:""}</div>`;
 function bcomView(){
@@ -618,10 +622,19 @@ function adminView(){
   else sub=photosView();
   return topbar()+tabBar(tabs)+sub;
 }
+function mgrList(mine){
+  if(!mine.length)return"";
+  const k=S.msort||"name_asc";
+  const cmp={name_asc:(a,b)=>nm(a.name).localeCompare(nm(b.name),"ar"),name_desc:(a,b)=>nm(b.name).localeCompare(nm(a.name),"ar"),score_desc:(a,b)=>score(b)-score(a),score_asc:(a,b)=>score(a)-score(b)}[k]||((a,b)=>0);
+  const opts=[["name_asc","الاسم ↑"],["name_desc","الاسم ↓"],["score_desc","التقييم ↓"],["score_asc","التقييم ↑"]];
+  const bar=`<div class="row" style="gap:6px;flex-wrap:wrap;margin-bottom:10px">${opts.map(([v,t])=>`<button class="g" style="padding:5px 11px;font-size:12px;${k===v?"background:var(--pr);color:#fff;border-color:transparent":""}" onclick="S.msort='${v}';render()">${t}</button>`).join("")}</div>`;
+  const cs=[...new Set(mine.map(m=>m.committee))].sort();
+  return bar+cs.map(c=>{const L=mine.filter(m=>m.committee===c).sort(cmp);return`<div style="font-weight:800;margin:12px 2px 6px">${esc(c)} <span class="mu">(${L.length})</span></div>`+L.map(m=>memberCard(m,false)).join("")}).join("");
+}
 function mgrView(){
   const mine=myFollows();
   return topbar()+tabBar([["follow","متابعة الأعضاء"],["me","حسابي"],["leaders","👥 المسؤولون"]].concat(isBoardAcc()?[["bcom","📊 لجنتي"]]:[],dTab(),evTab(),phTab()))+
-  (S.tab==="me"?memberView(me,true):S.tab==="leaders"?leadersView(me.committee):S.tab==="events"&&evOk()?eventsView():S.tab==="designs"&&canDesign()?designsView():S.tab==="photos"&&canDesign()?photosView():S.tab==="bcom"&&isBoardAcc()?bcomView():`<p class="mu">بتتابع ${mine.length} عضو</p>`+(mine.map(m=>memberCard(m,false)).join("")||'<p class="mu">لم تُحدَّد لك متابعات بعد.</p>'));
+  (S.tab==="me"?memberView(me,true):S.tab==="leaders"?leadersView(me.committee):S.tab==="events"&&evOk()?eventsView():S.tab==="designs"&&canDesign()?designsView():S.tab==="photos"&&canDesign()?photosView():S.tab==="bcom"&&isBoardAcc()?bcomView():`<p class="mu">بتتابع ${mine.length} عضو</p>`+(mgrList(mine)||'<p class="mu">لم تُحدَّد لك متابعات بعد.</p>'));
 }
 
 /* ---------- الأحداث والحضور (نزولات / تاسكات / سيشنات / اجتماعات) ---------- */
@@ -1521,6 +1534,7 @@ function modal(){
   if(t.t==="brd"){const b=D.board.find(x=>x.id===t.id);return`<div class="ov"><div class="card"><b>${b?"تعديل":"إضافة"} عضو بورد</b>
     <label>الاسم</label><input id="bn" value="${esc(b?.name)}"><label>المنصب</label><select id="bp">${(()=>{const P=["Head","Vice Head","Leader","Advisor"],cur=b?.position||"";const L=cur&&!P.includes(cur)?[cur,...P]:P;return L.map(p=>`<option value="${esc(p)}" ${p===cur?"selected":""}>${esc(p)}</option>`).join("")})()}</select>
     <label>مسؤول في لجنة إيه؟ (دوس على واحدة أو أكتر)</label><div class="row" id="bcs">${COM4.map(c=>`<button type="button" class="g chip bcm ${b&&bCom(b).includes(c)?"on":""}" data-c="${c}" onclick="this.classList.toggle('on')">${c}</button>`).join("")}<button type="button" class="g chip" onclick="document.querySelectorAll('#bcs .bcm').forEach(x=>x.classList.add('on'))">كل اللجان</button><button type="button" class="g chip" onclick="document.querySelectorAll('#bcs .bcm').forEach(x=>x.classList.remove('on'))">مسح</button></div>
+    <label class="row" style="gap:8px;align-items:center;margin:8px 0"><input type="checkbox" id="bev" ${b?.can_evaluate?"checked":""} style="width:auto"> يقيّم ويراجع ويكتب إنذارات لكل اللجان اللي اخترتها</label>
     <label>حساب المسؤول (اختياري)</label><select id="bm"><option value="">بدون حساب (عرض فقط في صفحة المسؤولين)</option>${[...D.members].sort((x,y)=>nm2(x.name).localeCompare(nm2(y.name),"ar")).map(x=>`<option value="${x.id}" ${b?.member_id===x.id?"selected":""}>${esc(nm2(x.name))} · ${esc(x.committee)}</option>`).join("")}</select>
     <p class="mu" style="font-size:12px;margin:4px 0 0">لو اخترت حساب: صاحبه هيشوف تقييمات اللجان المختارة كلها أول بأول حتى قبل الإعلان (عرض فقط).</p>
     <label>الصورة</label><input type="file" accept="image/*" onchange="bFile=this.files[0]">${b?.photo_url?'<p class="mu">سيب الصورة فاضية للإبقاء على الحالية.</p>':""}
@@ -1570,7 +1584,7 @@ async function saveMem(id){
   S.modal=null;await load();render();
 }
 async function saveBoard(id){
-  const v=s=>$(s).value.trim(),cs=[...document.querySelectorAll("#bcs .bcm.on")].map(x=>x.dataset.c),row={name:v("#bn"),position:v("#bp"),committees:cs,committee:cs.length===1?cs[0]:null,member_id:v("#bm")||null};
+  const v=s=>$(s).value.trim(),cs=[...document.querySelectorAll("#bcs .bcm.on")].map(x=>x.dataset.c),row={name:v("#bn"),position:v("#bp"),committees:cs,committee:cs.length===1?cs[0]:null,member_id:v("#bm")||null,can_evaluate:!!$("#bev")?.checked};
   if(!row.name||!row.position){$("#mm").textContent="الاسم والمنصب مطلوبين";return}
   if(row.member_id&&!cs.length){$("#mm").textContent="اختار لجنة واحدة على الأقل لحساب المسؤول";return}
   try{
@@ -2235,7 +2249,7 @@ function render(){
   else if(isMgr())h=mgrView();
   else if(isBoardAcc())h=topbar()+tabBar([["bcom","📊 تقييمات لجنتي"],["me","حسابي"],["leaders","👥 مسؤولو اللجنة"]].concat(dTab(),evTab(),phTab()))+(S.tab==="me"?memberView(me,true):S.tab==="leaders"?leadersView(me.committee):S.tab==="events"&&evOk()?eventsView():S.tab==="designs"&&canDesign()?designsView():S.tab==="photos"&&canDesign()?photosView():bcomView());
   else h=topbar()+tabBar([["me","حسابي"],["leaders","👥 مسؤولو اللجنة"]].concat(dTab(),evTab(),phTab()))+(S.tab==="leaders"?leadersView(me.committee):S.tab==="events"&&evOk()?eventsView():S.tab==="designs"&&canDesign()?designsView():S.tab==="photos"&&canDesign()?photosView():memberView(me,true));
-  const ok=!!(S.modal&&me&&(isAdm()||(canDesign()&&S.modal.t==="photo")||(isMgr()&&["rec","view","hist"].includes(S.modal.t))||(isBoardAcc()&&["view","hist"].includes(S.modal.t))));
+  const ok=!!(S.modal&&me&&(isAdm()||(canDesign()&&S.modal.t==="photo")||(isMgr()&&["rec","view","hist"].includes(S.modal.t))||(S.modal.t==="warn"&&myWarnCom().length>0)||(isBoardAcc()&&["view","hist"].includes(S.modal.t))));
   const navH=navHtml(),key=[session?1:0,loaded?1:0,me?me.id:0,S.tab,S.recover?1:0,S.signup||""].join("|"),same=key===RKEY&&!S.hard;RKEY=key;S.hard=false;
   const app=$("#app"),mdl=$("#mdl"),y=window.scrollY,mc0=mdl.querySelector(".card"),my=mc0?mc0.scrollTop:0;
   if(same&&app.firstElementChild&&!app.querySelector(".sk")){try{morphInto(app,h)}catch(e){console.error(e);app.innerHTML=h}}
