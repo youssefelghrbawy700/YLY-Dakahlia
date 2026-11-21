@@ -279,11 +279,38 @@ function syncCnt(i){const n=$("#lg_"+i).children.length;if(n)$("#"+i+"a").value=
 function fillRec(id){const m=D.members.find(x=>x.id===id),r=(m.rec||{})[$("#rm").value]||{};ks(m.committee).forEach(([i])=>{const a=r[i]||["",""];$("#lg_"+i).innerHTML="";((r.log||{})[i]||[]).forEach(x=>addLog(i,x.d,x.n,x.q,x.l));$("#ex_"+i).innerHTML="";((r.exc||{})[i]||[]).forEach(x=>addEx(i,x.d,x.n,x.a));$("#"+i+"a").value=a[0];$("#"+i+"b").value=a[1]});xs(m.committee).forEach(([k])=>{$("#"+k).value=r[k]??""});$("#rmn").value=r.man??"";S.modal.mo=$("#rm").value;applyDraft(id)}
 const logs=(r,id)=>((r.log||{})[id]||[]).length?'<div class="mu" style="margin-top:4px">'+KN[id]+": "+r.log[id].map(x=>esc(x.d.slice(5).split("-").reverse().join("/"))+(x.n?" ("+esc(x.n)+")":"")+(x.q!=null?" جودة "+x.q:"")+(x.l!=null?(x.l?" ✓ في الميعاد":" ✗ متأخر"):"")).join(" · ")+'</div>':"";
 const excs=(r,id)=>((r.exc||{})[id]||[]).length?'<div class="mu" style="margin-top:4px">اعتذارات '+KN[id]+": "+r.exc[id].map(x=>esc(x.d.slice(5).split("-").reverse().join("/"))+(x.n?" ("+esc(x.n)+")":"")+(x.a?" ✓مقبول":" ✗غير مقبول")).join(" · ")+'</div>':"";
+/* تعديل الاعتذار/الحضور من شاشة التقييم لازم يتكتب في جدول الحضور (هو المصدر)، وإلا الدمج بيرجّع القديم */
+async function recSyncAtt(m,mo,r){
+  const evs=D.ev.filter(e=>evMo(e.d)===mo&&evApplies(e,m)).sort((a,b)=>String(a.d).localeCompare(String(b.d)));
+  if(!evs.length)return r;
+  const AM={};D.att.forEach(a=>{if(a.member_id===m.id)AM[a.event_id]=a});
+  const uL={},uE={},ups=[],dels=[];
+  const pick=(list,e,used,tg)=>{let i=list.findIndex((x,j)=>!used[tg+j]&&x.d===e.d&&x.n===e.title);
+    if(i<0&&evs.filter(z=>z.kind===e.kind&&z.d===e.d).length===1)i=list.findIndex((x,j)=>!used[tg+j]&&x.d===e.d);
+    if(i>=0)used[tg+i]=1;return i>=0?list[i]:null};
+  evs.forEach(e=>{
+    const cur=AM[e.id],li=pick((r.log||{})[e.kind]||[],e,uL,e.kind+"l"),ei=pick((r.exc||{})[e.kind]||[],e,uE,e.kind+"e");
+    let st=null,q=cur?cur.q:null,l=cur?cur.l:null;
+    if(li&&ei)st=cur&&cur.status==="present"?(ei.a?"ex_ok":"ex_no"):"present";
+    else if(li)st="present";else if(ei)st=ei.a?"ex_ok":"ex_no";
+    if(st==="present"&&li){if(li.q!==undefined)q=li.q;if(li.l!==undefined)l=!!li.l}
+    if(!st){if(cur&&cur.status!=="absent")dels.push(e.id);return}
+    if(st!=="present"){q=null;l=null}
+    const nq=v=>v==null?null:+v,nl=v=>v==null?null:!!v;
+    if(!cur||cur.status!==st||nq(cur.q)!==nq(q)||nl(cur.l)!==nl(l))ups.push({event_id:e.id,member_id:m.id,status:st,q:nq(q),l:nl(l),by_member:me.id,updated_at:new Date().toISOString()});
+  });
+  if(ups.length){const x=await sb.from("attendance").upsert(ups,{onConflict:"event_id,member_id"});if(x.error)throw x.error}
+  if(dels.length){const x=await sb.from("attendance").delete().eq("member_id",m.id).in("event_id",dels);if(x.error)throw x.error}
+  if(ups.length||dels.length)D.att=D.att.filter(a=>!(a.member_id===m.id&&(dels.includes(a.event_id)||ups.some(u=>u.event_id===a.event_id)))).concat(ups);
+  const keep=m.rec[mo];m.rec[mo]=r;let out;try{out=evMerge(m,mo)}finally{m.rec[mo]=keep}
+  return out;
+}
 async function saveRec(id){
   const k=$("#rm").value;if(!k)return;const r={};
   const cm=(D.members.find(x=>x.id===id)||{}).committee;ks(cm).forEach(([i])=>r[i]=[+$("#"+i+"a").value||0,+$("#"+i+"b").value||0]);xs(cm).forEach(([k])=>{const v=$("#"+k).value.trim();if(v!=="")r[k]=Math.max(0,+v)});
   const lg={};ks(cm).forEach(([i])=>{const L=[...$("#lg_"+i).children].map(e=>({d:e.querySelector(".ld").value,n:e.querySelector(".ln").value.trim(),q:e.querySelector(".lq")?Math.max(0,Math.min(5,+e.querySelector(".lq").value||0)):undefined,l:e.querySelector(".ll")?(e.querySelector(".ll").checked?1:0):undefined})).filter(x=>x.d).sort((a,b)=>a.d.localeCompare(b.d));if(L.length)lg[i]=L});if(Object.keys(lg).length)r.log=lg;const ex={};ks(cm).forEach(([i])=>{const L=[...$("#ex_"+i).children].map(e=>({d:e.querySelector(".ed").value,n:e.querySelector(".en").value.trim(),a:e.querySelector(".ea").value==="1"})).filter(x=>x.d).sort((a,b)=>a.d.localeCompare(b.d));if(L.length)ex[i]=L});if(Object.keys(ex).length)r.exc=ex;r.ex=Object.values(ex).reduce((a,l)=>a+l.length,0);const mv=$("#rmn").value.trim();if(mv!=="")r.man=Math.max(0,Math.min(maxS((D.members.find(x=>x.id===id)||{}).committee),+mv));
-  const x=await sb.from("records").upsert({member_id:id,month:k,data:r},{onConflict:"member_id,month"});
+  let data=r;try{data=await recSyncAtt(D.members.find(z=>z.id===id),k,r)}catch(e){$("#mm").textContent="تعذر تحديث الحضور: "+(e.message||e);return}
+  const x=await sb.from("records").upsert({member_id:id,month:k,data},{onConflict:"member_id,month"});
   if(x.error){$("#mm").textContent=x.error.message;return}
   clearDraft(id,k);S.modal=null;await load();render();
 }
@@ -1182,13 +1209,18 @@ const evTogC=c=>{const a=S.evf.com;S.evf.com=a.includes(c)?a.filter(x=>x!==c):[.
 const evOpen=id=>{S.evo=S.evo===id?null:id;render()};
 async function evSave(){const f=S.evf,m=$("#evfm");if(!f.title.trim()||!f.d){m.textContent="اكتب الاسم والتاريخ";return}
   if(!f.com.length){m.textContent="اختار لجنة واحدة على الأقل";return}
-  const row={kind:f.kind,title:f.title.trim(),d:f.d,committees:f.com.length===COM4.length?[]:f.com},old=f.id&&D.ev.find(x=>x.id===f.id);
+  const row={kind:f.kind,title:f.title.trim(),d:f.d,committees:f.com.length===COM4.length?[]:f.com},old=f.id&&D.ev.find(x=>x.id===f.id),oldMems=old?evAffected(old):[];
   const r=f.id?await sb.from("events").update(row).eq("id",f.id):await sb.from("events").insert(Object.assign({created_by:me.id},row));
   if(r.error){m.textContent=r.error.message;return}
-  S.evf=null;S.evm=evMo(f.d);await loadEv();RECB=false;await evReconcile();render()}
-async function evDel(id){if(!confirm("حذف الحدث ده وكل تسجيلات حضوره؟"))return;const e=D.ev.find(x=>x.id===id),mids=[...new Set(D.att.filter(a=>a.event_id===id).map(a=>a.member_id))];
+  S.evf=null;S.evm=evMo(f.d);await loadEv();
+  if(old&&(evMo(old.d)!==evMo(f.d)||old.kind!==f.kind||JSON.stringify(old.committees||[])!==JSON.stringify(row.committees)))await evResyncMems(oldMems,evMo(old.d));
+  RECB=false;await evReconcile();render()}
+const evAffected=e=>{const ids=new Set(D.att.filter(a=>a.event_id===e.id).map(a=>a.member_id));return D.members.filter(m=>ids.has(m.id)||evApplies(e,m))};
+const evResyncMems=(mems,mo)=>Promise.all(mems.filter(m=>m.rec[mo]).map(m=>evSync(m.id,mo,true)));
+async function evDel(id){const e=D.ev.find(x=>x.id===id);if(!e)return;if(!confirm("حذف الحدث ده نهائيًا من كل الأعضاء ومن التقييمات؟"))return;
+  const mo=evMo(e.d),mems=evAffected(e);
   const r=await sb.from("events").delete().eq("id",id);if(r.error){S.evMsg=r.error.message;return render()}
-  S.evf=null;S.evo=null;await loadEv();RECB=false;await evReconcile();render()}
+  S.evf=null;S.evo=null;await loadEv();await evResyncMems(mems,mo);RECB=false;await evReconcile();render()}
 async function evMark(eid,mid,st){
   const e=D.ev.find(x=>x.id===eid),cur=D.att.find(a=>a.event_id===eid&&a.member_id===mid);let err;
   if(cur&&cur.status===st){D.att=D.att.filter(a=>a!==cur);render();err=(await sb.from("attendance").delete().eq("event_id",eid).eq("member_id",mid)).error}
