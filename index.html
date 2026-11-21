@@ -235,7 +235,7 @@ const delta=m=>{const k=months(m);return k.length<2?0:mscore(m.rec[k[k.length-1]
 const comms=()=>[...new Set(D.members.map(m=>m.committee).filter(Boolean))];
 const isBrd=m=>m.role==="Board";
 const rankIn=m=>D.members.filter(x=>x.committee===m.committee&&isBrd(x)===isBrd(m)).sort((a,b)=>score(b)-score(a));
-const trend=d=>!isAdm()?"":d>=5?'<span class="pill up">↗ +'+d+'%</span>':d<=-5?'<span class="pill dn">↘ '+d+'%</span>':'<span class="pill st">➡ مستقر</span>';
+const trend=d=>!isAdm()?"":d>=5?'<span class="pill up">↗ +'+Math.round(d)+'%</span>':d<=-5?'<span class="pill dn">↘ '+Math.round(d)+'%</span>':'<span class="pill st">➡ مستقر</span>';
 function theme(){const r=document.documentElement;r.dataset.theme=r.dataset.theme==="light"?"dark":"light";const tc=document.querySelector('meta[name=theme-color]');if(tc)tc.content=r.dataset.theme==="light"?"#eef1fb":"#0b1020";try{localStorage.setItem("tm-theme",r.dataset.theme)}catch(e){}}
 {const t=localStorage.getItem("tm-theme");if(t)document.documentElement.dataset.theme=t}
 function chart(m){
@@ -411,8 +411,8 @@ async function load(){
   if(a.error||b.error){S.msg=(a.error||b.error).message;D.members=[];loaded=true;return}
   const by={};a.data.forEach(m=>{m.rec={};m.meta={};by[m.id]=m});
   b.data.forEach(r=>{const m=by[r.member_id];if(m){m.rec[r.month]=r.data;m.meta[r.month]={by:r.by_member,at:r.updated_at}}});
-  D.members=a.data;D.warn=w.data||[];D.ann=(n.data||[]).map(x=>x.month);D.signups=su.data||[];D.follows=fo.data||[];D.board=bd.data||[];{const al=await sb.from("event_albums").select("*").order("event_date",{ascending:false}),ap=await sb.from("event_photos").select("*").order("created_at");D.albums=al.data||[];D.albPhotos=ap.data||[];D.albUrl={};const ps=D.albPhotos.map(p=>p.path);for(let i=0;i<ps.length;i+=200){const sg=await sb.storage.from("event-photos").createSignedUrls(ps.slice(i,i+200),3600);(sg.data||[]).forEach(x=>{if(x.signedUrl)D.albUrl[x.path]=x.signedUrl})}}await loadEv();
-  me=D.members.find(m=>m.user_id===session.user.id)||null;if(isAdm()){const tq=await sb.from("trash").select("*").order("deleted_at",{ascending:false});D.trash=tq.data||[]}
+  D.members=a.data;D.warn=w.data||[];D.ann=(n.data||[]).map(x=>x.month);D.signups=su.data||[];D.follows=fo.data||[];D.board=bd.data||[];{const al=await sb.from("event_albums").select("*").order("event_date",{ascending:false}),ap=await sb.from("event_photos").select("*").order("created_at");D.albums=al.data||[];D.albPhotos=ap.data||[];D.albUrl={};D.albUrlReady=false}await loadEv();
+  me=D.members.find(m=>m.user_id===session.user.id)||null;if(isAdm()&&S.tab==="trash"){const tq=await sb.from("trash").select("*").order("deleted_at",{ascending:false});D.trash=tq.data||[];D.trashLoaded=true}
 if(isAdm()){const bq=await sb.from("member_birthdays").select("member_id,birth_date");D.bdays={};(bq.data||[]).forEach(x=>D.bdays[x.member_id]=x.birth_date)}
 setTimeout(evReconcile,0);if(isAdm())setTimeout(()=>{try{sb.rpc("backup_if_due").then(()=>{},()=>{})}catch(e){}},2000);setTimeout(()=>loadNt().then(()=>render()),0);loadCfg().then(()=>{RECB=false;evReconcile()});
   const c=await sb.rpc("my_warning_count");myWarn=c.data||0;
@@ -502,8 +502,12 @@ function mlistItems(){
 function mlistHtml(){
   const L=mlistItems();
   if(!L.length)return'<p class="mu">مفيش أعضاء بالبحث ده.</p>';
-  return L.map(m=>`<div class="row" style="gap:8px;align-items:flex-start"><input type="checkbox" style="margin-top:16px;width:20px;height:20px;flex:0 0 20px" ${(S.sel||[]).includes(m.id)?"checked":""} onchange="selT('${m.id}',this.checked)"><div style="flex:1;min-width:0">${memberRow(m)}</div></div>`).join("");
+  return L.map(m=>{const on=(S.sel||[]).includes(m.id);return `<div data-mid="${m.id}" style="border-radius:16px;${on?"outline:2px solid var(--pr);":""}">${memberRow(m)}</div>`}).join("");
 }
+let _lpT=null,_lpFired=false;
+document.addEventListener("pointerdown",e=>{const c=e.target.closest&&e.target.closest("[data-mid]");if(!c||!c.closest("#mlist"))return;_lpFired=false;clearTimeout(_lpT);_lpT=setTimeout(()=>{_lpFired=true;const id=c.dataset.mid,on=!(S.sel||[]).includes(id);selT(id,on);c.style.outline=on?"2px solid var(--pr)":"";if(navigator.vibrate)navigator.vibrate(20)},500)});
+["pointerup","pointerleave","pointercancel","pointermove"].forEach(ev=>document.addEventListener(ev,()=>clearTimeout(_lpT)));
+document.addEventListener("click",e=>{const c=e.target.closest&&e.target.closest("[data-mid]");if(!c||!c.closest("#mlist"))return;if(_lpFired){_lpFired=false;e.preventDefault();e.stopPropagation();return}if((S.sel||[]).length){e.preventDefault();e.stopPropagation();const id=c.dataset.mid,on=!(S.sel||[]).includes(id);selT(id,on);c.style.outline=on?"2px solid var(--pr)":""}},true);
 function selT(id,on){const cur=(S.sel||[]).filter(x=>x!==id);S.sel=on?[...cur,id]:cur;const bb=document.getElementById("bulkbar");if(bb)bb.innerHTML=bulkHtml()}
 function selAll(){S.sel=mlistItems().map(m=>m.id);render()}
 function bulkHtml(){
@@ -660,7 +664,16 @@ let ALBPEND={aid:null,fail:[],msg:""};
 function prgShow(t){let e=document.getElementById("prg");if(!e){e=document.createElement("div");e.id="prg";e.style.cssText="position:fixed;top:0;left:0;right:0;z-index:99;background:#151a33;color:#fff;padding:8px 14px;font-size:13px;box-shadow:0 2px 10px #0008";e.innerHTML='<div id="prgt"></div><div style="height:6px;background:#2a3050;border-radius:6px;margin-top:6px;overflow:hidden"><i id="prgb" style="display:block;height:100%;width:0;background:linear-gradient(90deg,#5b7cff,#8b5cf6);transition:width .15s"></i></div>';document.body.appendChild(e)}e.style.display="block";document.getElementById("prgt").textContent=t||"";prgSet(0)}
 function prgSet(f){const b=document.getElementById("prgb");if(b)b.style.width=Math.round(Math.max(0,Math.min(1,f||0))*100)+"%"}
 function prgHide(){const e=document.getElementById("prg");if(e)e.style.display="none"}
-function upXhr(bucket,path,file,upsert,ct){return new Promise(res=>{const x=new XMLHttpRequest();const p=String(path).split("/").map(encodeURIComponent).join("/");x.open("POST",SUPABASE_URL+"/storage/v1/object/"+bucket+"/"+p);x.setRequestHeader("apikey",SUPABASE_ANON_KEY);x.setRequestHeader("Authorization","Bearer "+(session&&session.access_token||SUPABASE_ANON_KEY));x.setRequestHeader("x-upsert",upsert?"true":"false");x.setRequestHeader("Content-Type",ct||file.type||"application/octet-stream");x.upload.onprogress=e=>{if(e.lengthComputable)prgSet(e.loaded/e.total)};x.onload=()=>res(x.status<300?{error:null}:{error:{message:"رفع الملف فشل ("+x.status+")"}});x.onerror=()=>res({error:{message:"مشكلة في الاتصال، جرّب تاني"}});x.send(file)})}
+function upXhr(bucket,path,file,upsert,ct){return new Promise(res=>{
+  const e=document.getElementById("prg"),own=!(e&&e.style.display==="block");
+  if(own)prgShow("جاري الرفع: "+String((file&&file.name)||path).slice(0,40));
+  const done=v=>{if(own)prgHide();res(v)};
+  const x=new XMLHttpRequest();const p=String(path).split("/").map(encodeURIComponent).join("/");
+  x.open("POST",SUPABASE_URL+"/storage/v1/object/"+bucket+"/"+p);x.setRequestHeader("apikey",SUPABASE_ANON_KEY);x.setRequestHeader("Authorization","Bearer "+(session&&session.access_token||SUPABASE_ANON_KEY));x.setRequestHeader("x-upsert",upsert?"true":"false");x.setRequestHeader("Content-Type",ct||(file&&file.type)||"application/octet-stream");
+  x.upload.onprogress=ev=>{if(ev.lengthComputable)prgSet(ev.loaded/ev.total)};
+  x.onload=()=>{let why="";try{const j=JSON.parse(x.responseText||"{}");why=j.message||j.error||""}catch(e){why=x.responseText||""}done(x.status<300?{error:null}:{error:{message:"رفع الملف فشل ("+x.status+")"+(why?": "+why:"")}})};
+  x.onerror=()=>done({error:{message:"مشكلة في الاتصال، جرّب تاني"}});
+  x.send(file)})}
 async function dlUrl(url,name){
   const ext=(String(url).split("?")[0].split(".").pop()||"jpg").toLowerCase();
   const fn=String(name||"photo").endsWith("."+ext)?String(name||"photo"):String(name||"photo")+"."+ext;
@@ -676,13 +689,31 @@ async function dlUrl(url,name){
 async function dlEl(el){dlUrl(el.dataset.u,el.dataset.n)}
 async function dlPhoto(i){const x=PH[i];if(!x)return;dlUrl(x.u,nm(x.n||"photo"))}
 const urlOf=p=>(D.albUrl&&D.albUrl[p.path])||"";
+async function bdaySave(){const id=$("#bdm").value,d=$("#bdd").value;if(!id||!d){$("#mm").textContent="اختار العضو والتاريخ";return}const r=await sb.from("member_birthdays").upsert({member_id:id,birth_date:d},{onConflict:"member_id"});if(r.error){$("#mm").textContent=r.error.message;return}S.modal=null;await load();render();toast("اتحفظ ✓","ok")}
+async function bdayImport(file){
+  if(!file)return;
+  try{
+    const sheets=/\.xlsx$/i.test(file.name)?await xlsxSheets(await file.arrayBuffer()):[{rows:csvParse(await file.text())}];
+    const rows=((sheets[0]||{}).rows)||[];
+    const nk=IMPH.name.map(impNorm),bk=IMPH.birth.map(impNorm);
+    const hi=rows.findIndex(r=>r.some(c=>nk.includes(impNorm(c))));
+    if(hi<0)return alert("ملقتش عمود الاسم في الملف");
+    const hdr=rows[hi].map(c=>impNorm(c));
+    const ni=hdr.findIndex(h=>nk.includes(h)),bi=hdr.findIndex(h=>bk.includes(h));
+    if(bi<0)return alert("ملقتش عمود تاريخ الميلاد في الملف");
+    const ok=[],miss=[];
+    rows.slice(hi+1).forEach(r=>{const v=String(r[ni]||"").trim();if(!v)return;const d=impBirth(r[bi]);if(!d){miss.push(v+" (تاريخ غلط)");return}const m=D.members.find(x=>impNorm(x.name)===impNorm(v));if(!m){miss.push(v+" (مش موجود)");return}ok.push({member_id:m.id,birth_date:d})});
+    S.bdImp={ok,miss};render();
+  }catch(e){alert("مقدرتش أقرا الملف")}
+}
+async function bdayImportSave(){const ok=(S.bdImp||{}).ok||[];if(!ok.length)return;for(let i=0;i<ok.length;i+=100){const r=await sb.from("member_birthdays").upsert(ok.slice(i,i+100),{onConflict:"member_id"});if(r.error)return alert(r.error.message)}const n=ok.length;S.bdImp=null;S.modal=null;await load();render();toast(`اتحفظ ${n} تاريخ ✓`,"ok")}
 function bdayView(){
   const B=D.bdays||{},mem=D.members.filter(m=>B[m.id]),mo=S.bdm||(new Date().getMonth()+1);
   const cnt=k=>mem.filter(m=>+B[m.id].slice(5,7)===k).length;
   const tabs=`<div class="tabs" style="flex-wrap:wrap">${MO.map((n,i)=>`<button class="${i+1===mo?"on":""}" onclick="S.bdm=${i+1};render()">${n} (${cnt(i+1)})</button>`).join("")}</div>`;
   const L=mem.filter(m=>+B[m.id].slice(5,7)===mo).sort((a,b)=>B[a.id].slice(8,10).localeCompare(B[b.id].slice(8,10))||nm(a.name).localeCompare(nm(b.name),"ar"));
   window._bdayTxt=L.map(m=>`🎂 ${+B[m.id].slice(8,10)} ${MO[mo-1]} — ${nm(m.name)}`).join("\n");
-  const head=`<div style="margin-bottom:8px"><b>🎂 أعياد الميلاد</b> <span class="mu">(للأدمن بس)</span></div>`;
+  const head=`<div style="margin-bottom:8px"><b>🎂 أعياد الميلاد</b> <span class="mu">(للأدمن بس)</span><div class="row" style="gap:6px;margin-top:6px"><button onclick="S.modal={t:'bdayadd'};render()">+ إضافة يدوي</button><button class="g" onclick="S.modal={t:'bdayimp'};S.bdImp=null;render()">⬆ استيراد Excel</button></div></div>`;
   const copy=L.length?`<div class="row" style="justify-content:space-between;margin:10px 0"><span class="mu">${L.length} عيد ميلاد في ${MO[mo-1]}</span><button class="g" onclick="bdayCopy()">📋 نسخ القايمة</button></div>`:"";
   return head+tabs+copy+(L.length?L.map(m=>`<div class="card" style="padding:8px 10px;margin-bottom:6px;display:flex;gap:10px;align-items:center">${avatar(m)}<div style="flex:1;min-width:0"><b>${esc(nm(m.name))}</b><div class="mu">${esc(m.committee)}</div></div><b style="font-size:18px">${+B[m.id].slice(8,10)}</b></div>`).join(""):`<p class="mu">مفيش أعياد ميلاد في ${MO[mo-1]}.</p>`);
 }
@@ -800,7 +831,9 @@ async function trashPurge(id){
   const d=await sb.from("trash").delete().eq("id",id);if(d.error)return alert(d.error.message);
   await load();render();
 }
+async function trashLoad(){const tq=await sb.from("trash").select("*").order("deleted_at",{ascending:false});D.trash=tq.data||[];D.trashLoaded=true;render()}
 function trashView(){
+  if(!D.trashLoaded){trashLoad();return'<p class="mu">جاري التحميل…</p>'}
   const T=D.trash||[];
   if(!T.length)return`<div class="card"><b>🗑 المحذوفات</b><p class="mu" style="margin:8px 0 0">السلة فاضية.</p></div>`;
   return`<div class="card"><b>🗑 المحذوفات</b><p class="mu" style="margin:6px 0">استعيد أي حاجة اتحذفت بالغلط، أو احذفها نهائي.</p></div>`+T.map(t=>`<div class="card" style="padding:10px 12px;margin-bottom:6px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><div style="flex:1;min-width:150px"><b>${esc(t.label||"—")}</b><div class="mu">${TRASH_KIND[t.kind]||t.kind} · ${new Date(t.deleted_at).toLocaleString("ar-EG")}</div></div><button onclick="trashRestore('${t.id}')">↩ استعادة</button><button class="g" style="color:#fca5a5" onclick="trashPurge('${t.id}')">حذف نهائي</button></div>`).join("");
@@ -824,7 +857,16 @@ function cardCsv(){
   const a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["\uFEFF"+lines.join("\n")],{type:"text/csv;charset=utf-8"}));a.download=`${COMEN[c]}_${mo}.csv`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000);
 }
 function latestMonth(){return [...new Set(D.members.flatMap(m=>months(m)))].sort().reverse()[0]||null}
-function albumsView(){
+let albTs=0;
+function albNav(i){S.modal.i=i;render()}
+function albSwipe(x,n,i){const d=x-albTs;if(Math.abs(d)<50)return;if(d<0&&i<n-1)albNav(i+1);if(d>0&&i>0)albNav(i-1)}
+function albDraftSave(){localStorage.setItem("albDraft",JSON.stringify({name:($("#an")||{}).value||"",date:($("#ad")||{}).value||""}))}
+async function albSignAll(){
+  D.albUrlReady=true;const ps=(D.albPhotos||[]).map(p=>p.path);
+  for(let i=0;i<ps.length;i+=200){const sg=await sb.storage.from("event-photos").createSignedUrls(ps.slice(i,i+200),3600);(sg.data||[]).forEach(x=>{if(x.signedUrl)D.albUrl[x.path]=x.signedUrl})}
+  render();
+}
+function albumsView(){if(!D.albUrlReady&&(D.albPhotos||[]).length)albSignAll();
   const A=D.albums||[],P=D.albPhotos||[];
   if(S.alb&&A.some(a=>a.id===S.alb))return albumDetail(S.alb);
   const byMo={};A.forEach(a=>{const mo=String(a.event_date).slice(0,7);(byMo[mo]=byMo[mo]||[]).push(a)});
@@ -835,9 +877,7 @@ function albumsView(){
 }
 function albumDetail(id){
   const a=D.albums.find(x=>x.id===id),ps=(D.albPhotos||[]).filter(p=>p.album_id===id);
-  return `<div class="row" style="justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:6px"><button class="g" onclick="S.alb=null;render()">→ رجوع</button><b>${esc(a.name)}</b><span class="mu">${fmtD(a.event_date)} · ${ps.length} صورة</span></div>
-  <div class="row" style="gap:6px;margin-bottom:10px;flex-wrap:wrap"><button class="g" onclick="S.modal={t:'albedit',alb:'${id}'};render()">✏️ تعديل</button><button class="g" onclick="S.modal={t:'albadd',alb:'${id}'};render()">+ صور</button><button class="g" onclick="albZip('${id}')">⬇ تحميل كل الصور (ZIP)</button><button class="g" style="color:#fca5a5" onclick="albDelAlbum('${id}')">🗑 حذف الفعالية</button></div>
-  <div class="grid3">${ps.map((p,i)=>`<div class="card" style="padding:6px;text-align:center"><img loading="lazy" src="${esc(urlOf(p))}" onclick="S.modal={t:'albphoto',i:${i},alb:'${id}'};render()" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;cursor:pointer;background:#0003"><div class="row" style="justify-content:center;gap:4px;margin-top:6px"><button class="g" style="padding:4px 8px;font-size:12px" data-u="${esc(urlOf(p))}" data-n="${esc(a.name)}_${i+1}" onclick="dlEl(this)">⬇</button><button class="g" style="padding:4px 8px;font-size:12px;color:#fca5a5" onclick="albDelPhoto('${p.id}')">🗑</button></div></div>`).join("")}</div>`;
+  return `<div class="card" style="padding:12px 14px;margin-bottom:12px"><div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:8px"><button class="g" onclick="S.alb=null;render()">→ رجوع</button><div style="flex:1;min-width:140px;text-align:right"><b style="font-size:16px">${esc(a.name)}</b><div class="mu">${fmtD(a.event_date)} · ${ps.length} صورة</div></div><div class="row" style="gap:4px"><button class="g" style="padding:4px 9px" title="تعديل" onclick="S.modal={t:'albedit',alb:'${id}'};render()">✏️</button><button class="g" style="padding:4px 9px;color:#fca5a5" title="حذف" onclick="albDelAlbum('${id}')">🗑</button></div></div><div class="row" style="gap:6px;margin-top:8px;flex-wrap:wrap"><button class="g" onclick="S.modal={t:'albadd',alb:'${id}'};render()">+ صور</button><button class="g" onclick="albZip('${id}')">⬇ ZIP</button></div></div>`+ps.map((p,i)=>`<div class="card" style="padding:0;overflow:hidden;margin-bottom:12px"><img loading="lazy" src="${esc(urlOf(p))}" onclick="S.modal={t:'albphoto',i:${i},alb:'${id}'};render()" style="width:100%;display:block;cursor:pointer;background:#0003"><div class="row" style="justify-content:space-between;padding:8px 12px"><span class="mu">${i+1} / ${ps.length}</span>${p.src_drive?`<a class="g" style="padding:4px 10px;font-size:12px;text-decoration:none;border:1px solid var(--bd);border-radius:10px" href="https://drive.google.com/uc?export=download&id=${p.src_drive}" target="_blank" rel="noopener">⬇ تحميل</a>`:`<button class="g" style="padding:4px 10px;font-size:12px" data-u="${esc(urlOf(p))}" data-n="${esc(a.name)}_${i+1}" onclick="dlEl(this)">⬇ تحميل</button>`}</div></div>`).join("");
 }
 async function albUpload(aid,files){
   let ok=0;const fail=[];
@@ -854,25 +894,45 @@ async function albUpload(aid,files){
   prgHide();
   return{ok,fail};
 }
-async function albRun(aid,files){
+const ALB_MAX=10;
+function albDriveIds(txt){return String(txt||"").split(/\s+/).map(x=>x.trim()).filter(Boolean).map(l=>{const m=l.match(/\/file\/d\/([\w-]{10,})/)||l.match(/\/d\/([\w-]{10,})/)||l.match(/[?&]id=([\w-]{10,})/);return m?m[1]:null}).filter(Boolean)}
+async function albDriveOne(aid,fid){
+  try{
+    const r=await fetch(SUPABASE_URL+"/functions/v1/drive-photo?url="+encodeURIComponent("https://drive.google.com/file/d/"+fid+"/view"),{headers:{apikey:SUPABASE_ANON_KEY,Authorization:"Bearer "+SUPABASE_ANON_KEY}});
+    if(!r.ok)return false;
+    const th=await resizeImg(await r.blob(),1200,.8);
+    const path=aid+"/"+crypto.randomUUID()+".jpg";
+    const up=await upXhr("event-photos",path,th,false,"image/jpeg");if(up.error)return false;
+    const ins=await sb.from("event_photos").insert({album_id:aid,path,src_drive:fid});
+    return !ins.error;
+  }catch(e){return false}
+}
+async function albRun(aid,files,driveIds){
+  driveIds=driveIds||[];
+  const have=(D.albPhotos||[]).filter(p=>p.album_id===aid).length;
+  if(have+files.length+driveIds.length>ALB_MAX){alert(`الفعالية بتتحد بـ ${ALB_MAX} صور. عندها ${have} دلوقتي، وانت بتضيف ${files.length+driveIds.length}.`);return}
+  let dOk=0;
+  for(let i=0;i<driveIds.length;i++){prgShow(`جاري نسخ صورة من درايف ${i+1} من ${driveIds.length}`);if(await albDriveOne(aid,driveIds[i]))dOk++;prgHide()}
   const r=await albUpload(aid,files);
-  ALBPEND={aid,fail:r.fail,msg:r.fail.length?`اتحفظ ${r.ok} صورة، و${r.fail.length} فشلت. اضغط إعادة الرفع.`:`اتحفظ ${r.ok} صورة ✓`};
-  if(!r.fail.length)S.modal=null;
+  const okN=r.ok+dOk,failN=r.fail.length+(driveIds.length-dOk);
+  ALBPEND={aid,fail:r.fail,msg:failN?`اتحفظ ${okN} صورة، و${failN} فشلت. اضغط إعادة الرفع للصور اللي من جهازك.`:`اتحفظ ${okN} صورة ✓`};
+  if(!failN){S.modal=null;localStorage.removeItem("albDraft")}
   S.alb=aid;await load();render();
-  if(!r.fail.length)toast(ALBPEND.msg,"ok");
+  if(!failN)toast(ALBPEND.msg,"ok");
 }
 async function albSave(){
-  const name=$("#an").value.trim(),date=$("#ad").value,files=[...$("#af").files];
+  const name=$("#an").value.trim(),date=$("#ad").value,files=[...$("#af").files],dl=albDriveIds(($("#adl")||{}).value);
   if(!name||!date){$("#mm").textContent="الاسم والتاريخ مطلوبين";return}
-  if(!files.length){$("#mm").textContent="اختار صورة واحدة على الأقل";return}
+  if(!files.length&&!dl.length){$("#mm").textContent="اختار صور أو حط لينكات درايف";return}
+  if(files.length+dl.length>ALB_MAX){$("#mm").textContent=`الحد ${ALB_MAX} صور للفعالية`;return}
   const ins=await sb.from("event_albums").insert({name,event_date:date,created_by:me.id}).select("id").single();
   if(ins.error){$("#mm").textContent=ins.error.message;return}
-  await albRun(ins.data.id,files);
+  await albRun(ins.data.id,files,dl);
 }
 async function albAddSave(aid){
-  const files=[...$("#af").files];
-  if(!files.length){$("#mm").textContent="اختار صورة واحدة على الأقل";return}
-  await albRun(aid,files);
+  const files=[...$("#af").files],dl=albDriveIds(($("#adl")||{}).value);
+  if(!files.length&&!dl.length){$("#mm").textContent="اختار صور أو حط لينكات درايف";return}
+  await albRun(aid,files,dl);
 }
 async function albRetry(){const aid=ALBPEND.aid,files=ALBPEND.fail;if(!aid||!files.length)return;ALBPEND.fail=[];await albRun(aid,files)}
 async function albEditSave(aid){
@@ -1853,9 +1913,11 @@ function LOGOCARD(){return`<div class="card"><b>🏷 شعارات الديزاي
 function modal(){
   const t=S.modal,m=D.members.find(x=>x.id===t.id);
   if(t.t==="imp")return impHtml();
-  if(t.t==="album"||t.t==="albadd"){const isNew=t.t==="album";const a=isNew?null:D.albums.find(x=>x.id===t.alb);return`<div class="ov" onclick="if(event.target===this)closeM()"><div class="card"><b>${isNew?"فعالية جديدة":"إضافة صور لـ "+esc(a?a.name:"")}</b>${isNew?`<label>اسم الفعالية</label><input id="an"><label>التاريخ</label><input id="ad" type="date" value="${today()}">`:""}<label>الصور (تقدر تختار كذا صورة، بترفع بالحجم الأصلي)</label><input id="af" type="file" accept="image/*" multiple><p class="mu" id="mm" style="margin:8px 0">${esc(ALBPEND.msg||"")}</p>${ALBPEND.fail.length?`<button onclick="albRetry()">🔁 إعادة رفع اللي فشل (${ALBPEND.fail.length})</button>`:""}<div class="row"><button onclick="${isNew?"albSave()":`albAddSave('${t.alb}')`}">رفع</button><button class="g" onclick="closeM()">إلغاء</button></div></div></div>`}
+  if(t.t==="bdayadd"){const opts=[...D.members].sort((a,b)=>nm(a.name).localeCompare(nm(b.name),"ar")).map(m=>`<option value="${m.id}">${esc(nm(m.name))} · ${esc(m.committee||"")}</option>`).join("");return`<div class="ov" onclick="if(event.target===this)closeM()"><div class="card"><b>🎂 إضافة تاريخ ميلاد</b><label>العضو</label><select id="bdm">${opts}</select><label>تاريخ الميلاد</label><input id="bdd" type="date"><p class="err" id="mm"></p><div class="row"><button onclick="bdaySave()">حفظ</button><button class="g" onclick="closeM()">إلغاء</button></div></div></div>`}
+   if(t.t==="bdayimp"){const r=S.bdImp;return`<div class="ov" onclick="if(event.target===this)closeM()"><div class="card"><b>⬆ استيراد أعياد الميلاد من Excel</b><p class="mu" style="margin:6px 0">لازم الملف يكون فيه عمود للاسم وعمود لتاريخ الميلاد (زي: الاسم، تاريخ الميلاد).</p><input type="file" accept=".xlsx,.csv" onchange="bdayImport(this.files[0])">${r?`<p style="margin:10px 0 4px"><b>${r.ok.length}</b> تاريخ جاهز للحفظ</p>${r.miss.length?`<p class="mu" style="font-size:12px">مش هيتحفظوا (${r.miss.length}): ${esc(r.miss.join("، "))}</p>`:""}`:""}<p class="err" id="mm"></p><div class="row"><button ${r&&r.ok.length?"":"disabled"} onclick="bdayImportSave()">حفظ</button><button class="g" onclick="S.bdImp=null;closeM()">إلغاء</button></div></div></div>`}
+   if(t.t==="album"||t.t==="albadd"){const isNew=t.t==="album";const dr=JSON.parse(localStorage.getItem("albDraft")||"{}");const a=isNew?null:D.albums.find(x=>x.id===t.alb);return`<div class="ov" onclick="if(event.target===this)closeM()"><div class="card"><b>${isNew?"فعالية جديدة":"إضافة صور لـ "+esc(a?a.name:"")}</b>${isNew?`<label>اسم الفعالية</label><input id="an" value="${esc(dr.name||"")}" oninput="albDraftSave()"><label>التاريخ</label><input id="ad" type="date" value="${esc(dr.date||today())}" oninput="albDraftSave()">`:""}<label>الصور (تقدر تختار كذا صورة، بترفع بالحجم الأصلي)</label><input id="af" type="file" accept="image/*" multiple><label>أو لينكات درايف (سطر لكل صورة، والحد ${ALB_MAX} صور للفعالية)</label><textarea id="adl" rows="4" style="width:100%"></textarea><p class="mu" id="mm" style="margin:8px 0">${esc(ALBPEND.msg||"")}</p>${ALBPEND.fail.length?`<button onclick="albRetry()">🔁 إعادة رفع اللي فشل (${ALBPEND.fail.length})</button>`:""}<div class="row"><button onclick="${isNew?"albSave()":`albAddSave('${t.alb}')`}">رفع</button><button class="g" onclick="closeM()">إلغاء</button></div></div></div>`}
    if(t.t==="albedit"){const a=D.albums.find(x=>x.id===t.alb)||{};return`<div class="ov" onclick="if(event.target===this)closeM()"><div class="card"><b>تعديل الفعالية</b><label>الاسم</label><input id="an" value="${esc(a.name||"")}"><label>التاريخ</label><input id="ad" type="date" value="${esc(a.event_date||"")}"><p class="err" id="mm"></p><div class="row"><button onclick="albEditSave('${t.alb}')">حفظ</button><button class="g" onclick="closeM()">إلغاء</button></div></div></div>`}
-   if(t.t==="albphoto"){const ps=(D.albPhotos||[]).filter(x=>x.album_id===t.alb),p=ps[t.i];if(!p)return"";const a=D.albums.find(x=>x.id===t.alb)||{};return`<div class="ov" onclick="if(event.target===this)closeM()"><div class="card" style="text-align:center"><img src="${esc(urlOf(p))}" alt="" style="max-width:100%;max-height:68vh;border-radius:12px"><p class="mu">${esc(a.name||"")} · ${fmtD(a.event_date||"")}</p><div class="row" style="justify-content:center"><button data-u="${esc(urlOf(p))}" data-n="${esc(a.name||"photo")}_${t.i+1}" onclick="dlEl(this)">⬇ تحميل بجودة كاملة</button><button class="g" style="color:#fca5a5" onclick="albDelPhoto('${p.id}')">🗑</button><button class="g" onclick="closeM()">إغلاق</button></div></div></div>`}
+   if(t.t==="albphoto"){const ps=(D.albPhotos||[]).filter(x=>x.album_id===t.alb),p=ps[t.i];if(!p)return"";const a=D.albums.find(x=>x.id===t.alb)||{};return`<div class="ov" onclick="if(event.target===this)closeM()" ontouchstart="albTs=event.touches[0].clientX" ontouchend="albSwipe(event.changedTouches[0].clientX,${ps.length},${t.i})"><div class="card" style="text-align:center"><div class="row" style="justify-content:space-between;align-items:center"><button class="g" ${t.i<=0?"disabled":""} onclick="albNav(${t.i-1})">‹</button><span class="mu">${t.i+1} / ${ps.length}</span><button class="g" ${t.i>=ps.length-1?"disabled":""} onclick="albNav(${t.i+1})">›</button></div><img src="${esc(urlOf(p))}" alt="" style="max-width:100%;max-height:66vh;border-radius:12px;margin-top:8px"><p class="mu">${esc(a.name||"")} · ${fmtD(a.event_date||"")}</p><div class="row" style="justify-content:center;gap:6px"><button data-u="${esc(urlOf(p))}" data-n="${esc(a.name||"photo")}_${t.i+1}" onclick="dlEl(this)">⬇ تحميل</button><button class="g" style="color:#fca5a5" onclick="albDelPhoto('${p.id}')">🗑</button><button class="g" onclick="closeM()">إغلاق</button></div></div></div>`}
    if(t.t==="photo"){const x=PH[t.i];if(!x)return"";return`<div class="ov" onclick="if(event.target===this)closeM()"><div class="card" style="text-align:center"><img src="${esc(x.u)}" alt="" style="max-width:100%;max-height:60vh;border-radius:14px" onload="if(this.naturalWidth<800){const q=document.getElementById('lq');q.style.display='block';q.textContent='⚠ الصورة دي مرفوعة بجودة قليلة ('+this.naturalWidth+'×'+this.naturalHeight+' بيكسل). اطلب من العضو يرفعها تاني من حسابه.'}"><p id="lq" class="mu" style="display:none;color:var(--warn);margin:8px 0 0"></p><p><b>${esc(nm2(x.n))}</b></p><div class="row" style="justify-content:center"><button onclick="dlPhoto(${t.i})">⬇ تحميل بجودة كاملة</button><button class="g" onclick="closeM()">إغلاق</button></div></div></div>`}
   if(t.t==="brd"){const b=D.board.find(x=>x.id===t.id);return`<div class="ov"><div class="card"><b>${b?"تعديل":"إضافة"} عضو بورد</b>
     <label>الاسم</label><input id="bn" value="${esc(b?.name)}"><label>المنصب</label><select id="bp">${(()=>{const P=["Head","Vice Head","Leader","Advisor"],cur=b?.position||"";const L=cur&&!P.includes(cur)?[cur,...P]:P;return L.map(p=>`<option value="${esc(p)}" ${p===cur?"selected":""}>${esc(p)}</option>`).join("")})()}</select>
@@ -2571,7 +2633,7 @@ function render(){
   else if(isMgr())h=mgrView();
   else if(isBoardAcc())h=topbar()+tabBar([["bcom","📊 تقييمات لجنتي"],["me","حسابي"],["leaders","👥 مسؤولو اللجنة"]].concat(dTab(),evTab(),phTab()))+(S.tab==="me"?memberView(me,true):S.tab==="leaders"?leadersView(me.committee):S.tab==="events"&&evOk()?eventsView():S.tab==="designs"&&canDesign()?designsView():S.tab==="photos"&&canDesign()?photosView():S.tab==="albums"&&canDesign()?albumsView():bcomView());
   else h=topbar()+tabBar([["me","حسابي"],["leaders","👥 مسؤولو اللجنة"]].concat(dTab(),evTab(),phTab()))+(S.tab==="leaders"?leadersView(me.committee):S.tab==="events"&&evOk()?eventsView():S.tab==="designs"&&canDesign()?designsView():S.tab==="photos"&&canDesign()?photosView():S.tab==="albums"&&canDesign()?albumsView():memberView(me,true));
-  const ok=!!(S.modal&&me&&(isAdm()||(canDesign()&&["photo","album","albadd","albedit","albphoto"].includes(S.modal.t))||(isMgr()&&["rec","view","hist"].includes(S.modal.t))||(S.modal.t==="warn"&&myWarnCom().length>0)||(isBoardAcc()&&["view","hist"].includes(S.modal.t))));
+  const ok=!!(S.modal&&me&&(isAdm()||(canDesign()&&["photo","album","albadd","albedit","albphoto"].includes(S.modal.t))||(isAdm()&&["bdayadd","bdayimp"].includes(S.modal.t))||(isMgr()&&["rec","view","hist"].includes(S.modal.t))||(S.modal.t==="warn"&&myWarnCom().length>0)||(isBoardAcc()&&["view","hist"].includes(S.modal.t))));
   const navH=navHtml(),key=[session?1:0,loaded?1:0,me?me.id:0,S.tab,S.recover?1:0,S.signup||""].join("|"),same=key===RKEY&&!S.hard;RKEY=key;S.hard=false;
   const app=$("#app"),mdl=$("#mdl"),y=window.scrollY,mc0=mdl.querySelector(".card"),my=mc0?mc0.scrollTop:0;
   if(same&&app.firstElementChild&&!app.querySelector(".sk")){try{morphInto(app,h)}catch(e){console.error(e);app.innerHTML=h}}
