@@ -387,10 +387,11 @@ const evCom=b=>Array.isArray(b.eval_committees)?b.eval_committees:[];
 const evChipsHtml=(sel,cid)=>`<div class="row" id="${cid}">${COM4.map(c=>`<button type="button" class="g chip evc ${sel.includes(c)?"on":""}" data-c="${c}" onclick="this.classList.toggle('on')">${c}</button>`).join("")}</div>`;
 const evVal=cid=>[...document.querySelectorAll("#"+cid+" .evc.on")].map(x=>x.dataset.c);
 const bPhoto=b=>b.photo_url||((D.members.find(x=>x.id===b.member_id)||{}).avatar_url)||null;
+function evcFor(evs,ex,pos,cs){return evs===undefined?(ex&&Array.isArray(ex.eval_committees)?ex.eval_committees:[]):evs}
 async function syncBoard(mid,name,isB,cs,pos,evs){
   const ex=D.board.find(b=>b.member_id===mid);
   if(!isB){if(!ex)return null;return(await sb.from("board").delete().eq("member_id",mid)).error}
-  const row={name,position:pos||(ex&&ex.position)||"Board",committees:cs,committee:cs.length===1?cs[0]:null,member_id:mid,eval_committees:(evs===undefined?(ex&&Array.isArray(ex.eval_committees)?ex.eval_committees:[]):evs),can_evaluate:(evs===undefined?(ex&&Array.isArray(ex.eval_committees)?ex.eval_committees:[]):evs).length>0};
+  const row={name,position:pos||(ex&&ex.position)||"Board",committees:cs,committee:cs.length===1?cs[0]:null,member_id:mid,eval_committees:evcFor(evs,ex,pos,cs),can_evaluate:evcFor(evs,ex,pos,cs).length>0};
   return(ex?await sb.from("board").update(row).eq("id",ex.id):await sb.from("board").insert(row)).error;
 }
 function togRole(){const w=document.getElementById("bdw"),r=document.getElementById("mr");if(w&&r)w.style.display=r.value==="Board"?"block":"none"}
@@ -744,7 +745,8 @@ function cardLeaders(){
   const nameOf=id=>{const m=D.members.find(x=>x.id===id);return m?nm(m.name):""};
   const head=D.board.find(b=>isHeadPos(b.position)&&evCom(b).includes("HR"));
   const lead=D.board.find(b=>/team\s*leader|تيم\s*ليدر/i.test(String(b.position||"")));
-  return{head:head?nameOf(head.member_id):"",leader:lead?nameOf(lead.member_id):""};
+  const tl=D.members.find(m=>/youssef\s+elghrbawy/i.test(String(m.name||"")));
+  return{head:head?nameOf(head.member_id):"",leader:lead?nameOf(lead.member_id):(tl?nm(tl.name):"")};
 }
 function cardTxt(el){return [...el.getElementsByTagNameNS(CARD_W,"t")].map(t=>t.textContent).join("")}
 function cardSetCell(tc,text){
