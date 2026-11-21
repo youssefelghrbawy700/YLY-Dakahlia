@@ -504,10 +504,17 @@ function mlistHtml(){
   if(!L.length)return'<p class="mu">مفيش أعضاء بالبحث ده.</p>';
   return L.map(m=>{const on=(S.sel||[]).includes(m.id);return `<div data-mid="${m.id}" style="border-radius:16px;${on?"outline:2px solid var(--pr);":""}">${memberRow(m)}</div>`}).join("");
 }
-let _lpT=null,_lpFired=false;
-document.addEventListener("pointerdown",e=>{const c=e.target.closest&&e.target.closest("[data-mid]");if(!c||!c.closest("#mlist"))return;_lpFired=false;clearTimeout(_lpT);_lpT=setTimeout(()=>{_lpFired=true;const id=c.dataset.mid,on=!(S.sel||[]).includes(id);selT(id,on);c.style.outline=on?"2px solid var(--pr)":"";if(navigator.vibrate)navigator.vibrate(20)},500)});
-["pointerup","pointerleave","pointercancel","pointermove"].forEach(ev=>document.addEventListener(ev,()=>clearTimeout(_lpT)));
+let _lpT=null,_lpFired=false,_lpX=0,_lpY=0;
+document.documentElement.classList.toggle("nosel",localStorage.getItem("selText")!=="1");
+document.addEventListener("pointerdown",e=>{const c=e.target.closest&&e.target.closest("[data-mid]");if(!c||!c.closest("#mlist"))return;_lpFired=false;_lpX=e.clientX;_lpY=e.clientY;clearTimeout(_lpT);_lpT=setTimeout(()=>{_lpFired=true;const id=c.dataset.mid,on=!(S.sel||[]).includes(id);selT(id,on);c.style.outline=on?"2px solid var(--pr)":"";if(navigator.vibrate)navigator.vibrate(20)},450)});
+document.addEventListener("pointermove",e=>{if(Math.hypot(e.clientX-_lpX,e.clientY-_lpY)>12)clearTimeout(_lpT)});
+["pointerup","pointerleave","pointercancel"].forEach(ev=>document.addEventListener(ev,()=>clearTimeout(_lpT)));
+document.addEventListener("contextmenu",e=>{if(e.target.closest&&e.target.closest("[data-mid]"))e.preventDefault()});
 document.addEventListener("click",e=>{const c=e.target.closest&&e.target.closest("[data-mid]");if(!c||!c.closest("#mlist"))return;if(_lpFired){_lpFired=false;e.preventDefault();e.stopPropagation();return}if((S.sel||[]).length){e.preventDefault();e.stopPropagation();const id=c.dataset.mid,on=!(S.sel||[]).includes(id);selT(id,on);c.style.outline=on?"2px solid var(--pr)":""}},true);
+const SEL_CSS=`.nosel,.nosel *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}.nosel input,.nosel textarea,.nosel select,.nosel [contenteditable]{-webkit-user-select:text;user-select:text}`;
+(()=>{const st=document.createElement("style");st.textContent=SEL_CSS;document.head.appendChild(st)})();
+document.addEventListener("selectstart",e=>{if(document.documentElement.classList.contains("nosel")&&!(e.target.closest&&e.target.closest("input,textarea,select,[contenteditable]")))e.preventDefault()});
+function toggleSel(){const on=localStorage.getItem("selText")!=="1";localStorage.setItem("selText",on?"1":"0");document.documentElement.classList.toggle("nosel",!on);render()}
 function selT(id,on){const cur=(S.sel||[]).filter(x=>x!==id);S.sel=on?[...cur,id]:cur;const bb=document.getElementById("bulkbar");if(bb)bb.innerHTML=bulkHtml()}
 function selAll(){S.sel=mlistItems().map(m=>m.id);render()}
 function bulkHtml(){
@@ -1280,6 +1287,7 @@ function moreHtml(){
   const acts=[];
   if(isAdm()){acts.push(`<button class="mm-btn" onclick="S.more=false;S.modal={t:'mem'};render()"><i>➕</i><span>عضو جديد</span></button>`,`<button class="mm-btn" onclick="S.more=false;S.modal={t:'imp'};render()"><i>⬆</i><span>استيراد أعضاء</span></button>`,`<button class="mm-btn" onclick="backup()"><i>⬇</i><span>نسخة Excel</span></button>`)}
   acts.push(`<button class="mm-btn" onclick="theme()"><i>🌓</i><span>الوضع</span></button>`);
+  acts.push(`<button class="mm-btn" onclick="toggleSel()"><i>🔤</i><span>${localStorage.getItem("selText")==="1"?"إيقاف تحديد النص":"تحديد النص"}</span></button>`);
   if(DEFI)acts.push(`<button class="mm-btn" onclick="installApp()"><i>📲</i><span>تثبيت التطبيق</span></button>`);
   acts.push(`<button class="mm-btn mm-out" onclick="logout()"><i>🚪</i><span>خروج</span></button>`);
   const css=`<style>.mm-sec{margin-bottom:16px}.mm-h{font-size:13px;font-weight:800;opacity:.85;margin:0 4px 8px}.mm-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.mm-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:86px;padding:10px 6px;border-radius:16px;font-size:13px;text-align:center;background:var(--inp);border:1px solid var(--bd);color:var(--tx)}.mm-btn i{font-style:normal;font-size:24px;line-height:1}.mm-btn span{line-height:1.25}.mm-out{color:#fca5a5}</style>`;
