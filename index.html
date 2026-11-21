@@ -334,8 +334,8 @@ function memberView(m,own){
 }
 async function delMem(id){if(!confirm("حذف العضو وكل تقييماته نهائياً؟"))return;const r=await sb.from("members").delete().eq("id",id);if(r.error)return alert(r.error.message);S.modal=null;await load();render()}
 async function addWarn(id){const r=await sb.from("warnings").insert({member_id:id,d:$("#wd").value||today(),reason:$("#wr").value.trim()});if(r.error){$("#mm").textContent=r.error.message;return}await load();render()}
-async function delWarn(wid){if(!confirm("حذف الإنذار؟"))return;const r=await sb.from("warnings").delete().eq("id",wid);if(r.error)return alert(r.error.message);await load();render()}
-async function announce(k,on){
+async function delWarn(wid){if(!confirm("حذف الإنذار؟"))return;const w=D.warn.find(x=>x.id===wid);if(!w)return;try{await trashPut("warning",(D.members.find(m=>m.id===w.member_id)||{}).name+" · "+w.d,{warnings:[w]})}catch(e){return alert(e.message)}const r=await sb.from("warnings").delete().eq("id",wid);if(r.error)return alert(r.error.message);await load();render()} async function announce(k,on){
+   if(on){const miss=D.members.filter(m=>m.role!=="Board"&&!(m.rec&&m.rec[k]));if(miss.length){const by={};miss.forEach(m=>by[m.committee]=(by[m.committee]||0)+1);if(!confirm(`ناقص تقييم ${miss.length} عضو:\n`+Object.entries(by).map(([c,n])=>`${c}: ${n}`).join("\n")+`\n\nتكمّل الإعلان؟`))return}}
   if(!confirm(on?`هتعلن تقييمات شهر ${ml(k)} لكل الأعضاء في نفس الوقت. متأكد؟`:`هتسحب إعلان شهر ${ml(k)} وهيختفي من حسابات الأعضاء. متأكد؟`))return;
   const r=on?await sb.from("announced").insert({month:k}):await sb.from("announced").delete().eq("month",k);
   if(r.error)return alert(r.error.message);await load();render();
@@ -412,12 +412,13 @@ async function load(){
   const by={};a.data.forEach(m=>{m.rec={};m.meta={};by[m.id]=m});
   b.data.forEach(r=>{const m=by[r.member_id];if(m){m.rec[r.month]=r.data;m.meta[r.month]={by:r.by_member,at:r.updated_at}}});
   D.members=a.data;D.warn=w.data||[];D.ann=(n.data||[]).map(x=>x.month);D.signups=su.data||[];D.follows=fo.data||[];D.board=bd.data||[];{const al=await sb.from("event_albums").select("*").order("event_date",{ascending:false}),ap=await sb.from("event_photos").select("*").order("created_at");D.albums=al.data||[];D.albPhotos=ap.data||[];D.albUrl={};const ps=D.albPhotos.map(p=>p.path);for(let i=0;i<ps.length;i+=200){const sg=await sb.storage.from("event-photos").createSignedUrls(ps.slice(i,i+200),3600);(sg.data||[]).forEach(x=>{if(x.signedUrl)D.albUrl[x.path]=x.signedUrl})}}await loadEv();
-  me=D.members.find(m=>m.user_id===session.user.id)||null;if(isAdm()){const bq=await sb.from("member_birthdays").select("member_id,birth_date");D.bdays={};(bq.data||[]).forEach(x=>D.bdays[x.member_id]=x.birth_date)}
+  me=D.members.find(m=>m.user_id===session.user.id)||null;if(isAdm()){const tq=await sb.from("trash").select("*").order("deleted_at",{ascending:false});D.trash=tq.data||[]}
+if(isAdm()){const bq=await sb.from("member_birthdays").select("member_id,birth_date");D.bdays={};(bq.data||[]).forEach(x=>D.bdays[x.member_id]=x.birth_date)}
 setTimeout(evReconcile,0);if(isAdm())setTimeout(()=>{try{sb.rpc("backup_if_due").then(()=>{},()=>{})}catch(e){}},2000);setTimeout(()=>loadNt().then(()=>render()),0);loadCfg().then(()=>{RECB=false;evReconcile()});
   const c=await sb.rpc("my_warning_count");myWarn=c.data||0;
   if(me&&!touched){touched=true;startPing()}
   else{const st=await sb.rpc("my_signup_status");S.signup=st.data||null}
-  const AT=["home","members","req","committees","dash","announce","seen","hr","board","photos","albums","birthdays","cards","designs","events","att","security","sheets"];
+  const AT=["home","members","req","committees","dash","announce","seen","hr","board","photos","albums","birthdays","cards","trash","designs","events","att","security","sheets"];
   if(me&&LASTME!==me.id){LASTME=me.id;S.more=false;S.nt=false;S.landed=false}
   if(isAdm()&&!S.landed){S.landed=1;S.tab="home"}
   else if(isAdm()&&!AT.includes(S.tab))S.tab="home";
@@ -489,6 +490,10 @@ const MSRT=[["name_asc","الاسم ↑"],["name_desc","الاسم ↓"],["score
 function mlistItems(){
   const cs=comms(),cf=cs.includes(S.mcf)?S.mcf:"all",q=(S.mq||"").trim().toLowerCase(),k=S.msrt||"name_asc";
   let L=cf==="all"?D.members:D.members.filter(m=>m.committee===cf);
+  const lm=latestMonth(),wset=new Set((D.warn||[]).map(w=>w.member_id)),fl=S.mflt||"all";
+  if(fl==="warn")L=L.filter(m=>wset.has(m.id));
+  if(fl==="low")L=L.filter(m=>m.role!=="Board"&&lm&&m.rec&&m.rec[lm]&&mscore(m.rec[lm],m.committee)<80);
+  if(fl==="noeval")L=L.filter(m=>m.role!=="Board"&&lm&&!(m.rec&&m.rec[lm]));
   if(q)L=L.filter(m=>`${m.name||""} ${m.committee||""} ${m.role||""}`.toLowerCase().includes(q));
   const byN=(a,b)=>nm(a.name).localeCompare(nm(b.name),"ar");
   const cmp={name_asc:byN,name_desc:(a,b)=>byN(b,a),score_desc:(a,b)=>score(b)-score(a),score_asc:(a,b)=>score(a)-score(b),committee:(a,b)=>(a.committee||"").localeCompare(b.committee||"")||byN(a,b),role:(a,b)=>(a.role||"").localeCompare(b.role||"")||byN(a,b)}[k]||byN;
@@ -503,7 +508,7 @@ function selT(id,on){const cur=(S.sel||[]).filter(x=>x!==id);S.sel=on?[...cur,id
 function selAll(){S.sel=mlistItems().map(m=>m.id);render()}
 function bulkHtml(){
   const n=(S.sel||[]).length;if(!n)return"";
-  return `<div class="card" style="position:sticky;top:8px;z-index:5;border-color:var(--pr)"><div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:8px"><b>✔ مختار ${n} عضو</b><div class="row" style="gap:6px"><button class="g" onclick="selAll()">تحديد كل المعروض</button><button class="g" onclick="S.sel=[];render()">إلغاء</button></div></div><div class="row" style="gap:6px;flex-wrap:wrap;margin-top:8px"><select id="bxa"><option value="">— اختار الإجراء —</option><option value="committee">نقل للجنة</option><option value="role">تغيير الدور</option><option value="photo">إزالة الصور</option><option value="warn">إضافة إنذار</option><option value="delete">حذف</option></select><button onclick="bulkRun()">تنفيذ</button></div></div>`;
+  return `<div class="card" style="position:sticky;top:8px;z-index:5;border-color:var(--pr)"><div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:8px"><b>✔ مختار ${n} عضو</b><div class="row" style="gap:6px"><button class="g" onclick="selAll()">تحديد كل المعروض</button><button class="g" onclick="S.sel=[];render()">إلغاء</button></div></div><div class="row" style="gap:6px;flex-wrap:wrap;margin-top:8px"><select id="bxa"><option value="">— اختار الإجراء —</option><option value="committee">نقل للجنة</option><option value="role">تغيير الدور</option><option value="photo">إزالة الصور</option><option value="copy">نسخ تقييم شهر لشهر</option><option value="warn">إضافة إنذار</option><option value="delete">حذف</option></select><button onclick="bulkRun()">تنفيذ</button></div></div>`;
 }
 async function bulkRun(){
   const act=($("#bxa")||{}).value,ids=[...(S.sel||[])];
@@ -514,8 +519,9 @@ async function bulkRun(){
     else if(act==="role"){const r0=(prompt("اكتب الدور: Member أو Board")||"").trim();const role=r0.toLowerCase()==="board"?"Board":r0.toLowerCase()==="member"?"Member":"";if(!role)return alert("الدور لازم يكون Member أو Board");const r=await sb.from("members").update({role}).in("id",ids);if(r.error)throw r.error}
     else if(act==="photo"){await bulkPhotos(ids)}
     else if(act==="warn"){const reason=(prompt("سبب الإنذار؟")||"").trim();if(!reason)return;const d=today();const r=await sb.from("warnings").insert(ids.map(id=>({member_id:id,d,reason})));if(r.error)throw r.error}
-    else if(act==="delete"){if(!confirm(`حذف ${ids.length} عضو وكل تقييماتهم نهائياً؟`))return;const r=await sb.from("members").delete().in("id",ids);if(r.error)throw r.error}
-    S.sel=[];toast(act==="delete"?`اتحذف ${ids.length} عضو`:`اتعدّل ${ids.length} عضو ✓`,"ok");await load();render();
+    else if(act==="copy"){const src=(prompt("الشهر اللي هتنسخ منه (مثال: 2026-10)")||"").trim(),tgt=(prompt("الشهر اللي هتنسخ له (مثال: 2026-11)")||"").trim();if(!/^\d{4}-\d{2}$/.test(src)||!/^\d{4}-\d{2}$/.test(tgt))return alert("صيغة الشهر لازم تكون YYYY-MM");const rows=D.members.filter(m=>ids.includes(m.id)&&m.rec&&m.rec[src]).map(m=>({member_id:m.id,month:tgt,data:m.rec[src]}));if(!rows.length)return alert("مفيش تقييم في الشهر ده للأعضاء المختارين");const r=await sb.from("records").upsert(rows,{onConflict:"member_id,month"});if(r.error)throw r.error;toast(`اتنسخ تقييم ${rows.length} عضو ✓`,"ok")}
+    else if(act==="delete"){if(!confirm(`حذف ${ids.length} عضو وكل تقييماتهم نهائياً؟`))return;await trashMembers(ids)}
+    S.sel=[];toast(act==="delete"?`اتحذف ${ids.length} عضو · تقدر تستعيدهم من 🗑 المحذوفات`:`اتعدّل ${ids.length} عضو ✓`,"ok");await load();render();
   }catch(e){alert("حصلت مشكلة: "+(e.message||e))}
 }
 async function bulkPhotos(ids){
@@ -763,9 +769,61 @@ function cardsView(){
   return `<div class="card"><b>📄 كروت التقييم</b><p class="mu" style="margin:6px 0">اختار اللجنة والشهر، وصدّر Word أو PDF. أعضاء البورد مش بيظهروا في الكارت.</p>
   <label>اللجنة</label><select id="cdc">${cs.map(c=>`<option value="${c}">${c==="TR"?"TR (مفيهاش كارت)":COMAR[c]}</option>`).join("")}</select>
   <label>الشهر</label><select id="cdm" onchange="S.cdm=this.value">${mos.map(m=>`<option value="${m}" ${m===mo?"selected":""}>${MO[+m.slice(5,7)-1]} ${m.slice(0,4)}</option>`).join("")}</select>
-  <div class="row" style="gap:8px;margin-top:10px"><button onclick="cardExport('docx')">⬇ Word</button><button class="g" onclick="cardExport('pdf')">⬇ PDF</button></div></div>
+  <div class="row" style="gap:8px;margin-top:10px"><button onclick="cardExport('docx')">⬇ Word</button><button class="g" onclick="cardExport('pdf')">⬇ PDF</button><button class="g" onclick="cardCsv()">⬇ Excel (CSV)</button></div></div>
   <div class="card"><b>نماذج الـ Word</b><p class="mu" style="margin:6px 0">ارفع نموذج كل لجنة مرة واحدة، والنموذج بيتحفظ.</p>${up}</div>`;
 }
+
+const TRASH_KIND={member:"عضو",warning:"إنذار",album:"فعالية",photo:"صورة"};
+async function trashPut(kind,label,payload){const r=await sb.from("trash").insert({kind,label:String(label||""),payload,deleted_by:me?me.id:null});if(r.error)throw r.error}
+async function trashMembers(ids){
+  const sel=async(t,col)=>{const r=await sb.from(t).select("*").in(col,ids);if(r.error)throw r.error;return r.data||[]};
+  const mem=await sel("members","id"),recs=await sel("records","member_id"),wrn=await sel("warnings","member_id"),brd=await sel("board","member_id"),bd=await sel("member_birthdays","member_id");
+  const fo=await sb.from("follows").select("*").or(`manager_id.in.(${ids.join(",")}),member_id.in.(${ids.join(",")})`);if(fo.error)throw fo.error;
+  for(const m of mem){await trashPut("member",m.name,{members:[m],records:recs.filter(x=>x.member_id===m.id),warnings:wrn.filter(x=>x.member_id===m.id),follows:(fo.data||[]).filter(x=>x.manager_id===m.id||x.member_id===m.id),board:brd.filter(x=>x.member_id===m.id),birthdays:bd.filter(x=>x.member_id===m.id)})}
+  const d=await sb.from("members").delete().in("id",ids);if(d.error)throw d.error;
+}
+async function trashRestore(id){
+  const t=(D.trash||[]).find(x=>x.id===id);if(!t)return;const p=t.payload||{};
+  const ins=async(table,rows)=>{if(!rows||!rows.length)return;const r=await sb.from(table).upsert(rows);if(r.error)throw r.error};
+  if(t.kind==="member"){await ins("members",p.members);await ins("records",p.records);await ins("warnings",p.warnings);await ins("follows",p.follows);await ins("board",p.board);await ins("member_birthdays",p.birthdays)}
+  else if(t.kind==="warning")await ins("warnings",p.warnings);
+  else if(t.kind==="album"){await ins("event_albums",p.albums);await ins("event_photos",p.photos)}
+  else if(t.kind==="photo")await ins("event_photos",p.photos);
+  const d=await sb.from("trash").delete().eq("id",id);if(d.error)throw d.error;
+  toast("اتعادت ✓","ok");await load();render();
+}
+async function trashPurge(id){
+  const t=(D.trash||[]).find(x=>x.id===id);if(!t)return;
+  if(!confirm("حذف نهائي؟ مش هيرجع تاني."))return;
+  const paths=t.kind==="album"?(t.payload.photos||[]).map(p=>p.path):t.kind==="photo"?(t.payload.photos||[]).map(p=>p.path):[];
+  for(let i=0;i<paths.length;i+=100){try{await sb.storage.from("event-photos").remove(paths.slice(i,i+100))}catch(e){}}
+  const d=await sb.from("trash").delete().eq("id",id);if(d.error)return alert(d.error.message);
+  await load();render();
+}
+function trashView(){
+  const T=D.trash||[];
+  if(!T.length)return`<div class="card"><b>🗑 المحذوفات</b><p class="mu" style="margin:8px 0 0">السلة فاضية.</p></div>`;
+  return`<div class="card"><b>🗑 المحذوفات</b><p class="mu" style="margin:6px 0">استعيد أي حاجة اتحذفت بالغلط، أو احذفها نهائي.</p></div>`+T.map(t=>`<div class="card" style="padding:10px 12px;margin-bottom:6px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><div style="flex:1;min-width:150px"><b>${esc(t.label||"—")}</b><div class="mu">${TRASH_KIND[t.kind]||t.kind} · ${new Date(t.deleted_at).toLocaleString("ar-EG")}</div></div><button onclick="trashRestore('${t.id}')">↩ استعادة</button><button class="g" style="color:#fca5a5" onclick="trashPurge('${t.id}')">حذف نهائي</button></div>`).join("");
+}
+async function albZip(aid){
+  const a=D.albums.find(x=>x.id===aid),ps=(D.albPhotos||[]).filter(p=>p.album_id===aid);
+  if(!ps.length)return alert("مفيش صور في الفعالية دي");
+  await loadJSZip();prgShow("جاري تجهيز الألبوم…");
+  try{
+    const z=new JSZip();
+    for(let i=0;i<ps.length;i++){prgSet(i/ps.length);const r=await fetch(urlOf(ps[i]));if(!r.ok)throw new Error("تعذر تحميل صورة");const b=await r.blob();z.file(`${i+1}.${(ps[i].path.split(".").pop()||"jpg")}`,b)}
+    const out=await z.generateAsync({type:"blob"},m=>prgSet(m.percent/100));
+    const aa=document.createElement("a");aa.href=URL.createObjectURL(out);aa.download=`${a.name}.zip`;aa.click();setTimeout(()=>URL.revokeObjectURL(aa.href),5000);
+  }catch(e){alert(e.message||"حصلت مشكلة")}finally{prgHide()}
+}
+function cardCsv(){
+  const c=($("#cdc")||{}).value,mo=($("#cdm")||{}).value;
+  if(!c||!mo||c==="TR")return alert("اختار لجنة غير TR وشهر");
+  const rows=cardRows(c,mo);if(!rows.length)return alert("مفيش تقييمات للجنة دي في الشهر ده");
+  const lines=["N,NAME,COMMITTEE,TOTAL,GPA,TOP",...rows.map((x,i)=>[i+1,x.name,COMEN[c],x.total,x.gpa,x.top].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(","))];
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["\uFEFF"+lines.join("\n")],{type:"text/csv;charset=utf-8"}));a.download=`${COMEN[c]}_${mo}.csv`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+}
+function latestMonth(){return [...new Set(D.members.flatMap(m=>months(m)))].sort().reverse()[0]||null}
 function albumsView(){
   const A=D.albums||[],P=D.albPhotos||[];
   if(S.alb&&A.some(a=>a.id===S.alb))return albumDetail(S.alb);
@@ -778,7 +836,7 @@ function albumsView(){
 function albumDetail(id){
   const a=D.albums.find(x=>x.id===id),ps=(D.albPhotos||[]).filter(p=>p.album_id===id);
   return `<div class="row" style="justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:6px"><button class="g" onclick="S.alb=null;render()">→ رجوع</button><b>${esc(a.name)}</b><span class="mu">${fmtD(a.event_date)} · ${ps.length} صورة</span></div>
-  <div class="row" style="gap:6px;margin-bottom:10px;flex-wrap:wrap"><button class="g" onclick="S.modal={t:'albedit',alb:'${id}'};render()">✏️ تعديل</button><button class="g" onclick="S.modal={t:'albadd',alb:'${id}'};render()">+ صور</button><button class="g" style="color:#fca5a5" onclick="albDelAlbum('${id}')">🗑 حذف الفعالية</button></div>
+  <div class="row" style="gap:6px;margin-bottom:10px;flex-wrap:wrap"><button class="g" onclick="S.modal={t:'albedit',alb:'${id}'};render()">✏️ تعديل</button><button class="g" onclick="S.modal={t:'albadd',alb:'${id}'};render()">+ صور</button><button class="g" onclick="albZip('${id}')">⬇ تحميل كل الصور (ZIP)</button><button class="g" style="color:#fca5a5" onclick="albDelAlbum('${id}')">🗑 حذف الفعالية</button></div>
   <div class="grid3">${ps.map((p,i)=>`<div class="card" style="padding:6px;text-align:center"><img loading="lazy" src="${esc(urlOf(p))}" onclick="S.modal={t:'albphoto',i:${i},alb:'${id}'};render()" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;cursor:pointer;background:#0003"><div class="row" style="justify-content:center;gap:4px;margin-top:6px"><button class="g" style="padding:4px 8px;font-size:12px" data-u="${esc(urlOf(p))}" data-n="${esc(a.name)}_${i+1}" onclick="dlEl(this)">⬇</button><button class="g" style="padding:4px 8px;font-size:12px;color:#fca5a5" onclick="albDelPhoto('${p.id}')">🗑</button></div></div>`).join("")}</div>`;
 }
 async function albUpload(aid,files){
@@ -825,19 +883,17 @@ async function albEditSave(aid){
   S.modal=null;await load();render();toast("اتحفظ التعديل ✓","ok");
 }
 async function albDelPhoto(pid){
-  if(!confirm("حذف الصورة نهائياً؟"))return;
+  if(!confirm("حذف الصورة؟ تقدر تستعيدها من 🗑 المحذوفات"))return;
   const p=(D.albPhotos||[]).find(x=>x.id===pid);if(!p)return;
-  await sb.storage.from("event-photos").remove([p.path]);
-  const r=await sb.from("event_photos").delete().eq("id",pid);
-  if(r.error)return alert(r.error.message);
+  try{await trashPut("photo","صورة من "+((D.albums.find(a=>a.id===p.album_id)||{}).name||""),{photos:[p]})}catch(e){return alert(e.message)}
+  const r=await sb.from("event_photos").delete().eq("id",pid);if(r.error)return alert(r.error.message);
   S.modal=null;await load();render();
 }
 async function albDelAlbum(aid){
-  if(!confirm("حذف الفعالية وكل صورها نهائياً؟"))return;
-  const paths=(D.albPhotos||[]).filter(p=>p.album_id===aid).map(p=>p.path);
-  for(let i=0;i<paths.length;i+=100)await sb.storage.from("event-photos").remove(paths.slice(i,i+100));
-  const r=await sb.from("event_albums").delete().eq("id",aid);
-  if(r.error)return alert(r.error.message);
+  if(!confirm("حذف الفعالية وكل صورها؟ تقدر تستعيدها من 🗑 المحذوفات"))return;
+  const al=D.albums.find(x=>x.id===aid),ps=(D.albPhotos||[]).filter(p=>p.album_id===aid);
+  try{await trashPut("album",al?al.name:"فعالية",{albums:al?[al]:[],photos:ps})}catch(e){return alert(e.message)}
+  const r=await sb.from("event_albums").delete().eq("id",aid);if(r.error)return alert(r.error.message);
   S.alb=null;S.modal=null;await load();render();
 }
 function photosView(){
@@ -848,11 +904,11 @@ function photosView(){
 }
 function adminView(){
   const pend=D.signups.filter(s=>s.status==="pending").length;
-  const tabs=[["home","الرئيسية"],["members","الأعضاء"],["req","🆕 الطلبات"+(pend?` (${pend})`:"")],["committees","اللجان"],["dash","لوحة الشرف"],["announce","📢 الإعلان"],["seen","👁 الدخول"],["hr","✅ تسجيلات HR"],["events","📅 الأحداث"],["att","📋 سجل الحضور"],["security","🛡 الأمان"],["sheets","🔗 مزامنة الشيتات"],["board","🏛 البورد"],["photos","🖼 الصور"],["albums","📸 صور الفعاليات"],["birthdays","🎂 أعياد الميلاد"],["cards","📄 الكروت"],["designs","🎨 الديزاينات"]];
+  const tabs=[["home","الرئيسية"],["members","الأعضاء"],["req","🆕 الطلبات"+(pend?` (${pend})`:"")],["committees","اللجان"],["dash","لوحة الشرف"],["announce","📢 الإعلان"],["seen","👁 الدخول"],["hr","✅ تسجيلات HR"],["events","📅 الأحداث"],["att","📋 سجل الحضور"],["security","🛡 الأمان"],["sheets","🔗 مزامنة الشيتات"],["board","🏛 البورد"],["photos","🖼 الصور"],["albums","📸 صور الفعاليات"],["birthdays","🎂 أعياد الميلاد"],["cards","📄 الكروت"],["trash","🗑 المحذوفات"],["designs","🎨 الديزاينات"]];
   const sc=D.members.map(score),avg=sc.length?Math.round(sc.reduce((a,b)=>a+b,0)/sc.length):0;
   let sub="";
   if(S.tab==="home")sub=homeView();
-  else if(S.tab==="members")sub=`<div class="row" style="margin-bottom:12px"><button onclick="S.modal={t:'mem'};render()">➕ عضو جديد</button><button class="g" onclick="S.modal={t:'imp'};render()">⬆ استيراد</button><button class="g" onclick="backup()">⬇ Excel</button></div>`+(pend?`<div class="card" style="border-color:var(--warn)"><div class="row"><b style="flex:1">🆕 ${pend} طلب تسجيل جديد</b><button onclick="S.tab='req';render()">مراجعة</button></div></div>`:"")+`<div class="grid"><div class="card"><div class="mu">إجمالي الأعضاء</div><div class="big">${D.members.length}</div></div><div class="card"><div class="mu">متوسط التقييم</div><div class="big">${avg}</div></div></div><div style="height:12px"></div>`+(()=>{const cs=comms(),cf=cs.includes(S.mcf)?S.mcf:"all";return`<div class="tabs"><button class="${cf==="all"?"on":""}" onclick="S.mcf='all';render()">الكل (${D.members.length})</button>${cs.map(c=>`<button class="${cf===c?"on":""}" onclick="S.mcf='${esc(c)}';render()">${esc(c)} (${D.members.filter(m=>m.committee===c).length})</button>`).join("")}</div><div class="row" style="gap:8px;margin:10px 0;flex-wrap:wrap"><input id="mq" placeholder="🔎 بحث بالاسم أو اللجنة أو الدور" value="${esc(S.mq||"")}" oninput="S.mq=this.value;$('#mlist').innerHTML=mlistHtml()" style="flex:1;min-width:160px"><select onchange="S.msrt=this.value;render()">${MSRT.map(([v,t])=>`<option value="${v}" ${(S.msrt||"name_asc")===v?"selected":""}>${t}</option>`).join("")}</select></div><div id="bulkbar">${bulkHtml()}</div><div id="mlist">${mlistHtml()}</div>`})();
+  else if(S.tab==="members")sub=`<div class="row" style="margin-bottom:12px"><button onclick="S.modal={t:'mem'};render()">➕ عضو جديد</button><button class="g" onclick="S.modal={t:'imp'};render()">⬆ استيراد</button><button class="g" onclick="backup()">⬇ Excel</button></div>`+(pend?`<div class="card" style="border-color:var(--warn)"><div class="row"><b style="flex:1">🆕 ${pend} طلب تسجيل جديد</b><button onclick="S.tab='req';render()">مراجعة</button></div></div>`:"")+`<div class="grid"><div class="card"><div class="mu">إجمالي الأعضاء</div><div class="big">${D.members.length}</div></div><div class="card"><div class="mu">متوسط التقييم</div><div class="big">${avg}</div></div></div><div style="height:12px"></div>`+(()=>{const cs=comms(),cf=cs.includes(S.mcf)?S.mcf:"all";return`<div class="tabs"><button class="${cf==="all"?"on":""}" onclick="S.mcf='all';render()">الكل (${D.members.length})</button>${cs.map(c=>`<button class="${cf===c?"on":""}" onclick="S.mcf='${esc(c)}';render()">${esc(c)} (${D.members.filter(m=>m.committee===c).length})</button>`).join("")}</div><div class="row" style="gap:8px;margin:10px 0;flex-wrap:wrap"><input id="mq" placeholder="🔎 بحث بالاسم أو اللجنة أو الدور" value="${esc(S.mq||"")}" oninput="S.mq=this.value;$('#mlist').innerHTML=mlistHtml()" style="flex:1;min-width:160px"><select onchange="S.mflt=this.value;render()">${[["all","كل الأعضاء"],["warn","عندهم إنذارات"],["low","تقدير C أو أقل (آخر شهر)"],["noeval","مالهومش تقييم آخر شهر"]].map(([v,t])=>`<option value="${v}" ${(S.mflt||"all")===v?"selected":""}>${t}</option>`).join("")}</select><select onchange="S.msrt=this.value;render()">${MSRT.map(([v,t])=>`<option value="${v}" ${(S.msrt||"name_asc")===v?"selected":""}>${t}</option>`).join("")}</select></div><div id="bulkbar">${bulkHtml()}</div><div id="mlist">${mlistHtml()}</div>`})();
   else if(S.tab==="events")sub=eventsView();
   else if(S.tab==="att")sub=attView();
   else if(S.tab==="security")sub=secView();
@@ -869,7 +925,7 @@ function adminView(){
   else if(S.tab==="hr")sub=hrView();
   else if(S.tab==="board")sub=boardAdminView();
   else if(S.tab==="designs")sub=designsView();
-  else if(S.tab==="albums")sub=albumsView();else if(S.tab==="birthdays")sub=bdayView();else if(S.tab==="cards")sub=cardsView();else sub=photosView();
+  else if(S.tab==="albums")sub=albumsView();else if(S.tab==="birthdays")sub=bdayView();else if(S.tab==="cards")sub=cardsView();else if(S.tab==="trash")sub=trashView();else sub=photosView();
   return topbar()+tabBar(tabs)+sub;
 }
 function mgrList(mine){
@@ -1153,8 +1209,8 @@ function navHtml(){
   const b=id=>`<button class="${S.tab===id?"on":""}" onclick="navGo('${id}')"><i>${NI[id]||(MM_EXTRA[id]||[])[0]||"•"}</i><span>${NLB[id]||(MM_EXTRA[id]||[])[1]||id}</span>${id==="req"&&pend?`<em>${pend}</em>`:""}</button>`;
   return`<div class="nav"><div class="nav-in">${main.map(b).join("")}<button class="${rest.includes(S.tab)||S.more?"on":""}" onclick="S.more=!S.more;render()"><i>☰</i><span>المزيد</span></button></div></div>`}
 function navGo(id){if(id==="security")S.auLoaded=0;if(id==="sheets")S.ssLoaded=0;S.tab=id;S.more=false;render()}
-const MM_EXTRA={albums:["📸","صور الفعاليات"],birthdays:["🎂","أعياد الميلاد"],cards:["📄","الكروت"]};
-const MM_GROUPS=[["👥 الأعضاء",["members","req","committees","board","leaders"]],["📊 التقييم والحضور",["dash","hr","att","events"]],["📢 المحتوى",["announce","photos","albums","birthdays","cards","designs"]],["⚙️ النظام",["security","sheets","seen"]]];
+const MM_EXTRA={albums:["📸","صور الفعاليات"],birthdays:["🎂","أعياد الميلاد"],cards:["📄","الكروت"],trash:["🗑","المحذوفات"]};
+const MM_GROUPS=[["👥 الأعضاء",["members","req","committees","board","leaders"]],["📊 التقييم والحضور",["dash","hr","att","events"]],["📢 المحتوى",["announce","photos","albums","birthdays","cards","designs"]],["⚙️ النظام",["security","sheets","seen","trash"]]];
 function moreHtml(){
   if(!S.more||!NAV||!me)return"";const[,rest]=navSplit(),ios=/iphone|ipad/i.test(navigator.userAgent)&&!navigator.standalone;
   const used=new Set(),btn=id=>`<button class="mm-btn" onclick="navGo('${id}')"><i>${NI[id]||(MM_EXTRA[id]||[])[0]||"•"}</i><span>${NLB[id]||(MM_EXTRA[id]||[])[1]||id}</span></button>`;
