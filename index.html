@@ -501,8 +501,131 @@ function loginView(){
 async function resizeImg(f,n,q){const bm=await createImageBitmap(f),k=Math.min(1,n/Math.max(bm.width,bm.height)),w=Math.round(bm.width*k),h=Math.round(bm.height*k),c=document.createElement("canvas");c.width=w;c.height=h;const x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,w,h);x.imageSmoothingQuality="high";x.drawImage(bm,0,0,w,h);return new Promise(r=>c.toBlob(r,"image/jpeg",q||0.97))}
 const thumb=u=>u?u.replace(/\.jpg(\?|$)/,"_t.jpg$1"):u;
 const imgT=(u,cls,st)=>u?`<img ${cls?`class="${cls}"`:""} ${st?`style="${st}"`:""} src="${esc(thumb(u))}" onerror="this.onerror=null;this.src='${esc(u)}'" loading="lazy" alt="">`:"";
+/* ---------- محرر الصور: قص / لف (90° + زاوية حرة) / قلب قبل الرفع (بيرجّع File معدّل، أو null لو اتلغى) ---------- */
+function imgEdit(file,opt){
+  opt=opt||{};
+  return new Promise(async res=>{
+    let bm;try{bm=await createImageBitmap(file)}catch(e){res(file);return}
+    const MAXS=4096,k0=Math.min(1,MAXS/Math.max(bm.width,bm.height)),PAD=14,MIN=24;
+    const mk=(w,h)=>{const c=document.createElement("canvas");c.width=w;c.height=h;return c};
+    let base=mk(Math.max(1,Math.round(bm.width*k0)),Math.max(1,Math.round(bm.height*k0)));
+    {const x=base.getContext("2d");x.imageSmoothingQuality="high";x.drawImage(bm,0,0,base.width,base.height)}
+    const orig=mk(base.width,base.height);orig.getContext("2d").drawImage(base,0,0);
+    let crop={x:0,y:0,w:base.width,h:base.height},asp=0,ang=0,dirty=false,sc=1,FW=1,FH=1,cssW=0,cssH=0,ox=PAD,oy=PAD,small=null,dispC=null,drag=null;
+    const ov=document.createElement("div");ov.className="ov";ov.style.zIndex=60;ov.id="imged";
+    const ASP=[["حر",0],["1:1",1],["4:5",.8],["3:4",.75],["16:9",16/9]];
+    ov.innerHTML=`<div class="card" style="max-width:540px"><b>✂️ ${opt.title||"تعديل الصورة قبل الرفع"}</b><p class="mu" style="margin:4px 0 8px;font-size:13px">اسحب الإطار أو أطرافه عشان تقص. تقدر تلف الصورة بأي زاوية أو تقلبها.</p>
+    <div style="display:flex;justify-content:center"><canvas id="iec" style="touch-action:none;max-width:100%;border-radius:12px"></canvas></div>
+    <div class="row" style="gap:8px;margin:10px 0 6px;flex-wrap:nowrap"><span class="mu" style="white-space:nowrap;font-size:13px">ميل الصورة <b id="iev" style="display:inline-block;min-width:44px;direction:ltr">0°</b></span><input type="range" id="ier" min="-45" max="45" step="0.5" value="0" style="flex:1;min-width:100px;direction:ltr;margin:0"><button type="button" class="g" data-a="a0" style="padding:5px 11px;font-size:12px">0°</button></div>
+    <div class="row" style="gap:6px;margin:6px 0 4px;justify-content:center"><button type="button" class="g" data-a="rl" title="لف 90° شمال">↺ 90°</button><button type="button" class="g" data-a="rr" title="لف 90° يمين">↻ 90°</button><button type="button" class="g" data-a="fh">⇋ قلب أفقي</button><button type="button" class="g" data-a="fv">⇅ قلب رأسي</button><button type="button" class="g" data-a="rs">إعادة ضبط</button></div>
+    <div class="row" id="iea" style="gap:6px;margin:4px 0 10px;justify-content:center"><span class="mu">النسبة:</span>${ASP.map(([t,v])=>`<button type="button" class="g" data-r="${v}" style="padding:5px 11px;font-size:12px">${t}</button>`).join("")}</div>
+    <div class="row" style="gap:8px;justify-content:flex-end"><button type="button" class="g" data-a="cancel">إلغاء</button><button type="button" class="g" data-a="skip">بدون تعديل</button><button type="button" data-a="ok">✔ تأكيد</button></div></div>`;
+    document.body.appendChild(ov);
+    const cv=ov.querySelector("#iec"),cx=cv.getContext("2d"),rg=ov.querySelector("#ier"),rv=ov.querySelector("#iev");
+    const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+    const rad=()=>ang*Math.PI/180,BW=()=>base.width*Math.abs(Math.cos(rad()))+base.height*Math.abs(Math.sin(rad())),BH=()=>base.width*Math.abs(Math.sin(rad()))+base.height*Math.abs(Math.cos(rad()));
+    const full=()=>crop.x<1&&crop.y<1&&crop.w>BW()-2&&crop.h>BH()-2;
+    const showAng=()=>{rg.value=ang;rv.textContent=(ang>0?"+":"")+(Math.round(ang*10)/10)+"°"};
+    function autoFit(){ /* أكبر مستطيل جوه الصورة الملفوفة من غير ركن أبيض */
+      const t=Math.abs(rad()),c=Math.cos(t),s=Math.sin(t),W=base.width,H=base.height,rho=asp||(W/H);
+      const w=Math.min(W/(c+s/rho),H/(s+c/rho)),h=w/rho;crop={x:(BW()-w)/2,y:(BH()-h)/2,w,h};
+    }
+    function layoutFrame(){
+      const mw=Math.min(window.innerWidth-70,500),mh=Math.max(180,Math.min(window.innerHeight*.45,500)),s0=Math.min(mw/base.width,mh/base.height);
+      FW=Math.max(1,Math.round(base.width*s0));FH=Math.max(1,Math.round(base.height*s0));
+      cssW=FW+PAD*2;cssH=FH+PAD*2;const dpr=Math.min(window.devicePixelRatio||1,2);
+      cv.width=Math.round(cssW*dpr);cv.height=Math.round(cssH*dpr);cv.style.width=cssW+"px";cv.style.height=cssH+"px";cx.setTransform(dpr,0,0,dpr,0,0);
+      small=mk(FW,FH);const x=small.getContext("2d");x.imageSmoothingQuality="high";x.drawImage(base,0,0,FW,FH);
+      layoutImg();
+    }
+    function layoutImg(){
+      const bw=BW(),bh=BH();sc=Math.min(FW/bw,FH/bh);
+      const dw=Math.max(1,Math.round(bw*sc)),dh=Math.max(1,Math.round(bh*sc));ox=PAD+(FW-dw)/2;oy=PAD+(FH-dh)/2;
+      dispC=mk(dw,dh);const x=dispC.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,dw,dh);x.imageSmoothingQuality="high";
+      x.translate(dw/2,dh/2);x.rotate(rad());x.drawImage(small,-base.width*sc/2,-base.height*sc/2,base.width*sc,base.height*sc);
+      draw();
+    }
+    const HP=()=>{const X=[crop.x,crop.x+crop.w/2,crop.x+crop.w],Y=[crop.y,crop.y+crop.h/2,crop.y+crop.h],n=[["tl",0,0],["tr",2,0],["bl",0,2],["br",2,2],["t",1,0],["b",1,2],["l",0,1],["r",2,1]];return n.map(([k,i,j])=>({k,x:ox+X[i]*sc,y:oy+Y[j]*sc}))};
+    function draw(){
+      cx.clearRect(0,0,cssW,cssH);
+      const dw=dispC.width,dh=dispC.height;cx.drawImage(dispC,ox,oy);
+      const l=ox+crop.x*sc,t=oy+crop.y*sc,w=crop.w*sc,h=crop.h*sc;
+      cx.fillStyle="rgba(0,0,0,.55)";
+      cx.fillRect(ox,oy,dw,t-oy);cx.fillRect(ox,t+h,dw,oy+dh-t-h);cx.fillRect(ox,t,l-ox,h);cx.fillRect(l+w,t,ox+dw-l-w,h);
+      cx.strokeStyle="rgba(255,255,255,.35)";cx.lineWidth=1;cx.beginPath();
+      for(let i=1;i<3;i++){cx.moveTo(l+w*i/3,t);cx.lineTo(l+w*i/3,t+h);cx.moveTo(l,t+h*i/3);cx.lineTo(l+w,t+h*i/3)}cx.stroke();
+      cx.strokeStyle="#fff";cx.lineWidth=2;cx.strokeRect(l,t,w,h);
+      cx.fillStyle="#fff";cx.strokeStyle="#5b7cff";HP().forEach(p=>{cx.beginPath();cx.arc(p.x,p.y,7,0,7);cx.fill();cx.stroke()});
+      [...ov.querySelectorAll("#iea button")].forEach(b=>{const on=+b.dataset.r===asp;b.style.background=on?"var(--pr)":"";b.style.color=on?"#fff":"";b.style.borderColor=on?"transparent":""});
+    }
+    function fitAsp(r,hk){ /* بيفرض النسبة على المستطيل r حسب المقبض */
+      if(!asp)return r;
+      const W=BW(),H=BH();let w=r.rr-r.l,h=r.b-r.t;
+      if(hk==="t"||hk==="b"){h=clamp(h,MIN,H);let nw=h*asp;if(nw>W){nw=W;h=nw/asp}const cxm=(r.l+r.rr)/2;r.l=clamp(cxm-nw/2,0,W-nw);r.rr=r.l+nw;if(hk==="t")r.t=r.b-h;else r.b=r.t+h;return r}
+      if(hk==="l"||hk==="r"){w=clamp(w,MIN,W);let nh=w/asp;if(nh>H){nh=H;w=nh*asp}const cym=(r.t+r.b)/2;r.t=clamp(cym-nh/2,0,H-nh);r.b=r.t+nh;if(hk==="l")r.l=r.rr-w;else r.rr=r.l+w;return r}
+      h=w/asp;
+      const maxH=hk.includes("t")?r.b:H-r.t;if(h>maxH){h=maxH;w=h*asp}
+      const maxW=hk.includes("l")?r.rr:W-r.l;if(w>maxW){w=maxW;h=w/asp}
+      if(hk.includes("l"))r.l=r.rr-w;else r.rr=r.l+w;if(hk.includes("t"))r.t=r.b-h;else r.b=r.t+h;return r;
+    }
+    const pos=e=>{const r=cv.getBoundingClientRect();return{x:(e.clientX-r.left)*(cssW/r.width),y:(e.clientY-r.top)*(cssH/r.height)}};
+    cv.addEventListener("pointerdown",e=>{
+      const p=pos(e);let hit=null,bd=24;HP().forEach(h=>{const d=Math.hypot(h.x-p.x,h.y-p.y);if(d<bd){bd=d;hit=h.k}});
+      const bx=(p.x-ox)/sc,by=(p.y-oy)/sc;
+      if(!hit&&bx>=crop.x&&bx<=crop.x+crop.w&&by>=crop.y&&by<=crop.y+crop.h)hit="move";
+      if(!hit)return;
+      drag={k:hit,sx:p.x,sy:p.y,c:{...crop}};cv.setPointerCapture(e.pointerId);e.preventDefault();
+    });
+    cv.addEventListener("pointermove",e=>{
+      if(!drag)return;const p=pos(e),dx=(p.x-drag.sx)/sc,dy=(p.y-drag.sy)/sc,c0=drag.c,W=BW(),H=BH();
+      if(drag.k==="move"){crop.x=clamp(c0.x+dx,0,W-c0.w);crop.y=clamp(c0.y+dy,0,H-c0.h)}
+      else{
+        const k=drag.k;let r={l:c0.x,t:c0.y,rr:c0.x+c0.w,b:c0.y+c0.h};
+        if(k.includes("l"))r.l=clamp(c0.x+dx,0,r.rr-MIN);if(k.includes("r"))r.rr=clamp(c0.x+c0.w+dx,r.l+MIN,W);
+        if(k.includes("t"))r.t=clamp(c0.y+dy,0,r.b-MIN);if(k.includes("b"))r.b=clamp(c0.y+c0.h+dy,r.t+MIN,H);
+        r=fitAsp(r,k);crop={x:r.l,y:r.t,w:r.rr-r.l,h:r.b-r.t};
+      }
+      draw();
+    });
+    const up=()=>{if(drag){drag=null;dirty=dirty||!full()}};cv.addEventListener("pointerup",up);cv.addEventListener("pointercancel",up);
+    function setAsp(v){asp=v;if(v){const cxm=crop.x+crop.w/2,cym=crop.y+crop.h/2;let w=crop.w,h=w/v;if(h>crop.h){h=crop.h;w=h*v}crop={x:clamp(cxm-w/2,0,BW()-w),y:clamp(cym-h/2,0,BH()-h),w,h};dirty=true}draw()}
+    function xf(kind){
+      const W=base.width,H=base.height,c=crop;let nb,nc=null;
+      if(kind==="rr"||kind==="rl"){nb=mk(H,W);const x=nb.getContext("2d");
+        if(kind==="rr"){x.translate(H,0);x.rotate(Math.PI/2);nc={x:H-c.y-c.h,y:c.x,w:c.h,h:c.w}}else{x.translate(0,W);x.rotate(-Math.PI/2);nc={x:c.y,y:W-c.x-c.w,w:c.h,h:c.w}}
+        x.drawImage(base,0,0)}
+      else{nb=mk(W,H);const x=nb.getContext("2d");if(kind==="fh"){x.translate(W,0);x.scale(-1,1);nc={x:W-c.x-c.w,y:c.y,w:c.w,h:c.h}}else{x.translate(0,H);x.scale(1,-1);nc={x:c.x,y:H-c.y-c.h,w:c.w,h:c.h}}x.drawImage(base,0,0);ang=-ang}
+      const had=ang!==0;base=nb;dirty=true;showAng();
+      if(had)autoFit();else{crop=nc;if(asp){let r={l:crop.x,t:crop.y,rr:crop.x+crop.w,b:crop.y+crop.h};r=fitAsp(r,"br");crop={x:r.l,y:r.t,w:r.rr-r.l,h:r.b-r.t}}}
+      layoutFrame();
+    }
+    function close(v){window.removeEventListener("resize",layoutFrame);ov.remove();res(v)}
+    async function ok(){
+      if(!dirty&&ang===0&&full()){close(file);return}
+      const k=Math.min(1,MAXS/Math.max(crop.w,crop.h)),w=Math.max(1,Math.round(crop.w*k)),h=Math.max(1,Math.round(crop.h*k)),o=mk(w,h),x=o.getContext("2d");
+      x.fillStyle="#fff";x.fillRect(0,0,w,h);x.imageSmoothingQuality="high";x.scale(k,k);
+      x.translate(-crop.x,-crop.y);x.translate(BW()/2,BH()/2);x.rotate(rad());x.drawImage(base,-base.width/2,-base.height/2);
+      o.toBlob(b=>{if(!b){close(file);return}close(new File([b],((file.name||"photo").replace(/\.\w+$/,"")||"photo")+".jpg",{type:"image/jpeg"}))},"image/jpeg",.97);
+    }
+    rg.addEventListener("input",()=>{ang=+rg.value;dirty=true;rv.textContent=(ang>0?"+":"")+(Math.round(ang*10)/10)+"°";autoFit();layoutImg()});
+    ov.addEventListener("click",e=>{
+      const b=e.target.closest("button");if(!b)return;
+      if(b.dataset.r!==undefined){setAsp(+b.dataset.r);return}
+      const a=b.dataset.a;
+      if(a==="rl"||a==="rr"||a==="fh"||a==="fv")xf(a);
+      else if(a==="a0"){ang=0;showAng();autoFit();layoutImg()}
+      else if(a==="rs"){base=mk(orig.width,orig.height);base.getContext("2d").drawImage(orig,0,0);ang=0;asp=0;dirty=false;showAng();crop={x:0,y:0,w:base.width,h:base.height};layoutFrame()}
+      else if(a==="cancel")close(null);else if(a==="skip")close(file);else if(a==="ok")ok();
+    });
+    window.addEventListener("resize",layoutFrame);
+    layoutFrame();
+  });
+}
+async function bPick(i){const f0=i.files[0];if(!f0){bFile=null;return}let f=await heicFix(f0).catch(()=>f0);f=await imgEdit(f,{title:"تعديل صورة العضو قبل الرفع"});if(!f){bFile=null;i.value="";return}bFile=f}
 async function upAvatar(f){f=await heicFix(f).catch(()=>null);
   if(!f)return;
+  f=await imgEdit(f,{title:"تعديل صورتك قبل الرفع"});if(!f)return false;
+  {const sm=$("#agm");if(sm)sm.textContent="جاري الرفع…"}
   try{
     const blob=await resizeImg(f,4096,.97),path=session.user.id+".jpg";
     const up=await upXhr("avatars",path,blob,true,"image/jpeg");if(up.error)throw up.error;
@@ -987,6 +1110,8 @@ async function albSignAll(){
   for(let i=0;i<ps.length;i+=200){const sg=await sb.storage.from("event-photos").createSignedUrls(ps.slice(i,i+200),3600);(sg.data||[]).forEach(x=>{if(x.signedUrl)D.albUrl[x.path]=x.signedUrl})}
   render();
 }
+const sortBar=(key,opts,cur)=>`<div class="row" style="gap:6px;flex-wrap:wrap;margin:6px 0 10px;align-items:center"><span class="mu">ترتيب:</span>${opts.map(([v,t])=>`<button class="g" style="padding:5px 11px;font-size:12px;${cur===v?"background:var(--pr);color:#fff;border-color:transparent":""}" onclick="S.${key}='${v}';render()">${t}</button>`).join("")}</div>`;
+const albPs=id=>{const l=(D.albPhotos||[]).filter(p=>p.album_id===id);return S.albpsrt==="new"?[...l].reverse():l};
 function albumsView(){if(!D.albUrlReady&&(D.albPhotos||[]).length)albSignAll();
   const A=D.albums||[],P=D.albPhotos||[];
   if(S.alb&&A.some(a=>a.id===S.alb))return albumDetail(S.alb);
@@ -994,11 +1119,16 @@ function albumsView(){if(!D.albUrlReady&&(D.albPhotos||[]).length)albSignAll();
   const months=Object.keys(byMo).sort().reverse();
   const head=`<div class="row" style="justify-content:space-between;margin-bottom:10px"><b>📸 صور الفعاليات</b><button onclick="S.modal={t:'album'};render()">+ فعالية جديدة</button></div>`;
   if(!months.length)return head+`<p class="mu">لسه مفيش فعاليات. اضغط + وابدأ.</p>`;
-  return head+months.map(mo=>`<div style="font-weight:800;margin:14px 2px 8px">📅 ${ml(mo)}</div>`+byMo[mo].map(a=>{const ps=P.filter(p=>p.album_id===a.id);return`<div class="card" style="margin-bottom:8px;cursor:pointer" onclick="S.alb='${a.id}';render()"><b>${esc(a.name)}</b><div class="mu">${fmtD(a.event_date)} · ${ps.length} صورة</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:8px">${ps.slice(0,4).map(p=>`<img loading="lazy" src="${esc(urlOf(p))}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;background:#0003">`).join("")}</div></div>`}).join("")).join("");
+  const sk=["new","old","name","count"].includes(S.albsrt)?S.albsrt:"new",nP=a=>P.filter(p=>p.album_id===a.id).length;
+  const bar=A.length>1?sortBar("albsrt",[["new","الأحدث"],["old","الأقدم"],["name","الاسم"],["count","الأكثر صور"]],sk):"";
+  const card=a=>{const ps=P.filter(p=>p.album_id===a.id);return`<div class="card" style="margin-bottom:8px;cursor:pointer" onclick="S.alb='${a.id}';render()"><b>${esc(a.name)}</b><div class="mu">${fmtD(a.event_date)} · ${ps.length} صورة</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:8px">${ps.slice(0,4).map(p=>`<img loading="lazy" src="${esc(urlOf(p))}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;background:#0003">`).join("")}</div></div>`};
+  if(sk==="name"||sk==="count"){const L=[...A].sort(sk==="name"?(x,y)=>String(x.name).localeCompare(String(y.name),"ar"):(x,y)=>nP(y)-nP(x)||String(y.event_date).localeCompare(String(x.event_date)));return head+bar+L.map(card).join("")}
+  const asc=sk==="old",mos=asc?[...months].reverse():months,dc=(x,y)=>asc?String(x.event_date).localeCompare(String(y.event_date)):String(y.event_date).localeCompare(String(x.event_date));
+  return head+bar+mos.map(mo=>`<div style="font-weight:800;margin:14px 2px 8px">📅 ${ml(mo)}</div>`+[...byMo[mo]].sort(dc).map(card).join("")).join("");
 }
 function albumDetail(id){
-  const a=D.albums.find(x=>x.id===id),ps=(D.albPhotos||[]).filter(p=>p.album_id===id);
-  return `<div class="card" style="padding:12px 14px;margin-bottom:12px"><div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:8px"><button class="g" onclick="S.alb=null;render()">→ رجوع</button><div style="flex:1;min-width:140px;text-align:right"><b style="font-size:16px">${esc(a.name)}</b><div class="mu">${fmtD(a.event_date)} · ${ps.length} صورة</div></div><div class="row" style="gap:4px"><button class="g" style="padding:4px 9px" title="تعديل" onclick="S.modal={t:'albedit',alb:'${id}'};render()">✏️</button><button class="g" style="padding:4px 9px;color:#fca5a5" title="حذف" onclick="albDelAlbum('${id}')">🗑</button></div></div><div class="row" style="gap:6px;margin-top:8px;flex-wrap:wrap"><button class="g" onclick="S.modal={t:'albadd',alb:'${id}'};render()">+ صور</button><button class="g" onclick="albZip('${id}')">⬇ ZIP</button></div></div>`+ps.map((p,i)=>`<div class="card" style="padding:0;overflow:hidden;margin-bottom:12px"><img loading="lazy" src="${esc(urlOf(p))}" onclick="S.modal={t:'albphoto',i:${i},alb:'${id}'};render()" style="width:100%;display:block;cursor:pointer;background:#0003"><div class="row" style="justify-content:space-between;padding:8px 12px"><span class="mu">${i+1} / ${ps.length}</span>${p.src_drive?`<a class="g" style="padding:4px 10px;font-size:12px;text-decoration:none;border:1px solid var(--bd);border-radius:10px" href="https://drive.google.com/uc?export=download&id=${p.src_drive}" target="_blank" rel="noopener">⬇ تحميل</a>`:`<button class="g" style="padding:4px 10px;font-size:12px" data-u="${esc(urlOf(p))}" data-n="${esc(a.name)}_${i+1}" onclick="dlEl(this)">⬇ تحميل</button>`}</div></div>`).join("");
+  const a=D.albums.find(x=>x.id===id),ps=albPs(id);
+  return `<div class="card" style="padding:12px 14px;margin-bottom:12px"><div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:8px"><button class="g" onclick="S.alb=null;render()">→ رجوع</button><div style="flex:1;min-width:140px;text-align:right"><b style="font-size:16px">${esc(a.name)}</b><div class="mu">${fmtD(a.event_date)} · ${ps.length} صورة</div></div><div class="row" style="gap:4px"><button class="g" style="padding:4px 9px" title="تعديل" onclick="S.modal={t:'albedit',alb:'${id}'};render()">✏️</button><button class="g" style="padding:4px 9px;color:#fca5a5" title="حذف" onclick="albDelAlbum('${id}')">🗑</button></div></div><div class="row" style="gap:6px;margin-top:8px;flex-wrap:wrap"><button class="g" onclick="S.modal={t:'albadd',alb:'${id}'};render()">+ صور</button><button class="g" onclick="albZip('${id}')">⬇ ZIP</button></div></div>`+(ps.length>1?sortBar("albpsrt",[["old","الأقدم رفعًا"],["new","الأحدث رفعًا"]],S.albpsrt==="new"?"new":"old"):"")+ps.map((p,i)=>`<div class="card" style="padding:0;overflow:hidden;margin-bottom:12px"><img loading="lazy" src="${esc(urlOf(p))}" onclick="S.modal={t:'albphoto',i:${i},alb:'${id}'};render()" style="width:100%;display:block;cursor:pointer;background:#0003"><div class="row" style="justify-content:space-between;padding:8px 12px"><span class="mu">${i+1} / ${ps.length}</span>${p.src_drive?`<a class="g" style="padding:4px 10px;font-size:12px;text-decoration:none;border:1px solid var(--bd);border-radius:10px" href="https://drive.google.com/uc?export=download&id=${p.src_drive}" target="_blank" rel="noopener">⬇ تحميل</a>`:`<button class="g" style="padding:4px 10px;font-size:12px" data-u="${esc(urlOf(p))}" data-n="${esc(a.name)}_${i+1}" onclick="dlEl(this)">⬇ تحميل</button>`}</div></div>`).join("");
 }
 async function albUpload(aid,files){
   let ok=0;const fail=[];
@@ -1123,6 +1253,7 @@ function photosView(){
   const g=COM.includes(S.pg)?S.pg:COM[0],grp=c=>D.members.filter(m=>m.committee===c);
   PH=grp(g).map(m=>({n:m.name,u:m.avatar_url,id:m.id})).concat(g==="Board"?D.board.filter(b=>!grp("Board").some(m=>m.id===b.member_id)).map(b=>({n:b.name,u:bPhoto(b)})):[]);
   return`<div class="tabs">${COM.map(c=>`<button class="${c===g?"on":""}" onclick="S.pg='${c}';render()">${c} (${grp(c).filter(m=>m.avatar_url).length}/${grp(c).length})</button>`).join("")}</div>
+  ${(()=>{const k=S.phsrt||"def";if(k==="name")PH.sort((a,b)=>nm(a.n).localeCompare(nm(b.n),"ar"));else if(k==="miss")PH.sort((a,b)=>(a.u?1:0)-(b.u?1:0));else if(k==="has")PH.sort((a,b)=>(b.u?1:0)-(a.u?1:0));else if(k==="score"){const sc=x=>{const m=x.id&&D.members.find(z=>z.id===x.id);return m?score(m):-1};PH.sort((a,b)=>sc(b)-sc(a))}return sortBar("phsrt",[["def","الافتراضي"],["name","الاسم"],["score","التقييم ↓"],["miss","ناقص صورة أولًا"],["has","عنده صورة أولًا"]],k)})()}
   <div class="grid3">${PH.map((x,i)=>`<div class="card" style="padding:8px;text-align:center;cursor:${x.u?"pointer":"default"}" ${x.u?`onclick="S.modal={t:'photo',i:${i}};render()"`:""}>${x.u?`${imgT(x.u,"","width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px")}`:`<div class="av" style="width:100%;height:auto;aspect-ratio:1;border-radius:12px;font-size:28px">${esc((x.n||"?")[0])}</div>`}<div style="font-size:12px;margin-top:6px">${esc(nm(x.n))}</div>${x.id&&isAdm()?`<label class="btn g" style="margin:6px 0 0;padding:5px 8px;font-size:12px;color:var(--tx);display:block" onclick="event.stopPropagation()">📷 ${x.u?"تغيير":"رفع"}<input type="file" hidden accept="image/*" onchange="adminAvatar('${x.id}',this.files[0]);this.value=''"></label>`:""}</div>`).join("")||'<p class="mu">لا يوجد.</p>'}</div>`;
 }
 function adminView(){
@@ -1292,9 +1423,9 @@ function evFormHtml(){const f=S.evf;return`<div class="card" style="border-color
 function eventsView(){
   if(S.evErr)return`<div class="card"><b>📅 الأحداث والحضور</b><p class="err">الأحداث مش شغالة: ${esc(S.evErr)} — شغّل setup.sql في Supabase.</p></div>`;
   const ms=[...new Set([...D.ev.map(e=>evMo(e.d)),evMo(today())])].sort().reverse(),mo=ms.includes(S.evm)?S.evm:ms[0],AM=evAM();
-  const L=D.ev.filter(e=>evMo(e.d)===mo).sort((a,b)=>b.d.localeCompare(a.d));
+  const esk=["new","old","kind"].includes(S.evsrt)?S.evsrt:"new",L=D.ev.filter(e=>evMo(e.d)===mo).sort(esk==="old"?(a,b)=>a.d.localeCompare(b.d):esk==="kind"?(a,b)=>String(a.kind).localeCompare(String(b.kind))||b.d.localeCompare(a.d):(a,b)=>b.d.localeCompare(a.d));
   return`<div class="card"><div class="row"><b style="flex:1">📅 الأحداث والحضور</b>${canEv()?`<button onclick="evForm()">➕ إضافة حدث</button>`:""}</div>
-  <label>الشهر</label><select onchange="S.evm=this.value;S.evo=null;render()">${ms.map(k=>`<option value="${k}" ${k===mo?"selected":""}>${ml(k)}</option>`).join("")}</select>
+  <label>الشهر</label><select onchange="S.evm=this.value;S.evo=null;render()">${ms.map(k=>`<option value="${k}" ${k===mo?"selected":""}>${ml(k)}</option>`).join("")}</select>${L.length>1?sortBar("evsrt",[["new","الأحدث"],["old","الأقدم"],["kind","النوع"]],esk):""}
   ${S.evMsg?`<p class="err">${esc(S.evMsg)}</p>`:""}
   <p class="mu" style="margin:8px 0 0">${canMark()?"دوس على الحدث وسجّل حضور أعضائك. الاعتذار المقبول بيتحسب نص والغير مقبول ربع، وتقييم الشهر بيتحدّث تلقائي. اللي مش متسجّل مش بيتحسب عليه حاجة.":"ضيف الحدث (نزولة / تاسك / سيشن / اجتماع) بتاريخه، وبعدها مسؤولو الـHR يسجّلوا الحضور لأعضائهم."}</p></div>`+
   (S.evf&&canEv()?evFormHtml():"")+
@@ -1547,6 +1678,7 @@ function badgesHtml(m,pos,total){
 /* ---------- صور الأعضاء (للأدمن) + إلزام الصورة + إدارة الحساب ---------- */
 async function adminAvatar(mid,f){
   if(!f||!(isAdm()||canDesign()))return;f=await heicFix(f).catch(()=>null);if(!f)return;
+  f=await imgEdit(f,{title:"تعديل صورة العضو قبل الرفع"});if(!f)return;
   try{const blob=await resizeImg(f,4096,.97),p="m_"+mid+".jpg";
     let up=await upXhr("avatars",p,blob,true,"image/jpeg");if(up.error)throw up.error;
     try{const tb=await resizeImg(f,640,.9);await upXhr("avatars","m_"+mid+"_t.jpg",tb,true,"image/jpeg")}catch(e){}
@@ -1578,7 +1710,7 @@ async function gateUp(f){
     if("FaceDetector" in window){try{const fs=await new FaceDetector().detect(bm);if(!fs.length){say("مش باين وش في الصورة. اختار صورة واضحة لوجهك.");return}}catch(e){}}
     const pv=$("#agp");if(pv){pv.outerHTML=`<img id="agp" class="av lg" style="width:120px;height:120px;border-radius:30px;margin:0 auto 12px;display:block" src="${URL.createObjectURL(f)}">`}
   }catch(e){say("مقدرتش أقرا الصورة. لو من الآيفون حوّلها JPG.");return}
-  say("جاري الرفع…");await upAvatar(f)}
+  say("");if(await upAvatar(f)===false)say("اتلغى رفع الصورة.")}
 /* ---------- إشعارات داخل الموقع (إنذار / إعلان التقييم) ---------- */
 const ntCnt=()=>(D.nt||[]).filter(n=>!n.read_at).length;
 const ntAgo=t=>{const m=Math.max(0,Math.round((Date.now()-new Date(t))/6e4));return m<1?"دلوقتي":m<60?"من "+m+" دقيقة":m<1440?"من "+Math.round(m/60)+" ساعة":m<2880?"من يوم":m<43200?"من "+Math.round(m/1440)+" يوم":String(t).slice(0,10)};
@@ -2125,7 +2257,7 @@ function modal(){
    if(t.t==="bdayimp"){const r=S.bdImp;return`<div class="ov" onclick="if(event.target===this)closeM()"><div class="card"><b>⬆ استيراد أعياد الميلاد من Excel</b><p class="mu" style="margin:6px 0">لازم الملف يكون فيه عمود للاسم وعمود لتاريخ الميلاد (زي: الاسم، تاريخ الميلاد).</p><input type="file" accept=".xlsx,.csv" onchange="bdayImport(this.files[0])">${r?`<p style="margin:10px 0 4px"><b>${r.ok.length}</b> تاريخ جاهز للحفظ</p>${r.miss.length?`<p class="mu" style="font-size:12px">مش هيتحفظوا (${r.miss.length}): ${esc(r.miss.join("، "))}</p>`:""}`:""}<p class="err" id="mm"></p><div class="row"><button ${r&&r.ok.length?"":"disabled"} onclick="bdayImportSave()">حفظ</button><button class="g" onclick="S.bdImp=null;closeM()">إلغاء</button></div></div></div>`}
    if(t.t==="album"||t.t==="albadd"){const isNew=t.t==="album";const dr=JSON.parse(localStorage.getItem("albDraft")||"{}");const a=isNew?null:D.albums.find(x=>x.id===t.alb);return`<div class="ov" onclick="if(event.target===this)closeM()"><div class="card"><b>${isNew?"فعالية جديدة":"إضافة صور لـ "+esc(a?a.name:"")}</b>${isNew?`<label>اسم الفعالية</label><input id="an" value="${esc(dr.name||"")}" oninput="albDraftSave()"><label>التاريخ</label><input id="ad" type="date" value="${esc(dr.date||today())}" oninput="albDraftSave()">`:""}<label>الصور (تقدر تختار كذا صورة، بترفع بالحجم الأصلي)</label><input id="af" type="file" accept="image/*" multiple><label>أو لينكات درايف (صورة أو فولدر كامل، سطر لكل لينك)</label><textarea id="adl" rows="4" style="width:100%"></textarea><button type="button" class="g" style="margin-top:6px" onclick="albPickGo()">📂 عرض صور الفولدر واختيار منها</button>${albPickHtml()}<p class="mu" id="mm" style="margin:8px 0">${esc(ALBPEND.msg||"")}</p>${(ALBPEND.fail.length+(ALBPEND.dfail||[]).length)?`<button onclick="albRetry()">🔁 إعادة رفع اللي فشل (${ALBPEND.fail.length+(ALBPEND.dfail||[]).length})</button>`:""}<div class="row"><button onclick="${isNew?"albSave()":`albAddSave('${t.alb}')`}">رفع</button><button class="g" onclick="closeM()">إلغاء</button></div></div></div>`}
    if(t.t==="albedit"){const a=D.albums.find(x=>x.id===t.alb)||{};return`<div class="ov" onclick="if(event.target===this)closeM()"><div class="card"><b>تعديل الفعالية</b><label>الاسم</label><input id="an" value="${esc(a.name||"")}"><label>التاريخ</label><input id="ad" type="date" value="${esc(a.event_date||"")}"><p class="err" id="mm"></p><div class="row"><button onclick="albEditSave('${t.alb}')">حفظ</button><button class="g" onclick="closeM()">إلغاء</button></div></div></div>`}
-   if(t.t==="albphoto"){const ps=(D.albPhotos||[]).filter(x=>x.album_id===t.alb),p=ps[t.i];if(!p)return"";const a=D.albums.find(x=>x.id===t.alb)||{};return`<div class="ov" onclick="if(event.target===this)closeM()" ontouchstart="albTs=event.touches[0].clientX" ontouchend="albSwipe(event.changedTouches[0].clientX,${ps.length},${t.i})"><div class="card" style="text-align:center"><div class="row" style="justify-content:space-between;align-items:center"><button class="g" ${t.i<=0?"disabled":""} onclick="albNav(${t.i-1})">‹</button><span class="mu">${t.i+1} / ${ps.length}</span><button class="g" ${t.i>=ps.length-1?"disabled":""} onclick="albNav(${t.i+1})">›</button></div><img src="${esc(urlOf(p))}" alt="" style="max-width:100%;max-height:66vh;border-radius:12px;margin-top:8px"><p class="mu">${esc(a.name||"")} · ${fmtD(a.event_date||"")}</p><div class="row" style="justify-content:center;gap:6px"><button data-u="${esc(urlOf(p))}" data-n="${esc(a.name||"photo")}_${t.i+1}" onclick="dlEl(this)">⬇ تحميل</button><button class="g" style="color:#fca5a5" onclick="albDelPhoto('${p.id}')">🗑</button><button class="g" onclick="closeM()">إغلاق</button></div></div></div>`}
+   if(t.t==="albphoto"){const ps=albPs(t.alb),p=ps[t.i];if(!p)return"";const a=D.albums.find(x=>x.id===t.alb)||{};return`<div class="ov" onclick="if(event.target===this)closeM()" ontouchstart="albTs=event.touches[0].clientX" ontouchend="albSwipe(event.changedTouches[0].clientX,${ps.length},${t.i})"><div class="card" style="text-align:center"><div class="row" style="justify-content:space-between;align-items:center"><button class="g" ${t.i<=0?"disabled":""} onclick="albNav(${t.i-1})">‹</button><span class="mu">${t.i+1} / ${ps.length}</span><button class="g" ${t.i>=ps.length-1?"disabled":""} onclick="albNav(${t.i+1})">›</button></div><img src="${esc(urlOf(p))}" alt="" style="max-width:100%;max-height:66vh;border-radius:12px;margin-top:8px"><p class="mu">${esc(a.name||"")} · ${fmtD(a.event_date||"")}</p><div class="row" style="justify-content:center;gap:6px"><button data-u="${esc(urlOf(p))}" data-n="${esc(a.name||"photo")}_${t.i+1}" onclick="dlEl(this)">⬇ تحميل</button><button class="g" style="color:#fca5a5" onclick="albDelPhoto('${p.id}')">🗑</button><button class="g" onclick="closeM()">إغلاق</button></div></div></div>`}
    if(t.t==="photo"){const x=PH[t.i];if(!x)return"";return`<div class="ov" onclick="if(event.target===this)closeM()"><div class="card" style="text-align:center"><img src="${esc(x.u)}" alt="" style="max-width:100%;max-height:60vh;border-radius:14px" onload="if(this.naturalWidth<800){const q=document.getElementById('lq');q.style.display='block';q.textContent='⚠ الصورة دي مرفوعة بجودة قليلة ('+this.naturalWidth+'×'+this.naturalHeight+' بيكسل). اطلب من العضو يرفعها تاني من حسابه.'}"><p id="lq" class="mu" style="display:none;color:var(--warn);margin:8px 0 0"></p><p><b>${esc(nm2(x.n))}</b></p><div class="row" style="justify-content:center"><button onclick="dlPhoto(${t.i})">⬇ تحميل بجودة كاملة</button><button class="g" onclick="closeM()">إغلاق</button></div></div></div>`}
   if(t.t==="brd"){const b=D.board.find(x=>x.id===t.id);return`<div class="ov"><div class="card"><b>${b?"تعديل":"إضافة"} عضو بورد</b>
     <label>الاسم</label><input id="bn" value="${esc(b?.name)}"><label>المنصب</label><select id="bp">${(()=>{const P=["Head","Vice Head","Leader","Advisor"],cur=b?.position||"";const L=cur&&!P.includes(cur)?[cur,...P]:P;return L.map(p=>`<option value="${esc(p)}" ${p===cur?"selected":""}>${esc(p)}</option>`).join("")})()}</select>
@@ -2133,7 +2265,7 @@ function modal(){
     <label>يقيّم تقييمات لجان إيه؟</label>${evChipsHtml(b?evCom(b):[],"bevcs")}
     <label>حساب المسؤول (اختياري)</label><select id="bm"><option value="">بدون حساب (عرض فقط في صفحة المسؤولين)</option>${[...D.members].sort((x,y)=>nm2(x.name).localeCompare(nm2(y.name),"ar")).map(x=>`<option value="${x.id}" ${b?.member_id===x.id?"selected":""}>${esc(nm2(x.name))} · ${esc(x.committee)}</option>`).join("")}</select>
     <p class="mu" style="font-size:12px;margin:4px 0 0">لو اخترت حساب: صاحبه هيشوف تقييمات اللجان المختارة كلها أول بأول حتى قبل الإعلان (عرض فقط).</p>
-    <label>الصورة</label><input type="file" accept="image/*" onchange="bFile=this.files[0]">${b?.photo_url?'<p class="mu">سيب الصورة فاضية للإبقاء على الحالية.</p>':""}
+    <label>الصورة</label><input type="file" accept="image/*" onchange="bPick(this)">${b?.photo_url?'<p class="mu">سيب الصورة فاضية للإبقاء على الحالية.</p>':""}
     <p class="err" id="mm"></p><div class="row" style="margin-top:12px"><button onclick="saveBoard('${b?.id||""}')">حفظ</button><button class="g" onclick="closeM(true)">إلغاء</button></div></div></div>`}
   if(t.t==="mem"){
     const fl=D.follows.filter(f=>f.manager_id===m?.id).map(f=>f.member_id);
