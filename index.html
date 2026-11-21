@@ -780,6 +780,74 @@ async function cardDocx(c,mo){
 const ctOk=()=>!!(me&&(isAdm()||isHRHead()||D.board.some(b=>b.member_id===me.id&&b.can_evaluate&&evCom(b).includes("HR"))));
 const ctTabs=()=>(!isAdm()&&ctOk())?[["cards","📄 الكروت"]]:[];
 function loadLib(src,g){if(window[g])return Promise.resolve();return new Promise((res,rej)=>{const t=document.createElement("script");t.src=src;t.onload=()=>res();t.onerror=()=>rej(new Error("تعذر تحميل مكتبة التحويل"));document.head.appendChild(t)})}
+/* ===== تصدير الكارت PDF حقيقي (من نفس نموذج الـ Word) — بيتنزّل ملف مباشرة من غير طباعة ===== */
+const DOCXP_SRC="https://cdn.jsdelivr.net/npm/docx-preview@0.3.2/dist/docx-preview.min.js",H2C_SRC="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js",JSPDF_SRC="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js";
+const cSleep=ms=>new Promise(r=>setTimeout(r,ms));
+const CARD_SYSFONTS=/^(calibri|calibri light|arial|arial unicode ms|times new roman|cambria|cambria math|tahoma|segoe ui|verdana|georgia|courier new|symbol|wingdings|traditional arabic|simplified arabic|sakkal majalla|microsoft sans serif|trebuchet ms|consolas|candara|helvetica|sans-serif|serif|cairo|anton|pacifico)$/i;
+async function cardMeta(blob){
+  await loadJSZip();
+  const z=await JSZip.loadAsync(blob),fonts=new Set();
+  const dx=await z.file("word/document.xml").async("string");
+  const bm=dx.match(/<w:background\b[^>]*\bw:color="([0-9A-Fa-f]{6})"/);
+  for(const p of["word/document.xml","word/styles.xml"]){
+    const f=z.file(p);if(!f)continue;const x=p==="word/document.xml"?dx:await f.async("string");
+    for(const mm of x.matchAll(/w:(?:ascii|hAnsi|cs)="([^"]+)"/g)){const n=mm[1].trim();if(n&&!CARD_SYSFONTS.test(n))fonts.add(n)}
+  }
+  return{bg:bm?bm[1]:"",fonts:[...fonts].slice(0,8)};
+}
+function cardFrame(){return new Promise(res=>{const f=document.createElement("iframe");f.setAttribute("aria-hidden","true");f.style.cssText="position:fixed;left:0;top:0;width:1000px;height:1400px;border:0;opacity:0;pointer-events:none;z-index:-1";f.onload=()=>res(f);f.srcdoc='<!doctype html><html><head><meta charset="utf-8"></head><body></body></html>';document.body.appendChild(f)})}
+function cardPageH(sec){const m=String(sec.style.minHeight||"").match(/^([\d.]+)(pt|px|mm|cm|in)$/);if(!m)return sec.offsetHeight;const v=+m[1],u=m[2],h=Math.round(u==="pt"?v*4/3:u==="px"?v:u==="mm"?v*96/25.4:u==="cm"?v*96/2.54:v*96);return h>100?h:sec.offsetHeight}
+async function cardPdf(blob,c,mo){
+  prgShow("جاري تجهيز الـ PDF…");
+  let fr=null;
+  try{
+    await Promise.all([loadLib(DOCXP_SRC,"docx"),loadLib(H2C_SRC,"html2canvas"),loadLib(JSPDF_SRC,"jspdf")]);
+    prgSet(.15);
+    const meta=await cardMeta(blob);
+    fr=await cardFrame();
+    const d=fr.contentDocument;
+    // الصفحة بتتعرض جوه iframe معزول عشان ستايل الموقع (الدارك مود/الألوان) مايأثرش على الكارت
+    const st=d.createElement("style");
+    st.textContent="html,body{margin:0;padding:0;background:#fff;color:#000}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}section.docx{margin:0!important;box-shadow:none!important;position:relative!important;z-index:0}";
+    d.head.appendChild(st);
+    const addL=h=>{const l=d.createElement("link");l.rel="stylesheet";l.href=h;d.head.appendChild(l)};
+    addL("https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Anton&family=Pacifico&display=swap");
+    meta.fonts.forEach(n=>{const q=encodeURIComponent(n).replace(/%20/g,"+");addL("https://fonts.googleapis.com/css2?family="+q+"&display=swap");addL("https://fonts.googleapis.com/css2?family="+q+":wght@400;700&display=swap")});
+    const host=d.createElement("div");d.body.appendChild(host);
+    await window.docx.renderAsync(blob,host,host,{className:"docx",inWrapper:false,ignoreWidth:false,ignoreHeight:false,ignoreFonts:false,breakPages:true,experimental:true,useBase64URL:true,renderHeaders:true,renderFooters:true,renderFootnotes:true,renderEndnotes:true});
+    prgSet(.35);
+    const secs=[...d.querySelectorAll("section.docx")];
+    if(!secs.length)throw new Error("مقدرتش أعرض نموذج الكارت، جرّب ترفع النموذج تاني");
+    await Promise.race([d.fonts.ready,cSleep(4000)]);
+    await Promise.all(meta.fonts.map(f=>Promise.race([d.fonts.load('16px "'+f+'"'),cSleep(2500)]).catch(()=>0)));
+    await Promise.all([...d.images].map(im=>im.complete?0:Promise.race([new Promise(r=>{im.onload=im.onerror=r}),cSleep(4000)])));
+    await cSleep(250);
+    const rows=cardRows(c,mo);
+    if(rows.length&&!(d.body.textContent||"").replace(/\s+/g,"").includes(rows[0].name.replace(/\s+/g,"")))console.warn("card pdf: الأسماء مش ظاهرة في الرندر");
+    if(meta.bg)secs.forEach(s=>{if(!s.style.backgroundColor)s.style.backgroundColor="#"+meta.bg});
+    const W=Math.ceil(secs[0].offsetWidth),PH=cardPageH(secs[0]),SC=2;
+    fr.style.width=(W+60)+"px";
+    const wpt=W*.75,hpt=PH*.75,orient=wpt>hpt?"landscape":"portrait";
+    let pdf=null;
+    for(let i=0;i<secs.length;i++){
+      const sec=secs[i];
+      const cv=await window.html2canvas(sec,{scale:SC,backgroundColor:"#ffffff",useCORS:true,logging:false,scrollX:0,scrollY:0,windowWidth:W+60,windowHeight:Math.max(sec.offsetHeight,1400),
+        onclone:cd=>{cd.querySelectorAll("section.docx span,section.docx p,section.docx td").forEach(e=>{if(/[\u0600-\u06FF]/.test(e.textContent))e.style.setProperty("letter-spacing","normal","important")})}});
+      const sliceH=Math.round(PH*SC),parts=Math.max(1,Math.ceil((cv.height-6)/sliceH));
+      for(let k=0;k<parts;k++){
+        let srcCv=cv;const y=k*sliceH,h=Math.min(sliceH,cv.height-y);
+        if(parts>1){srcCv=document.createElement("canvas");srcCv.width=cv.width;srcCv.height=h;const g=srcCv.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,cv.width,h);g.drawImage(cv,0,y,cv.width,h,0,0,cv.width,h)}
+        if(pdf)pdf.addPage([wpt,hpt],orient);else pdf=new window.jspdf.jsPDF({unit:"pt",format:[wpt,hpt],orientation:orient,compress:true});
+        pdf.addImage(srcCv.toDataURL("image/jpeg",.95),"JPEG",0,0,wpt,wpt*h/cv.width);
+      }
+      prgSet(.35+.6*(i+1)/secs.length);
+    }
+    const out=pdf.output("blob"),a=document.createElement("a");
+    a.href=URL.createObjectURL(out);a.download=`${COMEN[c]}_${mo}.pdf`;document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href),8000);
+    toast("اتصدّر الـ PDF ✓","ok");
+  }finally{if(fr)fr.remove();prgHide()}
+}
 async function cardExport(fmt){
   const c=($("#cdc")||{}).value,mo=($("#cdm")||{}).value;
   if(!c||!mo)return alert("اختار اللجنة والشهر");
@@ -790,12 +858,7 @@ async function cardExport(fmt){
     if(fmt==="docx"){
       const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`${COMEN[c]}_${mo}.docx`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000);
     }else{
-      await loadLib("https://cdn.jsdelivr.net/npm/docx-preview@0.3.2/dist/docx-preview.min.js","docx");
-      const w=window.open("","_blank");if(!w)throw new Error("اسمح بالنوافذ المنبثقة عشان تطلع الـ PDF");
-      w.document.write('<!doctype html><html dir="rtl"><head><meta charset="utf-8"><title>'+COMEN[c]+' '+mo+'</title><style>@page{size:A4;margin:8mm}html,body,#card{margin:0;background:#fff;height:auto!important;overflow:visible!important;width:auto!important}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}section,.docx-wrapper{background:#fff!important;margin:0 auto!important;box-shadow:none!important}@media print{section,.docx-wrapper{page-break-after:always}}</style></head><body><div id="card"></div></body></html>');
-      w.document.close();
-      await window.docx.renderAsync(blob,w.document.getElementById("card"),w.document.head,{inWrapper:false,ignoreWidth:false});
-      await new Promise(r=>setTimeout(r,500));await Promise.all([...w.document.querySelectorAll("img")].map(im=>im.complete?null:new Promise(r=>{im.onload=im.onerror=r})));setTimeout(()=>{w.focus();w.print()},900);
+      await cardPdf(blob,c,mo);
     }
   }catch(e){prgHide();alert(e.message||"حصلت مشكلة")}
 }
