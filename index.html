@@ -695,7 +695,7 @@ function boardAdminView(){
 }
 
 
-let ALBPEND={aid:null,fail:[],msg:""};
+let ALBPEND={aid:null,fail:[],dfail:[],msg:""};
 function prgShow(t){let e=document.getElementById("prg");if(!e){e=document.createElement("div");e.id="prg";e.style.cssText="position:fixed;top:0;left:0;right:0;z-index:99;background:#151a33;color:#fff;padding:8px 14px;font-size:13px;box-shadow:0 2px 10px #0008";e.innerHTML='<div id="prgt"></div><div style="height:6px;background:#2a3050;border-radius:6px;margin-top:6px;overflow:hidden"><i id="prgb" style="display:block;height:100%;width:0;background:linear-gradient(90deg,#5b7cff,#8b5cf6);transition:width .15s"></i></div>';document.body.appendChild(e)}e.style.display="block";document.getElementById("prgt").textContent=t||"";prgSet(0)}
 function prgSet(f){const b=document.getElementById("prgb");if(b)b.style.width=Math.round(Math.max(0,Math.min(1,f||0))*100)+"%"}
 function prgHide(){const e=document.getElementById("prg");if(e)e.style.display="none"}
@@ -1015,8 +1015,49 @@ async function albUpload(aid,files){
   prgHide();
   return{ok,fail};
 }
-const ALB_MAX=10;
 function albDriveIds(txt){return String(txt||"").split(/\s+/).map(x=>x.trim()).filter(Boolean).map(l=>{const m=l.match(/\/file\/d\/([\w-]{10,})/)||l.match(/\/d\/([\w-]{10,})/)||l.match(/[?&]id=([\w-]{10,})/);return m?m[1]:null}).filter(Boolean)}
+let ALBPICK={items:[],sel:new Set(),done:new Set()};
+const albPickReset=()=>{ALBPICK={items:[],sel:new Set(),done:new Set()}};
+const albTokens=t=>String(t||"").split(/\s+/).map(x=>x.trim()).filter(Boolean);
+const albFolderIdOf=l=>(String(l).match(/\/folders\/([\w-]{10,})/)||[])[1]||null;
+async function albFolderFiles(fid){
+  prgShow("جاري قراءة الفولدر…");
+  try{
+    const tok=(session&&session.access_token)||"";
+    const r=await fetch(SUPABASE_URL+"/functions/v1/drive-folder?id="+encodeURIComponent(fid),{headers:{apikey:SUPABASE_ANON_KEY,Authorization:"Bearer "+tok}});
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok)throw new Error(j.error||(r.status===404?"دالة drive-folder مش منشورة لسه":"HTTP "+r.status));
+    return(j.files||[]).map(f=>({id:f.id,name:f.name||"",fid}));
+  }finally{prgHide()}
+}
+async function albPickLoad(txt){
+  for(const l of albTokens(txt)){const f=albFolderIdOf(l);if(!f||ALBPICK.done.has(f))continue;
+    const files=await albFolderFiles(f);if(!files.length)throw new Error("الفولدر مفيهوش صور، أو مش مفتوح لأي حد معاه اللينك");
+    ALBPICK.done.add(f);files.forEach(x=>{if(!ALBPICK.items.some(y=>y.id===x.id)){ALBPICK.items.push(x);ALBPICK.sel.add(x.id)}})}
+}
+function albPickHtml(){
+  if(!ALBPICK.items.length)return'<div id="adpick"></div>';
+  const bs='padding:5px 11px;font-size:12px';
+  return`<div id="adpick" style="margin-top:10px"><div class="row" style="gap:6px;flex-wrap:wrap;align-items:center"><b>صور الفولدر (${ALBPICK.items.length})</b><span class="mu">· المحدد <b id="adpc">${ALBPICK.sel.size}</b></span><span style="flex:1"></span><button type="button" class="g" style="${bs}" onclick="albPickAll(true)">تحديد الكل</button><button type="button" class="g" style="${bs}" onclick="albPickAll(false)">إلغاء التحديد</button></div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px;max-height:46vh;overflow:auto">${ALBPICK.items.map(x=>`<label style="position:relative;display:block;cursor:pointer;margin:0"><img src="https://drive.google.com/thumbnail?id=${x.id}&sz=w240" loading="lazy" referrerpolicy="no-referrer" alt="${esc(x.name)}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;display:block;background:var(--bd)"><input type="checkbox" ${ALBPICK.sel.has(x.id)?"checked":""} onchange="albPickTog('${x.id}',this.checked)" style="position:absolute;top:6px;right:6px;width:20px;height:20px;margin:0"></label>`).join("")}</div></div>`;
+}
+function albPickRefresh(){const el=$("#adpick");if(el)el.outerHTML=albPickHtml()}
+function albPickTog(id,on){if(on)ALBPICK.sel.add(id);else ALBPICK.sel.delete(id);const c=$("#adpc");if(c)c.textContent=ALBPICK.sel.size}
+function albPickAll(on){ALBPICK.sel=new Set(on?ALBPICK.items.map(x=>x.id):[]);albPickRefresh()}
+async function albPickGo(){const m=$("#mm");
+  if(!albTokens(($("#adl")||{}).value).some(albFolderIdOf)){m.textContent="حط لينك فولدر درايف الأول";return}
+  try{await albPickLoad(($("#adl")||{}).value);albPickRefresh();m.textContent="حدّد الصور اللي عايزها واضغط رفع"}catch(e){m.textContent="تعذر قراءة الفولدر: "+(e.message||e)}}
+/* بيرجّع ids الصور المطلوبة (لينكات صور + المحدد من الفولدرات)، أو needPick لو فولدر لسه ما اتعرضش */
+async function albResolve(txt){
+  const toks=albTokens(txt),single=[],present=new Set();let pending=false;
+  for(const l of toks){const f=albFolderIdOf(l);if(f){present.add(f);if(!ALBPICK.done.has(f))pending=true}else single.push(...albDriveIds(l))}
+  if(pending){await albPickLoad(txt);albPickRefresh();return{needPick:true,ids:[]}}
+  return{needPick:false,ids:[...new Set([...single,...ALBPICK.items.filter(x=>present.has(x.fid)&&ALBPICK.sel.has(x.id)).map(x=>x.id)])]};
+}
+async function albGetDrive(){
+  let r;try{r=await albResolve(($("#adl")||{}).value)}catch(e){$("#mm").textContent="تعذر قراءة لينك درايف: "+(e.message||e);return null}
+  if(r.needPick){$("#mm").textContent=`لقيت ${ALBPICK.items.length} صورة في الفولدر. حدّد اللي عايزها واضغط رفع`;return null}
+  return r.ids;
+}
 async function albDriveOne(aid,fid){
   try{
     const r=await fetch(SUPABASE_URL+"/functions/v1/drive-photo?url="+encodeURIComponent("https://drive.google.com/file/d/"+fid+"/view"),{headers:{apikey:SUPABASE_ANON_KEY,Authorization:"Bearer "+SUPABASE_ANON_KEY}});
@@ -1030,32 +1071,33 @@ async function albDriveOne(aid,fid){
 }
 async function albRun(aid,files,driveIds){
   driveIds=driveIds||[];
-  const have=(D.albPhotos||[]).filter(p=>p.album_id===aid).length;
-  if(have+files.length+driveIds.length>ALB_MAX){alert(`الفعالية بتتحد بـ ${ALB_MAX} صور. عندها ${have} دلوقتي، وانت بتضيف ${files.length+driveIds.length}.`);return}
-  let dOk=0;
-  for(let i=0;i<driveIds.length;i++){prgShow(`جاري نسخ صورة من درايف ${i+1} من ${driveIds.length}`);if(await albDriveOne(aid,driveIds[i]))dOk++;prgHide()}
+  let dOk=0,done=0;const dfail=[],q=[...driveIds];
+  if(driveIds.length)prgShow(`جاري نسخ الصور من درايف 0 من ${driveIds.length}`);
+  const work=async()=>{while(q.length){const id=q.shift();if(await albDriveOne(aid,id))dOk++;else dfail.push(id);done++;prgShow(`جاري نسخ الصور من درايف ${done} من ${driveIds.length}`)}};
+  await Promise.all([work(),work(),work()]);prgHide();
   const r=await albUpload(aid,files);
-  const okN=r.ok+dOk,failN=r.fail.length+(driveIds.length-dOk);
-  ALBPEND={aid,fail:r.fail,msg:failN?`اتحفظ ${okN} صورة، و${failN} فشلت. اضغط إعادة الرفع للصور اللي من جهازك.`:`اتحفظ ${okN} صورة ✓`};
-  if(!failN){S.modal=null;localStorage.removeItem("albDraft")}
+  const okN=r.ok+dOk,failN=r.fail.length+dfail.length;
+  ALBPEND={aid,fail:r.fail,dfail,msg:failN?`اتحفظ ${okN} صورة، و${failN} فشلت. اضغط إعادة الرفع للصور اللي فشلت.`:`اتحفظ ${okN} صورة ✓`};
+  if(!failN){S.modal=null;localStorage.removeItem("albDraft");albPickReset()}
   S.alb=aid;await load();render();
   if(!failN)toast(ALBPEND.msg,"ok");
 }
 async function albSave(){
-  const name=$("#an").value.trim(),date=$("#ad").value,files=[...$("#af").files],dl=albDriveIds(($("#adl")||{}).value);
+  const name=$("#an").value.trim(),date=$("#ad").value,files=[...$("#af").files];
   if(!name||!date){$("#mm").textContent="الاسم والتاريخ مطلوبين";return}
-  if(!files.length&&!dl.length){$("#mm").textContent="اختار صور أو حط لينكات درايف";return}
-  if(files.length+dl.length>ALB_MAX){$("#mm").textContent=`الحد ${ALB_MAX} صور للفعالية`;return}
+  const dl=await albGetDrive();if(!dl)return;
+  if(!files.length&&!dl.length){$("#mm").textContent="اختار صور أو حدّد صور من فولدر درايف أو حط لينكات";return}
   const ins=await sb.from("event_albums").insert({name,event_date:date,created_by:me.id}).select("id").single();
   if(ins.error){$("#mm").textContent=ins.error.message;return}
   await albRun(ins.data.id,files,dl);
 }
 async function albAddSave(aid){
-  const files=[...$("#af").files],dl=albDriveIds(($("#adl")||{}).value);
-  if(!files.length&&!dl.length){$("#mm").textContent="اختار صور أو حط لينكات درايف";return}
+  const files=[...$("#af").files];
+  const dl=await albGetDrive();if(!dl)return;
+  if(!files.length&&!dl.length){$("#mm").textContent="اختار صور أو حدّد صور من فولدر درايف أو حط لينكات";return}
   await albRun(aid,files,dl);
 }
-async function albRetry(){const aid=ALBPEND.aid,files=ALBPEND.fail;if(!aid||!files.length)return;ALBPEND.fail=[];await albRun(aid,files)}
+async function albRetry(){const aid=ALBPEND.aid,files=ALBPEND.fail,df=ALBPEND.dfail||[];if(!aid||(!files.length&&!df.length))return;ALBPEND.fail=[];ALBPEND.dfail=[];await albRun(aid,files,df)}
 async function albEditSave(aid){
   const name=$("#an").value.trim(),date=$("#ad").value;
   if(!name||!date){$("#mm").textContent="الاسم والتاريخ مطلوبين";return}
@@ -2081,7 +2123,7 @@ function modal(){
   if(t.t==="imp")return impHtml();
   if(t.t==="bdayadd"){const opts=[...D.members].sort((a,b)=>nm(a.name).localeCompare(nm(b.name),"ar")).map(m=>`<option value="${m.id}">${esc(nm(m.name))} · ${esc(m.committee||"")}</option>`).join("");return`<div class="ov" onclick="if(event.target===this)closeM()"><div class="card"><b>🎂 إضافة تاريخ ميلاد</b><label>العضو</label><select id="bdm">${opts}</select><label>تاريخ الميلاد</label><input id="bdd" type="date"><p class="err" id="mm"></p><div class="row"><button onclick="bdaySave()">حفظ</button><button class="g" onclick="closeM()">إلغاء</button></div></div></div>`}
    if(t.t==="bdayimp"){const r=S.bdImp;return`<div class="ov" onclick="if(event.target===this)closeM()"><div class="card"><b>⬆ استيراد أعياد الميلاد من Excel</b><p class="mu" style="margin:6px 0">لازم الملف يكون فيه عمود للاسم وعمود لتاريخ الميلاد (زي: الاسم، تاريخ الميلاد).</p><input type="file" accept=".xlsx,.csv" onchange="bdayImport(this.files[0])">${r?`<p style="margin:10px 0 4px"><b>${r.ok.length}</b> تاريخ جاهز للحفظ</p>${r.miss.length?`<p class="mu" style="font-size:12px">مش هيتحفظوا (${r.miss.length}): ${esc(r.miss.join("، "))}</p>`:""}`:""}<p class="err" id="mm"></p><div class="row"><button ${r&&r.ok.length?"":"disabled"} onclick="bdayImportSave()">حفظ</button><button class="g" onclick="S.bdImp=null;closeM()">إلغاء</button></div></div></div>`}
-   if(t.t==="album"||t.t==="albadd"){const isNew=t.t==="album";const dr=JSON.parse(localStorage.getItem("albDraft")||"{}");const a=isNew?null:D.albums.find(x=>x.id===t.alb);return`<div class="ov" onclick="if(event.target===this)closeM()"><div class="card"><b>${isNew?"فعالية جديدة":"إضافة صور لـ "+esc(a?a.name:"")}</b>${isNew?`<label>اسم الفعالية</label><input id="an" value="${esc(dr.name||"")}" oninput="albDraftSave()"><label>التاريخ</label><input id="ad" type="date" value="${esc(dr.date||today())}" oninput="albDraftSave()">`:""}<label>الصور (تقدر تختار كذا صورة، بترفع بالحجم الأصلي)</label><input id="af" type="file" accept="image/*" multiple><label>أو لينكات درايف (سطر لكل صورة، والحد ${ALB_MAX} صور للفعالية)</label><textarea id="adl" rows="4" style="width:100%"></textarea><p class="mu" id="mm" style="margin:8px 0">${esc(ALBPEND.msg||"")}</p>${ALBPEND.fail.length?`<button onclick="albRetry()">🔁 إعادة رفع اللي فشل (${ALBPEND.fail.length})</button>`:""}<div class="row"><button onclick="${isNew?"albSave()":`albAddSave('${t.alb}')`}">رفع</button><button class="g" onclick="closeM()">إلغاء</button></div></div></div>`}
+   if(t.t==="album"||t.t==="albadd"){const isNew=t.t==="album";const dr=JSON.parse(localStorage.getItem("albDraft")||"{}");const a=isNew?null:D.albums.find(x=>x.id===t.alb);return`<div class="ov" onclick="if(event.target===this)closeM()"><div class="card"><b>${isNew?"فعالية جديدة":"إضافة صور لـ "+esc(a?a.name:"")}</b>${isNew?`<label>اسم الفعالية</label><input id="an" value="${esc(dr.name||"")}" oninput="albDraftSave()"><label>التاريخ</label><input id="ad" type="date" value="${esc(dr.date||today())}" oninput="albDraftSave()">`:""}<label>الصور (تقدر تختار كذا صورة، بترفع بالحجم الأصلي)</label><input id="af" type="file" accept="image/*" multiple><label>أو لينكات درايف (صورة أو فولدر كامل، سطر لكل لينك)</label><textarea id="adl" rows="4" style="width:100%"></textarea><button type="button" class="g" style="margin-top:6px" onclick="albPickGo()">📂 عرض صور الفولدر واختيار منها</button>${albPickHtml()}<p class="mu" id="mm" style="margin:8px 0">${esc(ALBPEND.msg||"")}</p>${(ALBPEND.fail.length+(ALBPEND.dfail||[]).length)?`<button onclick="albRetry()">🔁 إعادة رفع اللي فشل (${ALBPEND.fail.length+(ALBPEND.dfail||[]).length})</button>`:""}<div class="row"><button onclick="${isNew?"albSave()":`albAddSave('${t.alb}')`}">رفع</button><button class="g" onclick="closeM()">إلغاء</button></div></div></div>`}
    if(t.t==="albedit"){const a=D.albums.find(x=>x.id===t.alb)||{};return`<div class="ov" onclick="if(event.target===this)closeM()"><div class="card"><b>تعديل الفعالية</b><label>الاسم</label><input id="an" value="${esc(a.name||"")}"><label>التاريخ</label><input id="ad" type="date" value="${esc(a.event_date||"")}"><p class="err" id="mm"></p><div class="row"><button onclick="albEditSave('${t.alb}')">حفظ</button><button class="g" onclick="closeM()">إلغاء</button></div></div></div>`}
    if(t.t==="albphoto"){const ps=(D.albPhotos||[]).filter(x=>x.album_id===t.alb),p=ps[t.i];if(!p)return"";const a=D.albums.find(x=>x.id===t.alb)||{};return`<div class="ov" onclick="if(event.target===this)closeM()" ontouchstart="albTs=event.touches[0].clientX" ontouchend="albSwipe(event.changedTouches[0].clientX,${ps.length},${t.i})"><div class="card" style="text-align:center"><div class="row" style="justify-content:space-between;align-items:center"><button class="g" ${t.i<=0?"disabled":""} onclick="albNav(${t.i-1})">‹</button><span class="mu">${t.i+1} / ${ps.length}</span><button class="g" ${t.i>=ps.length-1?"disabled":""} onclick="albNav(${t.i+1})">›</button></div><img src="${esc(urlOf(p))}" alt="" style="max-width:100%;max-height:66vh;border-radius:12px;margin-top:8px"><p class="mu">${esc(a.name||"")} · ${fmtD(a.event_date||"")}</p><div class="row" style="justify-content:center;gap:6px"><button data-u="${esc(urlOf(p))}" data-n="${esc(a.name||"photo")}_${t.i+1}" onclick="dlEl(this)">⬇ تحميل</button><button class="g" style="color:#fca5a5" onclick="albDelPhoto('${p.id}')">🗑</button><button class="g" onclick="closeM()">إغلاق</button></div></div></div>`}
    if(t.t==="photo"){const x=PH[t.i];if(!x)return"";return`<div class="ov" onclick="if(event.target===this)closeM()"><div class="card" style="text-align:center"><img src="${esc(x.u)}" alt="" style="max-width:100%;max-height:60vh;border-radius:14px" onload="if(this.naturalWidth<800){const q=document.getElementById('lq');q.style.display='block';q.textContent='⚠ الصورة دي مرفوعة بجودة قليلة ('+this.naturalWidth+'×'+this.naturalHeight+' بيكسل). اطلب من العضو يرفعها تاني من حسابه.'}"><p id="lq" class="mu" style="display:none;color:var(--warn);margin:8px 0 0"></p><p><b>${esc(nm2(x.n))}</b></p><div class="row" style="justify-content:center"><button onclick="dlPhoto(${t.i})">⬇ تحميل بجودة كاملة</button><button class="g" onclick="closeM()">إغلاق</button></div></div></div>`}
@@ -2164,7 +2206,7 @@ async function delRec(id,k){if(!confirm("حذف تقييم الشهر ده؟"))r
 
 /* ---------- الحفظ التلقائي للمسودات ---------- */
 function clearDraft(id,mo){try{localStorage.removeItem(dk(id,mo))}catch(e){}}
-function closeM(discard){
+function closeM(discard){albPickReset();
   if(discard&&S.modal){
     if(S.modal.t==="rec")clearDraft(S.modal.id,S.modal.mo||($("#rm")&&$("#rm").value));
     if(S.modal.t==="mem"){try{localStorage.removeItem("tm-draft:mem:"+(S.modal.id||"new"))}catch(e){}}
