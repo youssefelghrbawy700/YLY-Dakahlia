@@ -792,10 +792,10 @@ async function cardExport(fmt){
     }else{
       await loadLib("https://cdn.jsdelivr.net/npm/docx-preview@0.3.2/dist/docx-preview.min.js","docx");
       const w=window.open("","_blank");if(!w)throw new Error("اسمح بالنوافذ المنبثقة عشان تطلع الـ PDF");
-      w.document.write('<!doctype html><html dir="rtl"><head><meta charset="utf-8"><title>'+COMEN[c]+' '+mo+'</title><style>@page{size:A4;margin:0}html,body{margin:0;background:#fff}</style></head><body><div id="card"></div></body></html>');
+      w.document.write('<!doctype html><html dir="rtl"><head><meta charset="utf-8"><title>'+COMEN[c]+' '+mo+'</title><style>@page{size:A4;margin:8mm}html,body,#card{margin:0;background:#fff;height:auto!important;overflow:visible!important;width:auto!important}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}section,.docx-wrapper{background:#fff!important;margin:0 auto!important;box-shadow:none!important}@media print{section,.docx-wrapper{page-break-after:always}}</style></head><body><div id="card"></div></body></html>');
       w.document.close();
       await window.docx.renderAsync(blob,w.document.getElementById("card"),w.document.head,{inWrapper:false,ignoreWidth:false});
-      setTimeout(()=>{w.focus();w.print()},800);
+      await new Promise(r=>setTimeout(r,500));await Promise.all([...w.document.querySelectorAll("img")].map(im=>im.complete?null:new Promise(r=>{im.onload=im.onerror=r})));setTimeout(()=>{w.focus();w.print()},900);
     }
   }catch(e){prgHide();alert(e.message||"حصلت مشكلة")}
 }
