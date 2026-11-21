@@ -424,7 +424,7 @@ setTimeout(evReconcile,0);if(isAdm())setTimeout(()=>{try{sb.rpc("backup_if_due")
   if(isAdm()&&!S.landed){S.landed=1;S.tab="home"}
   else if(isAdm()&&!AT.includes(S.tab))S.tab="home";
   else if(isMgr()&&!S.landed){S.landed=1;S.tab="follow"}
-  else if(isMgr()&&!["follow","me","leaders","events","bcom","designs","photos","albums"].includes(S.tab))S.tab="follow";
+  else if(isMgr()&&!["follow","me","leaders","events","bcom","designs","photos","albums","cards"].includes(S.tab))S.tab="follow";
   else if(me&&!isAdm()&&!isMgr()&&!["me","leaders","bcom","designs","events","photos"].includes(S.tab))S.tab="me";
   if(!restored){restored=true;try{const o=JSON.parse(localStorage.getItem("tm-open-modal")||"null");
     if(o&&me&&["rec","mem"].includes(o.t)&&(isAdm()||(o.t==="rec"&&D.follows.some(f=>f.manager_id===me.id&&f.member_id===o.id)))&&(!o.id||D.members.find(x=>x.id===o.id)))S.modal=o}catch(e){}}
@@ -744,9 +744,8 @@ function cardRows(c,mo){
 function cardLeaders(){
   const nameOf=id=>{const m=D.members.find(x=>x.id===id);return m?nm(m.name):""};
   const head=D.board.find(b=>isHeadPos(b.position)&&evCom(b).includes("HR"));
-  const lead=D.board.find(b=>/team\s*leader|تيم\s*ليدر/i.test(String(b.position||"")));
   const tl=D.members.find(m=>/youssef\s+elghrbawy/i.test(String(m.name||"")));
-  return{head:head?nameOf(head.member_id):"",leader:lead?nameOf(lead.member_id):(tl?nm(tl.name):"")};
+  return{head:head?nameOf(head.member_id):"",leader:tl?nm(tl.name):"Youssef Elghrbawy"};
 }
 function cardTxt(el){return [...el.getElementsByTagNameNS(CARD_W,"t")].map(t=>t.textContent).join("")}
 function cardSetCell(tc,text){
@@ -778,21 +777,29 @@ async function cardDocx(c,mo){
   zip.file("word/document.xml",new XMLSerializer().serializeToString(doc));
   return await zip.generateAsync({type:"blob",mimeType:DOCX_MIME});
 }
+const ctOk=()=>!!(me&&(isAdm()||isHRHead()||D.board.some(b=>b.member_id===me.id&&b.can_evaluate&&evCom(b).includes("HR"))));
+const ctTabs=()=>(!isAdm()&&ctOk())?[["cards","📄 الكروت"]]:[];
+function loadLib(src,g){if(window[g])return Promise.resolve();return new Promise((res,rej)=>{const t=document.createElement("script");t.src=src;t.onload=()=>res();t.onerror=()=>rej(new Error("تعذر تحميل مكتبة التحويل"));document.head.appendChild(t)})}
 async function cardExport(fmt){
   const c=($("#cdc")||{}).value,mo=($("#cdm")||{}).value;
   if(!c||!mo)return alert("اختار اللجنة والشهر");
   if(c==="TR")return alert("لجنة TR مفيهاش كارت تقييم");
   try{
-    const rowsN=cardRows(c,mo).length;if(!rowsN)return alert("مفيش تقييمات للجنة دي في الشهر ده");
+    if(!cardRows(c,mo).length)return alert("مفيش تقييمات للجنة دي في الشهر ده");
+    const blob=await cardDocx(c,mo);
     if(fmt==="docx"){
-      const blob=await cardDocx(c,mo),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`${COMEN[c]}_${mo}.docx`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+      const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`${COMEN[c]}_${mo}.docx`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000);
     }else{
-      const rows=cardRows(c,mo),L=cardLeaders(),mi=+mo.slice(5,7)-1,y=mo.slice(0,4);
-      const trs=rows.map((x,i)=>`<tr><td>${i+1}</td><td>${esc(x.name)}</td><td>${COMEN[c]}</td><td>${x.total}</td><td>${x.gpa}</td><td>${x.top}</td></tr>`).join("");
-      const html=`<!doctype html><html dir="rtl"><head><meta charset="utf-8"><title>${COMEN[c]} ${mo}</title><style>body{font-family:Tahoma,Arial,sans-serif;margin:24px;color:#111}h2{text-align:center;margin:0 0 4px}.en{text-align:center;font-size:13px;margin:0 0 14px}table{width:100%;border-collapse:collapse;font-size:13px}th,td{border:1px solid #333;padding:5px;text-align:center}th{background:#1f2a5a;color:#fff}.ft{display:flex;justify-content:space-around;margin-top:24px;font-weight:700}</style></head><body><h2>تقييم أداء أعضاء لجنة ${COMAR[c]} محافظة الدقهلية لشهر (${MO[mi]}) ${y}</h2><p class="en">Performance evaluation of the ${COMEN[c]} Members of Dakahlia Government for (${ENM[mi]}) ${y}</p><table><tr><th>N</th><th>NAME</th><th>COMMITTEE</th><th>TOTAL</th><th>GPA</th><th>TOP</th></tr>${trs}</table><div class="ft"><span>Team leader: ${esc(L.leader)}</span><span>Head HR: ${esc(L.head)}</span></div><script>window.onload=()=>setTimeout(()=>print(),300)<\/script></body></html>`;
-      const w=window.open("","_blank");if(!w)return alert("اسمح بالنوافذ المنبثقة عشان تطلع الـ PDF");w.document.write(html);w.document.close();
+      prgShow("جاري تحويل الكارت لـ PDF…");
+      await loadLib("https://cdn.jsdelivr.net/npm/docx-preview@0.3.2/dist/docx-preview.min.js","docx");
+      await loadLib("https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.2/dist/html2pdf.bundle.min.js","html2pdf");
+      const holder=document.createElement("div");holder.style.cssText="position:fixed;left:-10000px;top:0;width:794px;background:#fff";document.body.appendChild(holder);
+      try{
+        await window.docx.renderAsync(blob,holder,null,{inWrapper:false,ignoreWidth:false});
+        await window.html2pdf().set({margin:0,filename:`${COMEN[c]}_${mo}.pdf`,image:{type:"jpeg",quality:0.95},html2canvas:{scale:2,useCORS:true},jsPDF:{unit:"mm",format:"a4",orientation:"portrait"}}).from(holder).save();
+      }finally{holder.remove();prgHide()}
     }
-  }catch(e){alert(e.message||"حصلت مشكلة")}
+  }catch(e){prgHide();alert(e.message||"حصلت مشكلة")}
 }
 async function cardUpload(c,file){
   if(!file)return;
@@ -810,7 +817,7 @@ function cardsView(){
   <label>اللجنة</label><select id="cdc">${cs.map(c=>`<option value="${c}">${c==="TR"?"TR (مفيهاش كارت)":COMAR[c]}</option>`).join("")}</select>
   <label>الشهر</label><select id="cdm" onchange="S.cdm=this.value">${mos.map(m=>`<option value="${m}" ${m===mo?"selected":""}>${MO[+m.slice(5,7)-1]} ${m.slice(0,4)}</option>`).join("")}</select>
   <div class="row" style="gap:8px;margin-top:10px"><button onclick="cardExport('docx')">⬇ Word</button><button class="g" onclick="cardExport('pdf')">⬇ PDF</button><button class="g" onclick="cardCsv()">⬇ Excel (CSV)</button></div></div>
-  <div class="card"><b>نماذج الـ Word</b><p class="mu" style="margin:6px 0">ارفع نموذج كل لجنة مرة واحدة، والنموذج بيتحفظ.</p>${up}</div>`;
+  ${isAdm()?`<div class="card"><b>نماذج الـ Word</b><p class="mu" style="margin:6px 0">ارفع نموذج كل لجنة مرة واحدة، والنموذج بيتحفظ.</p>${up}</div>`:""}`;
 }
 
 const TRASH_KIND={member:"عضو",warning:"إنذار",album:"فعالية",photo:"صورة"};
@@ -1015,8 +1022,8 @@ function mgrList(mine){
 }
 function mgrView(){
   const mine=myFollows();
-  return topbar()+tabBar([["follow","متابعة الأعضاء"],["me","حسابي"],["leaders","👥 المسؤولون"]].concat(isBoardAcc()?[["bcom","📊 لجنتي"]]:[],dTab(),evTab(),phTab()))+
-  (S.tab==="me"?memberView(me,true):S.tab==="leaders"?leadersView(me.committee):S.tab==="events"&&evOk()?eventsView():S.tab==="designs"&&canDesign()?designsView():S.tab==="photos"&&canDesign()?photosView():S.tab==="albums"&&canDesign()?albumsView():S.tab==="bcom"&&isBoardAcc()?bcomView():`<p class="mu">بتتابع ${mine.length} عضو</p>`+(mgrList(mine)||'<p class="mu">لم تُحدَّد لك متابعات بعد.</p>'));
+  return topbar()+tabBar([["follow","متابعة الأعضاء"],["me","حسابي"],["leaders","👥 المسؤولون"]].concat(isBoardAcc()?[["bcom","📊 لجنتي"]]:[],dTab(),evTab(),phTab(),ctTabs()))+
+  (S.tab==="me"?memberView(me,true):S.tab==="leaders"?leadersView(me.committee):S.tab==="events"&&evOk()?eventsView():S.tab==="designs"&&canDesign()?designsView():S.tab==="photos"&&canDesign()?photosView():S.tab==="albums"&&canDesign()?albumsView():S.tab==="cards"&&ctOk()?cardsView():S.tab==="bcom"&&isBoardAcc()?bcomView():`<p class="mu">بتتابع ${mine.length} عضو</p>`+(mgrList(mine)||'<p class="mu">لم تُحدَّد لك متابعات بعد.</p>'));
 }
 
 /* ---------- الأحداث والحضور (نزولات / تاسكات / سيشنات / اجتماعات) ---------- */
@@ -2641,8 +2648,8 @@ function render(){
   else if(!isAdm()&&!me.avatar_url)h=avatarGate();
   else if(isAdm())h=adminView();
   else if(isMgr())h=mgrView();
-  else if(isBoardAcc())h=topbar()+tabBar([["bcom","📊 تقييمات لجنتي"],["me","حسابي"],["leaders","👥 مسؤولو اللجنة"]].concat(dTab(),evTab(),phTab()))+(S.tab==="me"?memberView(me,true):S.tab==="leaders"?leadersView(me.committee):S.tab==="events"&&evOk()?eventsView():S.tab==="designs"&&canDesign()?designsView():S.tab==="photos"&&canDesign()?photosView():S.tab==="albums"&&canDesign()?albumsView():bcomView());
-  else h=topbar()+tabBar([["me","حسابي"],["leaders","👥 مسؤولو اللجنة"]].concat(dTab(),evTab(),phTab()))+(S.tab==="leaders"?leadersView(me.committee):S.tab==="events"&&evOk()?eventsView():S.tab==="designs"&&canDesign()?designsView():S.tab==="photos"&&canDesign()?photosView():S.tab==="albums"&&canDesign()?albumsView():memberView(me,true));
+  else if(isBoardAcc())h=topbar()+tabBar([["bcom","📊 تقييمات لجنتي"],["me","حسابي"],["leaders","👥 مسؤولو اللجنة"]].concat(dTab(),evTab(),phTab(),ctTabs()))+(S.tab==="me"?memberView(me,true):S.tab==="leaders"?leadersView(me.committee):S.tab==="events"&&evOk()?eventsView():S.tab==="designs"&&canDesign()?designsView():S.tab==="photos"&&canDesign()?photosView():S.tab==="albums"&&canDesign()?albumsView():S.tab==="cards"&&ctOk()?cardsView():bcomView());
+  else h=topbar()+tabBar([["me","حسابي"],["leaders","👥 مسؤولو اللجنة"]].concat(dTab(),evTab(),phTab(),ctTabs()))+(S.tab==="leaders"?leadersView(me.committee):S.tab==="events"&&evOk()?eventsView():S.tab==="designs"&&canDesign()?designsView():S.tab==="photos"&&canDesign()?photosView():S.tab==="albums"&&canDesign()?albumsView():S.tab==="cards"&&ctOk()?cardsView():memberView(me,true));
   const ok=!!(S.modal&&me&&(isAdm()||(canDesign()&&["photo","album","albadd","albedit","albphoto"].includes(S.modal.t))||(isAdm()&&["bdayadd","bdayimp"].includes(S.modal.t))||(isMgr()&&["rec","view","hist"].includes(S.modal.t))||(S.modal.t==="warn"&&myWarnCom().length>0)||(isBoardAcc()&&["view","hist"].includes(S.modal.t))));
   const navH=navHtml(),key=[session?1:0,loaded?1:0,me?me.id:0,S.tab,S.recover?1:0,S.signup||""].join("|"),same=key===RKEY&&!S.hard;RKEY=key;S.hard=false;
   const app=$("#app"),mdl=$("#mdl"),y=window.scrollY,mc0=mdl.querySelector(".card"),my=mc0?mc0.scrollTop:0;
