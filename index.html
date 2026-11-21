@@ -790,15 +790,12 @@ async function cardExport(fmt){
     if(fmt==="docx"){
       const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`${COMEN[c]}_${mo}.docx`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000);
     }else{
-      prgShow("جاري تحويل الكارت لـ PDF…");
       await loadLib("https://cdn.jsdelivr.net/npm/docx-preview@0.3.2/dist/docx-preview.min.js","docx");
-      await loadLib("https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.2/dist/html2pdf.bundle.min.js","html2pdf");
-      const holder=document.createElement("div");holder.style.cssText="position:fixed;left:0;top:0;width:794px;background:#fff;z-index:99999;overflow:visible";document.body.appendChild(holder);prgSet(0.2);
-      try{
-        await window.docx.renderAsync(blob,holder,null,{inWrapper:false,ignoreWidth:false});
-        await new Promise(r=>setTimeout(r,400));await Promise.all([...holder.querySelectorAll("img")].map(im=>im.complete?null:new Promise(r=>{im.onload=im.onerror=r})));prgSet(0.6);
-        await window.html2pdf().set({margin:0,filename:`${COMEN[c]}_${mo}.pdf`,image:{type:"jpeg",quality:0.95},html2canvas:{scale:2,useCORS:true},jsPDF:{unit:"mm",format:"a4",orientation:"portrait"}}).from(holder).save();
-      }finally{holder.remove();prgHide()}
+      const w=window.open("","_blank");if(!w)throw new Error("اسمح بالنوافذ المنبثقة عشان تطلع الـ PDF");
+      w.document.write('<!doctype html><html dir="rtl"><head><meta charset="utf-8"><title>'+COMEN[c]+' '+mo+'</title><style>@page{size:A4;margin:0}html,body{margin:0;background:#fff}</style></head><body><div id="card"></div></body></html>');
+      w.document.close();
+      await window.docx.renderAsync(blob,w.document.getElementById("card"),w.document.head,{inWrapper:false,ignoreWidth:false});
+      setTimeout(()=>{w.focus();w.print()},800);
     }
   }catch(e){prgHide();alert(e.message||"حصلت مشكلة")}
 }
