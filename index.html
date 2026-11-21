@@ -419,12 +419,12 @@ setTimeout(evReconcile,0);if(isAdm())setTimeout(()=>{try{sb.rpc("backup_if_due")
   const c=await sb.rpc("my_warning_count");myWarn=c.data||0;
   if(me&&!touched){touched=true;startPing()}
   else{const st=await sb.rpc("my_signup_status");S.signup=st.data||null}
-  const AT=["home","members","req","committees","dash","announce","seen","hr","board","photos","albums","birthdays","cards","trash","designs","events","att","security","sheets"];
+  const AT=["home","members","req","committees","evals","dash","announce","seen","hr","board","photos","albums","birthdays","cards","trash","designs","events","att","security","sheets"];
   if(me&&LASTME!==me.id){LASTME=me.id;S.more=false;S.nt=false;S.landed=false}
   if(isAdm()&&!S.landed){S.landed=1;S.tab="home"}
   else if(isAdm()&&!AT.includes(S.tab))S.tab="home";
   else if(isMgr()&&!S.landed){S.landed=1;S.tab="follow"}
-  else if(isMgr()&&!["follow","me","leaders","events","bcom","designs","photos","albums","cards"].includes(S.tab))S.tab="follow";
+  else if(isMgr()&&!["follow","evals","me","leaders","events","bcom","designs","photos","albums","cards"].includes(S.tab))S.tab="follow";
   else if(me&&!isAdm()&&!isMgr()&&!["me","leaders","bcom","designs","events","photos"].includes(S.tab))S.tab="me";
   if(!restored){restored=true;try{const o=JSON.parse(localStorage.getItem("tm-open-modal")||"null");
     if(o&&me&&["rec","mem"].includes(o.t)&&(isAdm()||(o.t==="rec"&&D.follows.some(f=>f.manager_id===me.id&&f.member_id===o.id)))&&(!o.id||D.members.find(x=>x.id===o.id)))S.modal=o}catch(e){}}
@@ -1058,11 +1058,12 @@ function photosView(){
 }
 function adminView(){
   const pend=D.signups.filter(s=>s.status==="pending").length;
-  const tabs=[["home","الرئيسية"],["members","الأعضاء"],["req","🆕 الطلبات"+(pend?` (${pend})`:"")],["committees","اللجان"],["dash","لوحة الشرف"],["announce","📢 الإعلان"],["seen","👁 الدخول"],["hr","✅ تسجيلات HR"],["events","📅 الأحداث"],["att","📋 سجل الحضور"],["security","🛡 الأمان"],["sheets","🔗 مزامنة الشيتات"],["board","🏛 البورد"],["photos","🖼 الصور"],["albums","📸 صور الفعاليات"],["birthdays","🎂 أعياد الميلاد"],["cards","📄 الكروت"],["trash","🗑 المحذوفات"],["designs","🎨 الديزاينات"]];
+  const tabs=[["home","الرئيسية"],["members","الأعضاء"],["req","🆕 الطلبات"+(pend?` (${pend})`:"")],["committees","اللجان"],["evals","📊 التقييمات"],["dash","لوحة الشرف"],["announce","📢 الإعلان"],["seen","👁 الدخول"],["hr","✅ تسجيلات HR"],["events","📅 الأحداث"],["att","📋 سجل الحضور"],["security","🛡 الأمان"],["sheets","🔗 مزامنة الشيتات"],["board","🏛 البورد"],["photos","🖼 الصور"],["albums","📸 صور الفعاليات"],["birthdays","🎂 أعياد الميلاد"],["cards","📄 الكروت"],["trash","🗑 المحذوفات"],["designs","🎨 الديزاينات"]];
   const sc=D.members.map(score),avg=sc.length?Math.round(sc.reduce((a,b)=>a+b,0)/sc.length):0;
   let sub="";
   if(S.tab==="home")sub=homeView();
   else if(S.tab==="members")sub=`<div class="row" style="margin-bottom:12px"><button onclick="S.modal={t:'mem'};render()">➕ عضو جديد</button><button class="g" onclick="S.modal={t:'imp'};render()">⬆ استيراد</button><button class="g" onclick="backup()">⬇ Excel</button></div>`+(pend?`<div class="card" style="border-color:var(--warn)"><div class="row"><b style="flex:1">🆕 ${pend} طلب تسجيل جديد</b><button onclick="S.tab='req';render()">مراجعة</button></div></div>`:"")+`<div class="grid"><div class="card"><div class="mu">إجمالي الأعضاء</div><div class="big">${D.members.length}</div></div><div class="card"><div class="mu">متوسط التقييم</div><div class="big">${avg}</div></div></div><div style="height:12px"></div>`+(()=>{const cs=comms(),cf=cs.includes(S.mcf)?S.mcf:"all";return`<div class="tabs"><button class="${cf==="all"?"on":""}" onclick="S.mcf='all';render()">الكل (${D.members.length})</button>${cs.map(c=>`<button class="${cf===c?"on":""}" onclick="S.mcf='${esc(c)}';render()">${esc(c)} (${D.members.filter(m=>m.committee===c).length})</button>`).join("")}</div><div class="row" style="gap:8px;margin:10px 0;flex-wrap:wrap"><input id="mq" placeholder="🔎 بحث بالاسم أو اللجنة أو الدور" value="${esc(S.mq||"")}" oninput="S.mq=this.value;$('#mlist').innerHTML=mlistHtml()" style="flex:1;min-width:160px"><select onchange="S.mflt=this.value;render()">${[["all","كل الأعضاء"],["warn","عندهم إنذارات"],["low","تقدير C أو أقل (آخر شهر)"],["noeval","مالهومش تقييم آخر شهر"]].map(([v,t])=>`<option value="${v}" ${(S.mflt||"all")===v?"selected":""}>${t}</option>`).join("")}</select><select onchange="S.msrt=this.value;render()">${MSRT.map(([v,t])=>`<option value="${v}" ${(S.msrt||"name_asc")===v?"selected":""}>${t}</option>`).join("")}</select></div><div id="bulkbar">${bulkHtml()}</div><div id="mlist">${mlistHtml()}</div>`})();
+  else if(S.tab==="evals")sub=evalsView();
   else if(S.tab==="events")sub=eventsView();
   else if(S.tab==="att")sub=attView();
   else if(S.tab==="security")sub=secView();
@@ -1082,6 +1083,44 @@ function adminView(){
   else if(S.tab==="albums")sub=albumsView();else if(S.tab==="birthdays")sub=bdayView();else if(S.tab==="cards")sub=cardsView();else if(S.tab==="trash")sub=trashView();else sub=photosView();
   return topbar()+tabBar(tabs)+sub;
 }
+/* ---------- تاب التقييمات (الأدمن + هيد HR): تابس لكل لجنة + "كل اللجان" + اختيار الشهر ---------- */
+const evalsTabs=()=>(!isAdm()&&isHRHead())?[["evals","📊 التقييمات"]]:[];
+function evalsCols(){
+  const isB=m=>m.role==="Board",allowed=isAdm()?COM4:myEvalCom();
+  const cols=COM4.filter(c=>allowed.includes(c)&&D.members.some(m=>m.committee===c&&!isB(m))).map(c=>({k:c,t:c,list:D.members.filter(m=>m.committee===c&&!isB(m))}));
+  const bl=D.members.filter(isB);
+  if((isAdm()||isHRHead())&&bl.length)cols.push({k:"Board",t:"🏛 البورد",list:bl});
+  return cols;
+}
+function evRanks(list,mo){
+  const v=list.map(m=>mo&&m.rec[mo]?mscore(m.rec[mo],m.committee):-1),u=[...new Set(v.filter(x=>x>=0))].sort((a,b)=>b-a);
+  return new Map(list.map((m,i)=>[m.id,v[i]>=0?u.indexOf(v[i])+1:0]));
+}
+function evRow(m,mo,rank){
+  const v=mo&&m.rec[mo]?mscore(m.rec[mo],m.committee):-1,g=v>=0?grade(v):"",mx=maxS(m.committee);
+  return`<div class="card"><div class="row">${rank?`<span class="pill st">#${rank}</span>`:""}${avatar(m)}<div style="flex:1"><b>${esc(nm(m.name))}</b><div class="mu">${esc(m.role||"")}</div></div>${g?`<span class="pill ${"AB".includes(g)?"up":g==="C"?"st":"dn"}">التقدير ${g}</span>`:""}<div class="big" style="font-size:24px">${v>=0?v:"—"}</div></div>
+  ${v>=0?`<div class="bar" style="margin:8px 0"><i style="width:${Math.min(100,v/mx*100)}%"></i></div>`:'<div class="mu" style="margin-top:6px">لم يُسجَّل تقييم لهذا الشهر</div>'}
+  <div class="row"><span style="flex:1"></span><button class="g" onclick="S.modal={t:'hist',id:'${m.id}'};render()">الشهور</button><button class="g" onclick="S.modal={t:'view',id:'${m.id}'};render()">عرض</button></div></div>`;
+}
+function evalsView(){
+  const cols=evalsCols();
+  if(!cols.length)return'<div class="card"><p class="mu" style="margin:0">لا توجد لجان متاحة لك.</p></div>';
+  const keys=["all",...cols.map(c=>c.k)],cur=keys.includes(S.evt)?S.evt:"all";
+  const pool=cur==="all"?cols.flatMap(c=>c.list):cols.find(c=>c.k===cur).list;
+  const opts=[...new Set(pool.flatMap(m=>months(m)))].sort().reverse(),mo=opts.includes(S.evm)?S.evm:(opts[0]||null);
+  const ann=mo&&D.ann.includes(mo),bck=S.bcsrt||"score_desc",sc=m=>mo&&m.rec[mo]?mscore(m.rec[mo],m.committee):-1;
+  const gOf=m=>{const v=sc(m);return v>0?grade(v):"-"},GF=[["all","الكل"],["A","A"],["B","B"],["C","C"],["D","D"],["F","F"],["-","غير مقيَّم"]],gf=GF.some(x=>x[0]===S.evg)?S.evg:"all";
+  const cnt=k=>k==="all"?pool.length:pool.filter(m=>gOf(m)===k).length;
+  const tabs=`<div class="tabs" style="flex-wrap:wrap"><button class="${cur==="all"?"on":""}" onclick="S.evt='all';render()">🌐 كل اللجان</button>${cols.map(c=>`<button class="${c.k===cur?"on":""}" onclick="S.evt='${c.k}';render()">${esc(c.t)} (${c.list.length})</button>`).join("")}</div>`;
+  const head=`<div class="card">${opts.length?`<label style="margin:0 0 6px">الشهر</label><select onchange="S.evm=this.value;render()">${opts.map(k=>`<option value="${k}" ${k===mo?"selected":""}>${ml(k)}</option>`).join("")}</select> <span class="pill ${ann?"up":"st"}" style="margin-top:8px">${ann?"معلن":"غير معلن · لسه مخفي عن الأعضاء"}</span>`:'<p class="mu" style="margin:0">لا توجد تقييمات مسجلة بعد.</p>'}<div class="row" style="gap:6px;flex-wrap:wrap;margin-top:8px">${BC_SORT.map(([v,t])=>`<button class="g" style="padding:5px 11px;font-size:12px;${bck===v?"background:var(--pr);color:#fff":""}" onclick="S.bcsrt='${v}';render()">${t}</button>`).join("")}</div>${opts.length?`<label style="margin:10px 0 6px">فلتر التقدير</label><div class="row" style="gap:6px;flex-wrap:wrap">${GF.map(([k,t])=>`<button class="g" style="padding:5px 11px;font-size:12px;${gf===k?"background:var(--pr);color:#fff;border-color:transparent":""}" onclick="S.evg='${k}';render()">${t} (${cnt(k)})</button>`).join("")}</div>`:""}</div>`;
+  const sect=(c,withHead)=>{
+    const rk=evRanks(c.list,mo),rows=c.list.filter(m=>gf==="all"||gOf(m)===gf).sort(bcCmp(sc)),done=c.list.filter(m=>sc(m)>=0),avg=done.length?Math.round(done.reduce((a,m)=>a+sc(m),0)/done.length*10)/10:"—";
+    if(gf!=="all"&&!rows.length)return"";
+    return(withHead?`<div class="row" style="margin:16px 0 6px;gap:8px"><b style="font-size:16px">${esc(c.t)}</b><span class="mu">· ${done.length}/${c.list.length} متقيّم · المتوسط ${avg}</span></div>`:"")+rows.map(m=>evRow(m,mo,rk.get(m.id))).join("");
+  };
+  const body=cur==="all"?cols.map(c=>sect(c,true)).join(""):sect(cols.find(c=>c.k===cur),false);
+  return tabs+head+(body||(gf!=="all"?'<div class="card"><p class="mu" style="margin:0">لا يوجد أعضاء بالتقدير ده في الشهر ده.</p></div>':""));
+}
 function mgrList(mine){
   if(!mine.length)return"";
   const k=S.msort||"name_asc";
@@ -1100,8 +1139,8 @@ function mgrList(mine){
 }
 function mgrView(){
   const mine=myFollows();
-  return topbar()+tabBar([["follow","متابعة الأعضاء"],["me","حسابي"],["leaders","👥 المسؤولون"]].concat(isBoardAcc()?[["bcom","📊 لجنتي"]]:[],dTab(),evTab(),phTab(),ctTabs()))+
-  (S.tab==="me"?memberView(me,true):S.tab==="leaders"?leadersView(me.committee):S.tab==="events"&&evOk()?eventsView():S.tab==="designs"&&canDesign()?designsView():S.tab==="photos"&&canDesign()?photosView():S.tab==="albums"&&canDesign()?albumsView():S.tab==="cards"&&ctOk()?cardsView():S.tab==="bcom"&&isBoardAcc()?bcomView():`<p class="mu">بتتابع ${mine.length} عضو</p>`+(mgrList(mine)||'<p class="mu">لم تُحدَّد لك متابعات بعد.</p>'));
+  return topbar()+tabBar([["follow","متابعة الأعضاء"]].concat(evalsTabs(),[["me","حسابي"],["leaders","👥 المسؤولون"]],isBoardAcc()?[["bcom","📊 لجنتي"]]:[],dTab(),evTab(),phTab(),ctTabs()))+
+  (S.tab==="me"?memberView(me,true):S.tab==="leaders"?leadersView(me.committee):S.tab==="events"&&evOk()?eventsView():S.tab==="designs"&&canDesign()?designsView():S.tab==="photos"&&canDesign()?photosView():S.tab==="albums"&&canDesign()?albumsView():S.tab==="cards"&&ctOk()?cardsView():S.tab==="evals"&&evalsTabs().length?evalsView():S.tab==="bcom"&&isBoardAcc()?bcomView():`<p class="mu">بتتابع ${mine.length} عضو</p>`+(mgrList(mine)||'<p class="mu">لم تُحدَّد لك متابعات بعد.</p>'));
 }
 
 /* ---------- الأحداث والحضور (نزولات / تاسكات / سيشنات / اجتماعات) ---------- */
@@ -1354,8 +1393,8 @@ async function scnHandle(raw){
   SC.busy=false}
 /* ---------- واجهة: تنقل سفلي / انتقالات / إشعارات / تحديث ناعم ---------- */
 let CUR_ADJ=null,NAV=null,RKEY="",MKEY="",DEFI=null,LASTME=null;
-const NI={home:"🏠",members:"👥",req:"🆕",committees:"🧩",dash:"🏆",announce:"📢",seen:"👁",hr:"✅",events:"📅",att:"📋",security:"🛡",sheets:"🔗",board:"🏛",photos:"🖼",designs:"🎨",follow:"👥",me:"👤",leaders:"🛡",bcom:"📊"};
-const NLB={home:"الرئيسية",members:"الأعضاء",req:"الطلبات",committees:"اللجان",dash:"لوحة الشرف",announce:"الإعلان",seen:"الدخول",hr:"تسجيلات HR",events:"الأحداث",att:"سجل الحضور",security:"الأمان",sheets:"الشيتات",board:"البورد",photos:"الصور",designs:"الديزاينات",follow:"المتابعة",me:"حسابي",leaders:"المسؤولون",bcom:"لجنتي"};
+const NI={home:"🏠",members:"👥",req:"🆕",committees:"🧩",dash:"🏆",announce:"📢",seen:"👁",hr:"✅",events:"📅",att:"📋",security:"🛡",sheets:"🔗",board:"🏛",photos:"🖼",designs:"🎨",follow:"👥",me:"👤",leaders:"🛡",bcom:"📊",evals:"📊"};
+const NLB={home:"الرئيسية",members:"الأعضاء",req:"الطلبات",committees:"اللجان",dash:"لوحة الشرف",announce:"الإعلان",seen:"الدخول",hr:"تسجيلات HR",events:"الأحداث",att:"سجل الحضور",security:"الأمان",sheets:"الشيتات",board:"البورد",photos:"الصور",designs:"الديزاينات",follow:"المتابعة",me:"حسابي",leaders:"المسؤولون",bcom:"لجنتي",evals:"التقييمات"};
 const ADM_MAIN=["home","members","events","req"];
 const navSplit=()=>{const ids=(NAV||[]).map(t=>t[0]);if(isAdm()){const m=ADM_MAIN.filter(x=>ids.includes(x));return[m,ids.filter(x=>!m.includes(x))]}return ids.length<=4?[ids,[]]:[ids.slice(0,4),ids.slice(4)]};
 function navHtml(){
@@ -1364,7 +1403,7 @@ function navHtml(){
   return`<div class="nav"><div class="nav-in">${main.map(b).join("")}<button class="${rest.includes(S.tab)||S.more?"on":""}" onclick="S.more=!S.more;render()"><i>☰</i><span>المزيد</span></button></div></div>`}
 function navGo(id){if(id==="security")S.auLoaded=0;if(id==="sheets")S.ssLoaded=0;S.tab=id;S.more=false;render()}
 const MM_EXTRA={albums:["📸","صور الفعاليات"],birthdays:["🎂","أعياد الميلاد"],cards:["📄","الكروت"],trash:["🗑","المحذوفات"]};
-const MM_GROUPS=[["👥 الأعضاء",["members","req","committees","board","leaders"]],["📊 التقييم والحضور",["dash","hr","att","events"]],["📢 المحتوى",["announce","photos","albums","birthdays","cards","designs"]],["⚙️ النظام",["security","sheets","seen","trash"]]];
+const MM_GROUPS=[["👥 الأعضاء",["members","req","committees","board","leaders"]],["📊 التقييم والحضور",["evals","dash","hr","att","events"]],["📢 المحتوى",["announce","photos","albums","birthdays","cards","designs"]],["⚙️ النظام",["security","sheets","seen","trash"]]];
 function moreHtml(){
   if(!S.more||!NAV||!me)return"";const[,rest]=navSplit(),ios=/iphone|ipad/i.test(navigator.userAgent)&&!navigator.standalone;
   const used=new Set(),btn=id=>`<button class="mm-btn" onclick="navGo('${id}')"><i>${NI[id]||(MM_EXTRA[id]||[])[0]||"•"}</i><span>${NLB[id]||(MM_EXTRA[id]||[])[1]||id}</span></button>`;
