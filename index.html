@@ -319,8 +319,10 @@ const topbar=(extra)=>`<div class="top"><div class="row" style="gap:10px;flex-wr
 function avatarBanner(){
   return`<div class="card" style="border-color:var(--pr)"><b>📸 ارفع صورتك الشخصية</b><p class="mu" style="margin:4px 0 10px">هتظهر في حسابك وعند الإدارة.</p><label class="btn" style="margin:0;color:#fff">اختيار صورة<input type="file" accept="image/*" hidden onchange="upAvatar(this.files[0])"></label></div>`;
 }
+const denseRank=(list,sc=score)=>{const v=list.map(x=>Math.round(sc(x)));const u=[...new Set(v)].sort((a,b)=>b-a);return v.map(x=>u.indexOf(x)+1)};
+const top5List=()=>{const S2=[...D.members].sort((a,b)=>score(b)-score(a));if(S2.length<=5)return S2;const cut=score(S2[4]);return S2.filter(m=>score(m)>=cut)};
 function memberView(m,own){
-  const rk=rankIn(m),pos=rk.findIndex(x=>x.id===m.id)+1,has=months(m).length>0;
+  const rk=rankIn(m),pos=denseRank(rk)[rk.findIndex(x=>x.id===m.id)],has=months(m).length>0;
   const w=own?myWarn:(isAdm()?D.warn.filter(x=>x.member_id===m.id).length:null);
   const head=`<div class="card"><div class="row">${own?`<label class="avw" style="margin:0" title="تغيير الصورة">${avatar(m,1)}<input type="file" accept="image/*" hidden onchange="upAvatar(this.files[0])"></label>`:avatar(m,1)}<div style="flex:1"><b style="font-size:18px">${esc(nm(m.name))}</b><div class="mu">${esc(m.role||"عضو")} · لجنة ${esc(m.committee)}</div></div>${has?gpill(m)+trend(delta(m)):""}</div><div class="row" style="margin-top:10px"><button class="g" onclick="exportPDF('${m.id}')">📄 تصدير PDF</button></div></div>`;
   if(!has)return(own&&!m.avatar_url?avatarBanner():"")+head+(own?qrCard():"")+(w!=null?`<div class="card"><div class="mu">الإنذارات المستلمة</div><div class="big" style="color:${w?"var(--bad)":"var(--ok)"}">${w}</div></div>`:"")+`<div class="card"><p style="margin:0">لم يتم إعلان أي تقييم بعد. هيظهر هنا أول ما الإدارة تعلن نتيجة الشهر.</p></div>`;
@@ -328,7 +330,7 @@ function memberView(m,own){
   return(own&&!m.avatar_url?avatarBanner():"")+head+badgesHtml(m,pos,rk.length)+`${(()=>{const pc=score(m)/maxS(m.committee);return`<div class="card"><div class="row" style="flex-wrap:nowrap;gap:16px">${ringSvg(pc,Math.round(pc*100)+"%")}<div style="flex:1;min-width:0"><div class="mu">تقييمك الحالي</div><div class="big">${score(m)}<span class="mu">/${maxS(m.committee)}</span></div><div class="mu">الترتيب ${pos} من ${rk.length} في اللجنة</div></div>${w!=null?`<div style="text-align:center"><div class="mu">الإنذارات</div><div class="big" style="color:${w?"var(--bad)":"var(--ok)"}">${w}</div></div>`:""}</div></div>`})()}
   ${own?qrCard():""}<div class="card" style="margin-top:12px"><b>تطور أدائك عبر الشهور</b>${chart(m)}</div>
   <div class="card"><b>تفاصيل آخر شهر (${ml(last(m))})</b>${breakdown(m)}</div>
-  <div class="card"><b>🏆 ترتيب اللجنة</b>${rk.filter(x=>months(x).length).map((x,i)=>`<div class="lb ${x.id===m.id?"me":""}"><span>${i+1}</span><span style="flex:1">${esc(nm(x.name))}</span>${gpill(x)}<b>${score(x)}</b></div>`).join("")}</div>`;
+  <div class="card"><b>🏆 ترتيب اللجنة</b>${rk.filter(x=>months(x).length).map((x,i)=>`<div class="lb ${x.id===m.id?"me":""}"><span>${denseRank(rk.filter(y=>months(y).length))[i]}</span><span style="flex:1">${esc(nm(x.name))}</span>${gpill(x)}<b>${score(x)}</b></div>`).join("")}</div>`;
 }
 async function delMem(id){if(!confirm("حذف العضو وكل تقييماته نهائياً؟"))return;const r=await sb.from("members").delete().eq("id",id);if(r.error)return alert(r.error.message);S.modal=null;await load();render()}
 async function addWarn(id){const r=await sb.from("warnings").insert({member_id:id,d:$("#wd").value||today(),reason:$("#wr").value.trim()});if(r.error){$("#mm").textContent=r.error.message;return}await load();render()}
@@ -339,7 +341,7 @@ async function announce(k,on){
   if(r.error)return alert(r.error.message);await load();render();
 }
 function exportPDF(id){
-  const m=D.members.find(x=>x.id===id),rk=rankIn(m),pos=rk.findIndex(x=>x.id===m.id)+1,mx=maxS(m.committee),ms=months(m);
+  const m=D.members.find(x=>x.id===id),rk=rankIn(m),pos=denseRank(rk)[rk.findIndex(x=>x.id===m.id)],mx=maxS(m.committee),ms=months(m);
   const w=(me&&m.id===me.id&&!isAdm())?myWarn:D.warn.filter(x=>x.member_id===m.id).length;
   const el=document.createElement("div");el.id="rpt";
   el.innerHTML=`<div dir="rtl" style="font-family:'Segoe UI',Tahoma,'Noto Sans Arabic',sans-serif">
@@ -415,7 +417,7 @@ setTimeout(evReconcile,0);if(isAdm())setTimeout(()=>{try{sb.rpc("backup_if_due")
   const c=await sb.rpc("my_warning_count");myWarn=c.data||0;
   if(me&&!touched){touched=true;startPing()}
   else{const st=await sb.rpc("my_signup_status");S.signup=st.data||null}
-  const AT=["home","members","req","committees","dash","announce","seen","hr","board","photos","albums","birthdays","designs","events","att","security","sheets"];
+  const AT=["home","members","req","committees","dash","announce","seen","hr","board","photos","albums","birthdays","cards","designs","events","att","security","sheets"];
   if(me&&LASTME!==me.id){LASTME=me.id;S.more=false;S.nt=false;S.landed=false}
   if(isAdm()&&!S.landed){S.landed=1;S.tab="home"}
   else if(isAdm()&&!AT.includes(S.tab))S.tab="home";
@@ -679,6 +681,91 @@ function bdayView(){
   return head+tabs+copy+(L.length?L.map(m=>`<div class="card" style="padding:8px 10px;margin-bottom:6px;display:flex;gap:10px;align-items:center">${avatar(m)}<div style="flex:1;min-width:0"><b>${esc(nm(m.name))}</b><div class="mu">${esc(m.committee)}</div></div><b style="font-size:18px">${+B[m.id].slice(8,10)}</b></div>`).join(""):`<p class="mu">مفيش أعياد ميلاد في ${MO[mo-1]}.</p>`);
 }
 function bdayCopy(){const t=window._bdayTxt||"";if(navigator.clipboard)navigator.clipboard.writeText(t).then(()=>toast("اتنسخت القايمة ✓","ok")).catch(()=>alert(t));else alert(t)}
+
+const COMEN={OR:"Operations",HR:"Human Resources",PR:"Public Relations",SM:"Social Media"};
+const COMAR={OR:"العمليات",HR:"الموارد البشرية",PR:"العلاقات العامة",SM:"السوشيال ميديا"};
+const ENM=["January","February","March","April","May","June","July","August","September","October","November","December"];
+const CARD_W="http://schemas.openxmlformats.org/wordprocessingml/2006/main";
+const DOCX_MIME="application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+let _zipP=null;
+function loadJSZip(){if(window.JSZip)return Promise.resolve();if(_zipP)return _zipP;_zipP=new Promise((res,rej)=>{const t=document.createElement("script");t.src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js";t.onload=()=>res();t.onerror=()=>{_zipP=null;rej(new Error("تعذر تحميل مكتبة الملفات"))};document.head.appendChild(t)});return _zipP}
+function cardRows(c,mo){
+  const list=D.members.filter(m=>m.committee===c&&m.role!=="Board"&&m.rec&&m.rec[mo]).map(m=>({name:nm(m.name),total:Math.round(mscore(m.rec[mo],c))}));
+  list.sort((a,b)=>b.total-a.total);
+  const distinct=[...new Set(list.map(x=>x.total))];
+  list.forEach(x=>{const r=distinct.indexOf(x.total)+1;x.top=r<=3?String(r):"-----";x.gpa=grade(x.total)||"-"});
+  return list;
+}
+function cardLeaders(){
+  const nameOf=id=>{const m=D.members.find(x=>x.id===id);return m?nm(m.name):""};
+  const head=D.board.find(b=>isHeadPos(b.position)&&evCom(b).includes("HR"));
+  const lead=D.board.find(b=>/team\s*leader|تيم\s*ليدر/i.test(String(b.position||"")));
+  return{head:head?nameOf(head.member_id):"",leader:lead?nameOf(lead.member_id):""};
+}
+function cardTxt(el){return [...el.getElementsByTagNameNS(CARD_W,"t")].map(t=>t.textContent).join("")}
+function cardSetCell(tc,text){
+  const doc=tc.ownerDocument,p=tc.getElementsByTagNameNS(CARD_W,"p")[0];if(!p)return;
+  const r0=p.getElementsByTagNameNS(CARD_W,"r")[0],rPr=r0?r0.getElementsByTagNameNS(CARD_W,"rPr")[0]:null;
+  [...p.childNodes].forEach(n=>{if(!(n.nodeType===1&&n.localName==="pPr"))p.removeChild(n)});
+  const r=doc.createElementNS(CARD_W,"w:r");if(rPr)r.appendChild(rPr.cloneNode(true));
+  const t=doc.createElementNS(CARD_W,"w:t");t.setAttributeNS("http://www.w3.org/XML/1998/namespace","xml:space","preserve");t.textContent=String(text==null?"":text);r.appendChild(t);p.appendChild(r);
+}
+async function cardDocx(c,mo){
+  const ver=await sb.storage.from("card-templates").download(c+".docx");
+  if(ver.error||!ver.data)throw new Error("ارفع نموذج الكارت للجنة دي الأول");
+  await loadJSZip();
+  const zip=await JSZip.loadAsync(ver.data);
+  let xml=await zip.file("word/document.xml").async("string");
+  const mi=+mo.slice(5,7)-1,dashes=[`الدقهلية`,MO[mi],`Dakahlia`,ENM[mi]];let k=0;
+  xml=xml.replace(/-{4,}/g,()=>dashes[k++]!==undefined?dashes[k-1]:"");
+  const doc=new DOMParser().parseFromString(xml,"application/xml");
+  const tbls=[...doc.getElementsByTagNameNS(CARD_W,"tbl")];
+  const rows=cardRows(c,mo),L=cardLeaders();
+  const dataRows=[];
+  tbls.forEach(t=>{const trs=[...t.getElementsByTagNameNS(CARD_W,"tr")];if(!trs.length||trs[0].getElementsByTagNameNS(CARD_W,"tc").length!==6)return;trs.forEach(r=>{if(!cardTxt(r).includes("TOP"))dataRows.push(r)})});
+  while(dataRows.length<rows.length){const last=dataRows[dataRows.length-1],nr=last.cloneNode(true);last.parentNode.insertBefore(nr,last.nextSibling);dataRows.push(nr)}
+  dataRows.forEach((r,i)=>{const tcs=[...r.getElementsByTagNameNS(CARD_W,"tc")];
+    if(i<rows.length){const x=rows[i];cardSetCell(tcs[0],x.top);cardSetCell(tcs[1],x.gpa);cardSetCell(tcs[2],x.total);cardSetCell(tcs[3],COMEN[c]);cardSetCell(tcs[4],x.name);cardSetCell(tcs[5],i+1)}
+    else r.parentNode.removeChild(r)});
+  const foot=tbls.find(t=>cardTxt(t).includes("Head HR"));
+  if(foot){const r2=foot.getElementsByTagNameNS(CARD_W,"tr")[1];if(r2){const tcs=[...r2.getElementsByTagNameNS(CARD_W,"tc")];cardSetCell(tcs[0],L.head);cardSetCell(tcs[1],L.leader)}}
+  zip.file("word/document.xml",new XMLSerializer().serializeToString(doc));
+  return await zip.generateAsync({type:"blob",mimeType:DOCX_MIME});
+}
+async function cardExport(fmt){
+  const c=($("#cdc")||{}).value,mo=($("#cdm")||{}).value;
+  if(!c||!mo)return alert("اختار اللجنة والشهر");
+  if(c==="TR")return alert("لجنة TR مفيهاش كارت تقييم");
+  try{
+    const rowsN=cardRows(c,mo).length;if(!rowsN)return alert("مفيش تقييمات للجنة دي في الشهر ده");
+    if(fmt==="docx"){
+      const blob=await cardDocx(c,mo),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`${COMEN[c]}_${mo}.docx`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+    }else{
+      const rows=cardRows(c,mo),L=cardLeaders(),mi=+mo.slice(5,7)-1,y=mo.slice(0,4);
+      const trs=rows.map((x,i)=>`<tr><td>${i+1}</td><td>${esc(x.name)}</td><td>${COMEN[c]}</td><td>${x.total}</td><td>${x.gpa}</td><td>${x.top}</td></tr>`).join("");
+      const html=`<!doctype html><html dir="rtl"><head><meta charset="utf-8"><title>${COMEN[c]} ${mo}</title><style>body{font-family:Tahoma,Arial,sans-serif;margin:24px;color:#111}h2{text-align:center;margin:0 0 4px}.en{text-align:center;font-size:13px;margin:0 0 14px}table{width:100%;border-collapse:collapse;font-size:13px}th,td{border:1px solid #333;padding:5px;text-align:center}th{background:#1f2a5a;color:#fff}.ft{display:flex;justify-content:space-around;margin-top:24px;font-weight:700}</style></head><body><h2>تقييم أداء أعضاء لجنة ${COMAR[c]} محافظة الدقهلية لشهر (${MO[mi]}) ${y}</h2><p class="en">Performance evaluation of the ${COMEN[c]} Members of Dakahlia Government for (${ENM[mi]}) ${y}</p><table><tr><th>N</th><th>NAME</th><th>COMMITTEE</th><th>TOTAL</th><th>GPA</th><th>TOP</th></tr>${trs}</table><div class="ft"><span>Team leader: ${esc(L.leader)}</span><span>Head HR: ${esc(L.head)}</span></div><script>window.onload=()=>setTimeout(()=>print(),300)<\/script></body></html>`;
+      const w=window.open("","_blank");if(!w)return alert("اسمح بالنوافذ المنبثقة عشان تطلع الـ PDF");w.document.write(html);w.document.close();
+    }
+  }catch(e){alert(e.message||"حصلت مشكلة")}
+}
+async function cardUpload(c,file){
+  if(!file)return;
+  if(!/\.docx$/i.test(file.name))return alert("لازم ملف Word (.docx)");
+  const r=await upXhr("card-templates",c+".docx",file,true,DOCX_MIME);
+  if(r.error)return alert(r.error.message);
+  toast("اترفع نموذج "+COMAR[c]+" ✓","ok");
+}
+function cardsView(){
+  const mos=[...new Set(D.members.flatMap(m=>months(m)))].sort().reverse();
+  const mo=(S.cdm&&mos.includes(S.cdm))?S.cdm:(mos[0]||"");
+  const cs=["OR","HR","PR","SM","TR"];
+  const up=COM4.filter(c=>c!=="TR").map(c=>`<div class="row" style="justify-content:space-between;margin:6px 0"><span>${COMAR[c]}</span><label class="btn g" style="margin:0">📎 رفع نموذج Word<input type="file" accept=".docx" hidden onchange="cardUpload('${c}',this.files[0])"></label></div>`).join("");
+  return `<div class="card"><b>📄 كروت التقييم</b><p class="mu" style="margin:6px 0">اختار اللجنة والشهر، وصدّر Word أو PDF. أعضاء البورد مش بيظهروا في الكارت.</p>
+  <label>اللجنة</label><select id="cdc">${cs.map(c=>`<option value="${c}">${c==="TR"?"TR (مفيهاش كارت)":COMAR[c]}</option>`).join("")}</select>
+  <label>الشهر</label><select id="cdm" onchange="S.cdm=this.value">${mos.map(m=>`<option value="${m}" ${m===mo?"selected":""}>${MO[+m.slice(5,7)-1]} ${m.slice(0,4)}</option>`).join("")}</select>
+  <div class="row" style="gap:8px;margin-top:10px"><button onclick="cardExport('docx')">⬇ Word</button><button class="g" onclick="cardExport('pdf')">⬇ PDF</button></div></div>
+  <div class="card"><b>نماذج الـ Word</b><p class="mu" style="margin:6px 0">ارفع نموذج كل لجنة مرة واحدة، والنموذج بيتحفظ.</p>${up}</div>`;
+}
 function albumsView(){
   const A=D.albums||[],P=D.albPhotos||[];
   if(S.alb&&A.some(a=>a.id===S.alb))return albumDetail(S.alb);
@@ -761,7 +848,7 @@ function photosView(){
 }
 function adminView(){
   const pend=D.signups.filter(s=>s.status==="pending").length;
-  const tabs=[["home","الرئيسية"],["members","الأعضاء"],["req","🆕 الطلبات"+(pend?` (${pend})`:"")],["committees","اللجان"],["dash","لوحة الشرف"],["announce","📢 الإعلان"],["seen","👁 الدخول"],["hr","✅ تسجيلات HR"],["events","📅 الأحداث"],["att","📋 سجل الحضور"],["security","🛡 الأمان"],["sheets","🔗 مزامنة الشيتات"],["board","🏛 البورد"],["photos","🖼 الصور"],["albums","📸 صور الفعاليات"],["birthdays","🎂 أعياد الميلاد"],["designs","🎨 الديزاينات"]];
+  const tabs=[["home","الرئيسية"],["members","الأعضاء"],["req","🆕 الطلبات"+(pend?` (${pend})`:"")],["committees","اللجان"],["dash","لوحة الشرف"],["announce","📢 الإعلان"],["seen","👁 الدخول"],["hr","✅ تسجيلات HR"],["events","📅 الأحداث"],["att","📋 سجل الحضور"],["security","🛡 الأمان"],["sheets","🔗 مزامنة الشيتات"],["board","🏛 البورد"],["photos","🖼 الصور"],["albums","📸 صور الفعاليات"],["birthdays","🎂 أعياد الميلاد"],["cards","📄 الكروت"],["designs","🎨 الديزاينات"]];
   const sc=D.members.map(score),avg=sc.length?Math.round(sc.reduce((a,b)=>a+b,0)/sc.length):0;
   let sub="";
   if(S.tab==="home")sub=homeView();
@@ -771,9 +858,9 @@ function adminView(){
   else if(S.tab==="security")sub=secView();
   else if(S.tab==="sheets")sub=sheetsView();
   else if(S.tab==="req")sub=reqView();
-  else if(S.tab==="committees")sub=comms().map(c=>{const r=D.members.filter(m=>m.committee===c).sort((a,b)=>score(b)-score(a)),a=Math.round(r.reduce((s,m)=>s+score(m),0)/r.length);return`<div class="card"><div class="row" style="justify-content:space-between"><b>لجنة ${esc(c)}</b><span class="mu">${r.length} أعضاء · متوسط ${a}</span></div>${r.map((m,i)=>`<div class="lb"><span>${i+1}</span>${avatar(m)}<span style="flex:1">${esc(nm(m.name))}</span><b>${score(m)}</b></div>`).join("")}</div>`}).join("")||'<p class="mu">أضف أعضاء أولاً.</p>';
+  else if(S.tab==="committees")sub=comms().map(c=>{const r=D.members.filter(m=>m.committee===c).sort((a,b)=>score(b)-score(a)),a=Math.round(r.reduce((s,m)=>s+score(m),0)/r.length);return`<div class="card"><div class="row" style="justify-content:space-between"><b>لجنة ${esc(c)}</b><span class="mu">${r.length} أعضاء · متوسط ${a}</span></div>${r.map((m,i)=>`<div class="lb"><span>${denseRank(r)[i]}</span>${avatar(m)}<span style="flex:1">${esc(nm(m.name))}</span><b>${score(m)}</b></div>`).join("")}</div>`}).join("")||'<p class="mu">أضف أعضاء أولاً.</p>';
   else if(S.tab==="dash"){const wl=D.members.map(m=>[m,wc(m)]).filter(x=>x[1]).sort((a,b)=>b[1]-a[1]);
-    sub=`<div class="card"><b>🏆 أفضل 5 في الفريق</b>${[...D.members].sort((a,b)=>score(b)-score(a)).slice(0,5).map((m,i)=>`<div class="lb"><span>${i+1}</span>${avatar(m)}<span style="flex:1">${esc(nm(m.name))} <span class="mu">· ${esc(m.committee)}</span></span>${trend(delta(m))}<b>${score(m)}</b></div>`).join("")}</div>
+    sub=`<div class="card"><b>🏆 أفضل 5 في الفريق</b>${top5List().map((m,i)=>`<div class="lb"><span>${denseRank(top5List())[i]}</span>${avatar(m)}<span style="flex:1">${esc(nm(m.name))} <span class="mu">· ${esc(m.committee)}</span></span>${trend(delta(m))}<b>${score(m)}</b></div>`).join("")}</div>
     <div class="card"><b>⚠️ يحتاجون متابعة (أقل من 75% أو في النازل)</b>${D.members.filter(m=>score(m)/maxS(m.committee)<0.75||delta(m)<=-5).map(m=>`<div class="lb"><span style="flex:1">${esc(nm(m.name))}</span>${trend(delta(m))}<b>${score(m)}</b></div>`).join("")||'<p class="mu">لا أحد 👏</p>'}</div>
     <div class="card"><b>🚨 الإنذارات</b>${wl.map(([m,n])=>`<div class="lb"><span style="flex:1">${esc(nm(m.name))} <span class="mu">· ${esc(m.committee)}</span></span><span class="pill dn">${n}</span></div>`).join("")||'<p class="mu">لا توجد إنذارات.</p>'}</div>`;}
   else if(S.tab==="announce"){const all=[...new Set(D.members.flatMap(m=>months(m)))].sort().reverse();
@@ -782,7 +869,7 @@ function adminView(){
   else if(S.tab==="hr")sub=hrView();
   else if(S.tab==="board")sub=boardAdminView();
   else if(S.tab==="designs")sub=designsView();
-  else if(S.tab==="albums")sub=albumsView();else if(S.tab==="birthdays")sub=bdayView();else sub=photosView();
+  else if(S.tab==="albums")sub=albumsView();else if(S.tab==="birthdays")sub=bdayView();else if(S.tab==="cards")sub=cardsView();else sub=photosView();
   return topbar()+tabBar(tabs)+sub;
 }
 function mgrList(mine){
@@ -1066,8 +1153,8 @@ function navHtml(){
   const b=id=>`<button class="${S.tab===id?"on":""}" onclick="navGo('${id}')"><i>${NI[id]||(MM_EXTRA[id]||[])[0]||"•"}</i><span>${NLB[id]||(MM_EXTRA[id]||[])[1]||id}</span>${id==="req"&&pend?`<em>${pend}</em>`:""}</button>`;
   return`<div class="nav"><div class="nav-in">${main.map(b).join("")}<button class="${rest.includes(S.tab)||S.more?"on":""}" onclick="S.more=!S.more;render()"><i>☰</i><span>المزيد</span></button></div></div>`}
 function navGo(id){if(id==="security")S.auLoaded=0;if(id==="sheets")S.ssLoaded=0;S.tab=id;S.more=false;render()}
-const MM_EXTRA={albums:["📸","صور الفعاليات"],birthdays:["🎂","أعياد الميلاد"]};
-const MM_GROUPS=[["👥 الأعضاء",["members","req","committees","board","leaders"]],["📊 التقييم والحضور",["dash","hr","att","events"]],["📢 المحتوى",["announce","photos","albums","birthdays","designs"]],["⚙️ النظام",["security","sheets","seen"]]];
+const MM_EXTRA={albums:["📸","صور الفعاليات"],birthdays:["🎂","أعياد الميلاد"],cards:["📄","الكروت"]};
+const MM_GROUPS=[["👥 الأعضاء",["members","req","committees","board","leaders"]],["📊 التقييم والحضور",["dash","hr","att","events"]],["📢 المحتوى",["announce","photos","albums","birthdays","cards","designs"]],["⚙️ النظام",["security","sheets","seen"]]];
 function moreHtml(){
   if(!S.more||!NAV||!me)return"";const[,rest]=navSplit(),ios=/iphone|ipad/i.test(navigator.userAgent)&&!navigator.standalone;
   const used=new Set(),btn=id=>`<button class="mm-btn" onclick="navGo('${id}')"><i>${NI[id]||(MM_EXTRA[id]||[])[0]||"•"}</i><span>${NLB[id]||(MM_EXTRA[id]||[])[1]||id}</span></button>`;
