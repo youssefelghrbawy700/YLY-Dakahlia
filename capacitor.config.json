@@ -1,0 +1,6 @@
+{
+  "appId": "com.yly.dakahlia",
+  "appName": "YLY Dakahlia",
+  "webDir": "www",
+  "android": { "allowMixedContent": false }
+}
