@@ -187,11 +187,36 @@ input:focus,select:focus{outline:none;border-color:var(--pr);box-shadow:0 0 0 3p
 .as{font-size:12px;font-weight:800;padding:2px 9px;border-radius:999px;white-space:nowrap}
 .as.p{background:rgba(52,211,153,.16);color:var(--ok)}.as.a{background:rgba(248,113,113,.16);color:var(--bad)}.as.x{background:rgba(251,191,36,.16);color:var(--warn)}
 .act-sub{font-size:11.5px;margin:-2px 0 4px}
+/* ===== v2 ===== */
+.mm-btn{position:relative}.pin{position:absolute;top:3px;inset-inline-start:5px;font-size:15px;padding:2px 4px;cursor:pointer;line-height:1}
+.ov.gs{align-items:flex-start;padding-top:max(12px,env(safe-area-inset-top));z-index:40}
+.ov.gs .card{border-radius:22px;margin:0 10px;max-height:82dvh}.ov.gs .card::before{display:none}
+#hm{z-index:41}
+.gsh{font-size:12px;font-weight:800;color:var(--mu);margin:10px 4px 2px}
+.gsp{cursor:pointer;padding:8px 6px}.gsp:hover,.gsm:hover{background:var(--inp);border-radius:10px}
+#sb{display:none}
+.sbh{font-size:12px;font-weight:800;color:var(--mu);margin:12px 6px 4px}
+.sbi{display:flex;align-items:center;gap:9px;width:100%;text-align:start;background:none;color:var(--tx);box-shadow:none;border-radius:12px;padding:8px 10px;font-weight:600;font-size:14px;position:relative}
+.sbi i{font-style:normal;width:22px;text-align:center}
+.sbi:hover:not(:disabled){background:var(--inp);filter:none}
+.sbi.on{background:linear-gradient(135deg,var(--pr),var(--pr2));color:#fff}
+.sbi em{margin-inline-start:auto;min-width:18px;height:18px;border-radius:9px;background:var(--bad);color:#fff;font-style:normal;font-size:11px;display:grid;place-items:center;padding:0 4px}
+.sbi kbd{font-size:10px;opacity:.6;border:1px solid var(--bd);border-radius:5px;padding:0 4px;margin-inline-start:6px;font-family:inherit}
+@media (min-width:1000px){
+body.hasSb #sb{display:block;position:fixed;top:14px;bottom:14px;z-index:14;width:216px;right:max(10px,calc((100vw - 1040px)/2 + 14px))}
+body.hasSb .sbx{height:100%;overflow:auto;background:var(--card);border:1px solid var(--bd);border-radius:20px;padding:10px;box-shadow:0 8px 28px rgba(0,0,0,.2);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+body.hasSb .w{max-width:1040px;padding-right:244px;padding-bottom:40px}
+body.hasSb .nav{display:none}
+body.hasSb #tst{inset-block-end:24px}
+}
+@media (max-width:430px){.top .g.ico{padding:8px 9px}.top .row{gap:5px!important}.logo{font-size:15px;white-space:nowrap}.top .av{width:38px;height:38px;border-radius:12px}}
+table.tb td,table.tb th{text-align:start}.tb .av{width:30px;height:30px;border-radius:10px;font-size:13px}
+.tb tbody tr:hover,.tb tr[data-mid]:hover{background:var(--inp)}
 </style>
 </head>
 <body>
 <div class="w" id="app"><div class="sk" style="height:56px;margin-bottom:12px"></div><div class="sk" style="height:120px;margin-bottom:12px"></div><div class="sk" style="height:120px"></div></div>
-<div id="nv"></div><div id="mdl"></div><div id="tst"></div><div id="ptr">↓</div>
+<div id="sb"></div><div id="nv"></div><div id="mdl"></div><div id="tst"></div><div id="ptr">↓</div>
 <footer class="ft">Developed by Mr. Yousef El-Gharbawy</footer>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
@@ -345,7 +370,7 @@ function recoverView(){
   return`<div class="auth"><div class="box"><div class="crest">YLY</div><h1 class="ttl">كلمة مرور جديدة</h1>
   <div class="card" style="margin-top:18px"><label>كلمة المرور الجديدة</label><input id="np" type="password" dir="ltr" autocomplete="new-password"><p class="err">${esc(S.msg)}</p><button style="width:100%;padding:12px" onclick="setNewPw()">حفظ</button></div></div></div>`;
 }
-const topbar=(extra)=>`<div class="top"><div class="row" style="gap:10px;flex-wrap:nowrap">${me?avatar(me):""}<div><div class="logo">YLY Dakahlia</div></div></div><div class="row" style="flex-wrap:nowrap">${extra||""}${unBtns()}${me?`<button class="g ico bellb" onclick="ntOpen()" aria-label="الإشعارات">🔔${ntCnt()?`<em>${ntCnt()}</em>`:""}</button>`:""}<button class="g ico" onclick="theme()" aria-label="الوضع">🌓</button>${me?"":`<button class="g" onclick="logout()">خروج</button>`}</div></div>`;
+const topbar=(extra)=>`<div class="top"><div class="row" style="gap:10px;flex-wrap:nowrap">${me?avatar(me):""}<div><div class="logo">YLY Dakahlia</div></div></div><div class="row" style="flex-wrap:nowrap">${extra||""}${unBtns()}${me?`<button class="g ico" onclick="gsOpen()" aria-label="بحث">🔍</button>`:""}${me?`<button class="g ico bellb" onclick="ntOpen()" aria-label="الإشعارات">🔔${ntCnt()?`<em>${ntCnt()}</em>`:""}</button>`:""}<button class="g ico" onclick="theme()" aria-label="الوضع">🌓</button>${me?"":`<button class="g" onclick="logout()">خروج</button>`}</div></div>`;
 
 function avatarBanner(){
   return`<div class="card" style="border-color:var(--pr)"><b>📸 ارفع صورتك الشخصية</b><p class="mu" style="margin:4px 0 10px">هتظهر في حسابك وعند الإدارة.</p><label class="btn" style="margin:0;color:#fff">اختيار صورة<input type="file" accept="image/*" hidden onchange="upAvatar(this.files[0])"></label></div>`;
@@ -359,7 +384,7 @@ function memberView(m,own){
   if(!has)return(own&&!m.avatar_url?avatarBanner():"")+head+(own?qrCard():"")+(w!=null?`<div class="card"><div class="mu">الإنذارات المستلمة</div><div class="big" style="color:${w?"var(--bad)":"var(--ok)"}">${w}</div></div>`:"")+`<div class="card"><p style="margin:0">لم يتم إعلان أي تقييم بعد. هيظهر هنا أول ما الإدارة تعلن نتيجة الشهر.</p></div>`;
   if(own&&pos>0&&pos<=3&&rk.length>3&&!S.conf){S.conf=1;setTimeout(confetti,500)}
   return(own&&!m.avatar_url?avatarBanner():"")+head+badgesHtml(m,pos,rk.length)+`${(()=>{const pc=score(m)/maxS(m.committee);return`<div class="card"><div class="row" style="flex-wrap:nowrap;gap:16px">${ringSvg(pc,Math.round(pc*100)+"%")}<div style="flex:1;min-width:0"><div class="mu">تقييمك الحالي</div><div class="big">${score(m)}<span class="mu">/${maxS(m.committee)}</span></div><div class="mu">الترتيب ${pos} من ${rk.length} في اللجنة</div></div>${w!=null?`<div style="text-align:center"><div class="mu">الإنذارات</div><div class="big" style="color:${w?"var(--bad)":"var(--ok)"}">${w}</div></div>`:""}</div></div>`})()}
-  ${own?qrCard():""}<div class="card" style="margin-top:12px"><b>تطور أدائك عبر الشهور</b>${chart(m)}</div>
+  ${own?qrCard():""}<div class="card" style="margin-top:12px"><b>تطور أدائك عبر الشهور</b>${chart(m)}${monthsCmp(m)}</div>
   <div class="card"><b>تفاصيل آخر شهر (${ml(last(m))})</b>${breakdown(m)}</div>
   <div class="card"><b>🏆 ترتيب اللجنة</b>${rk.filter(x=>months(x).length).map((x,i)=>`<div class="lb ${x.id===m.id?"me":""}"><span>${denseRank(rk.filter(y=>months(y).length))[i]}</span><span style="flex:1">${esc(nm(x.name))}</span>${gpill(x)}<b>${score(x)}</b></div>`).join("")}</div>`;
 }
@@ -525,18 +550,20 @@ function hrData(){
 function hrMapView(){
   const com=S.hrc||"all",{hrs,fol,un,srt,leads,dups,dm}=hrData(),inC=x=>com==="all"||x.committee===com;
   const noF=hrs.filter(h=>!(fol[h.id]||[]).length),unF=un.filter(inC),grp=L=>COM4.concat(["Board"]).map(c=>[c,L.filter(x=>x.committee===c)]).filter(x=>x[1].length);
-  const rowOf=(h,all,tag)=>{const F=!!S.hrdupIn,L=all.filter(x=>inC(x)&&(!F||((dm.get(x.id)||[]).length>1&&(dm.get(x.id)||[]).some(y=>y.id===h.id))));if(F&&!L.length)return"";
+  const rowOf=(h,all,tag)=>{if(S.hrf==="un"||(S.hrf==="nof"&&all.length))return"";const F=!!S.hrdupIn,L=all.filter(x=>inC(x)&&(!F||((dm.get(x.id)||[]).length>1&&(dm.get(x.id)||[]).some(y=>y.id===h.id))));if(F&&!L.length)return"";
+    if(tview())return`<tr><td class="s">${esc(nm2(h.name))}${tag?` <span class="pill up" style="font-size:10.5px">${esc(tag)}</span>`:""}</td><td>${com==="all"&&!F?all.length:L.length+"/"+all.length}</td><td style="white-space:normal;text-align:start;min-width:240px">${grp(L).map(([c,A])=>`<span class="pill st" style="font-size:10.5px">${esc(c)}</span> ${A.map(x=>esc(nm2(x.name))+(F?` <span class="mu" style="font-size:11px">(كمان عند: ${(dm.get(x.id)||[]).filter(y=>y.id!==h.id).map(y=>esc(nm2(y.name))).join("، ")})</span>`:"")).join("، ")}`).join("<br>")||"—"}</td><td><button class="g chip" style="padding:4px 10px;font-size:12px" onclick="S.modal={t:'mem',id:'${h.id}'};render()">تعديل</button></td></tr>`;
     return`<div class="lb" style="align-items:flex-start;gap:8px;${all.length?"":"background:rgba(248,113,113,.1);border-radius:10px"}">${avatar(h)}<div style="flex:1;min-width:0"><b>${esc(nm2(h.name))}</b> ${tag?`<span class="pill up" style="font-size:11px">${esc(tag)}</span>`:""} <span class="mu" style="font-size:12px">${com==="all"&&!F?all.length:L.length+"/"+all.length} عضو</span> ${all.length?"":`<span class="pill dn" style="font-size:11px">مش بيتابع حد</span>`}
       ${grp(L).map(([c,A])=>`<div style="font-size:12.5px;margin-top:3px"><span class="pill st" style="font-size:10.5px">${esc(c)}</span> ${A.map(x=>esc(nm2(x.name))+(F?` <span class="mu" style="font-size:11px">(كمان عند: ${(dm.get(x.id)||[]).filter(y=>y.id!==h.id).map(y=>esc(nm2(y.name))).join("، ")})</span>`:"")).join("، ")}</div>`).join("")||(all.length?`<div class="mu" style="font-size:12px">مفيش من ${esc(com)}</div>`:"")}</div>
       <button class="g chip" onclick="S.modal={t:'mem',id:'${h.id}'};render()">تعديل</button></div>`};
   const leadIds=new Set(leads.map(x=>x.m.id));
   const rows=leads.map(x=>rowOf(x.m,srt(x.L),x.pos||"قيادة HR")).join("")+hrs.filter(h=>!leadIds.has(h.id)).map(h=>rowOf(h,srt(fol[h.id]||[]),"")).join("");
-  const unHtml=grp(unF).map(([c,A])=>`<div style="margin-top:10px"><b>${esc(c)}</b> <span class="mu">(${A.length})</span>${A.sort((a,b)=>nm2(a.name).localeCompare(nm2(b.name),"ar")).map(x=>`<div class="lb" style="gap:8px;align-items:center">${avatar(x)}<span style="flex:1;min-width:0">${esc(nm2(x.name))}</span><select style="max-width:46%" onchange="hrAssign('${x.id}',this.value)"><option value="">تعيين HR…</option>${hrs.filter(h=>h.id!==x.id).map(h=>`<option value="${h.id}">${esc(nm2(h.name))}</option>`).join("")}</select></div>`).join("")}</div>`).join("");
-  return`<div class="row" style="margin-bottom:10px;flex-wrap:wrap"><span class="pill up">${hrs.length} HR</span><span class="pill ${noF.length?"dn":"up"}">HR بدون متابعين: ${noF.length}</span><span class="pill ${un.length?"dn":"up"}">أعضاء بدون HR: ${un.length}</span><button class="g chip ${S.hrdup?"on":""}" style="${dups.length&&!S.hrdup?"border-color:var(--warn)":""}" onclick="S.hrdup=!S.hrdup;render()">⚠ ليهم أكتر من HR: ${dups.length}</button><span style="flex:1"></span><button class="g" onclick="hrExport()">⬇ تصدير التوزيع</button><button class="g" onclick="S.modal={t:'flimp'};S.flImp=null;render()">🔗 استيراد</button></div>
+  const unHtml=grp(unF).map(([c,A])=>`<div style="margin-top:10px"><b>${esc(c)}</b> <span class="mu">(${A.length})</span> <a href="#" class="lnk" style="font-size:12px;margin-inline-start:8px" onclick="event.preventDefault();hrSelAll('${esc(c)}')">تحديد الكل</a>${A.sort((a,b)=>nm2(a.name).localeCompare(nm2(b.name),"ar")).map(x=>`<div class="lb" style="gap:8px;align-items:center"><input type="checkbox" style="width:auto;min-height:0;padding:0;flex:none" ${(S.hrSel||[]).includes(x.id)?"checked":""} onchange="hrSelT('${x.id}')">${avatar(x)}<span style="flex:1;min-width:0">${esc(nm2(x.name))}</span><select style="max-width:46%" onchange="hrAssign('${x.id}',this.value)"><option value="">تعيين HR…</option>${hrs.filter(h=>h.id!==x.id).map(h=>`<option value="${h.id}">${esc(nm2(h.name))}</option>`).join("")}</select></div>`).join("")}</div>`).join("");
+  return`<div class="row" style="margin-bottom:10px;flex-wrap:wrap"><span class="pill up">${hrs.length} HR</span><button class="g chip ${S.hrf==="nof"?"on":""}" style="padding:3px 10px;font-size:12px" onclick="S.hrf=S.hrf==='nof'?'':'nof';render()">HR بدون متابعين: ${noF.length}</button><button class="g chip ${S.hrf==="un"?"on":""}" style="padding:3px 10px;font-size:12px" onclick="S.hrf=S.hrf==='un'?'':'un';render()">أعضاء بدون HR: ${un.length}</button><button class="g chip ${S.hrdup?"on":""}" style="${dups.length&&!S.hrdup?"border-color:var(--warn)":""}" onclick="S.hrdup=!S.hrdup;render()">⚠ ليهم أكتر من HR: ${dups.length}</button><span style="flex:1"></span><button class="g" onclick="hrAuto()">⚡ توزيع المتبقين تلقائي</button><button class="g" onclick="hmOpen()">🔀 نقل متابعين</button><button class="g" onclick="hrExport()">⬇ تصدير التوزيع</button><button class="g" onclick="S.modal={t:'flimp'};S.flImp=null;render()">🔗 استيراد</button></div>
   <div class="row" style="margin-bottom:10px;flex-wrap:wrap">${["all"].concat(COM4).map(c=>`<button class="g chip ${com===c?"on":""}" onclick="S.hrc='${c}';render()">${c==="all"?"كل اللجان":c}</button>`).join("")}</div>
+  ${tvSeg()}
   ${S.hrdup?(()=>{const L=dups.filter(d=>inC(d.m));return`<div class="card"><b>أعضاء ليهم أكتر من HR</b> <span class="mu" style="font-size:12px">(${L.length}) · شيل المتابعة الزيادة بـ ✕ (وتقدر تتراجع بـ ↶)</span>${L.map(d=>`<div class="lb" style="gap:8px;align-items:flex-start">${avatar(d.m)}<div style="flex:1;min-width:0"><b>${esc(nm2(d.m.name))}</b> <span class="pill st" style="font-size:10.5px">${esc(d.m.committee)}</span><div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:6px">${d.H.map(h=>`<span class="pill up" style="font-size:12px">${esc(nm2(h.name))} <a href="#" onclick="event.preventDefault();hrUnfollow('${h.id}','${d.m.id}')" style="color:var(--bad);text-decoration:none;margin-inline-start:4px">✕</a></span>`).join("")}</div></div></div>`).join("")||'<p class="mu" style="margin:8px 0 0">✓ مفيش أعضاء ليهم أكتر من HR.</p>'}</div>`})():`
-  <div class="card"><div class="row" style="gap:8px;flex-wrap:wrap"><b style="flex:1">كل HR بيتابع مين</b><button class="g chip ${S.hrdupIn?"on":""}" onclick="S.hrdupIn=!S.hrdupIn;render()">⚠ الأعضاء اللي ليهم أكتر من HR (${dups.filter(d=>inC(d.m)).length})</button></div><div style="margin-top:6px">${rows||(S.hrdupIn?'<p class="mu">✓ مفيش أعضاء ليهم أكتر من HR.</p>':'<p class="mu">مفيش أعضاء في لجنة HR.</p>')}</div></div>
-  <div class="card" style="margin-top:12px"><b>أعضاء مفيش HR بيتابعهم</b> <span class="mu" style="font-size:12px">(البورد والأدمن وأعضاء HR مستثنين)</span>${unHtml||'<p class="mu" style="margin:8px 0 0">✓ كل الأعضاء ليهم HR.</p>'}</div>`}`}
+  <div class="card"><div class="row" style="gap:8px;flex-wrap:wrap"><b style="flex:1">كل HR بيتابع مين</b><button class="g chip ${S.hrdupIn?"on":""}" onclick="S.hrdupIn=!S.hrdupIn;render()">⚠ الأعضاء اللي ليهم أكتر من HR (${dups.filter(d=>inC(d.m)).length})</button></div><div style="margin-top:6px">${rows?(tview()?`<div class="attw"><table class="att tb"><tr><th class="s">HR</th><th>العدد</th><th>الأعضاء</th><th></th></tr>${rows}</table></div>`:rows):(S.hrf?'<p class="mu">الفلتر شغال — دوس على الزرار تاني لإلغائه.</p>':S.hrdupIn?'<p class="mu">✓ مفيش أعضاء ليهم أكتر من HR.</p>':'<p class="mu">مفيش أعضاء في لجنة HR.</p>')}</div></div>
+  <div class="card" style="margin-top:12px"><b>أعضاء مفيش HR بيتابعهم</b> <span class="mu" style="font-size:12px">(البورد والأدمن وأعضاء HR مستثنين)</span>${(S.hrSel||[]).length?`<div class="row" style="gap:8px;margin:8px 0;flex-wrap:wrap;position:sticky;top:6px;background:var(--bg);border:1px solid var(--pr);border-radius:14px;padding:8px;z-index:2"><b>${S.hrSel.length} محدد</b><select id="hrBulk" style="flex:1;min-width:140px"><option value="">تعيين للـ HR…</option>${hrs.map(h=>`<option value="${h.id}">${esc(nm2(h.name))}</option>`).join("")}</select><button onclick="hrBulkAssign()">تعيين</button><button class="g" onclick="S.hrSel=[];render()">إلغاء</button></div>`:""}${unHtml||'<p class="mu" style="margin:8px 0 0">✓ كل الأعضاء ليهم HR.</p>'}</div>`}`}
 async function hrUnfollow(hid,mid){
   const r=await sb.from("follows").delete().eq("manager_id",hid).eq("member_id",mid);
   if(r.error)return alert(r.error.message);
@@ -737,6 +764,7 @@ function mlistItems(){
   let L=cf==="all"?D.members:D.members.filter(m=>m.committee===cf);
   const lm=latestMonth(),wset=new Set((D.warn||[]).map(w=>w.member_id)),fl=S.mflt||"all";
   if(fl==="warn")L=L.filter(m=>wset.has(m.id));
+  if(fl==="need")L=L.filter(m=>months(m).length&&(score(m)/maxS(m.committee)<.75||delta(m)<=-5));
   if(fl==="low")L=L.filter(m=>m.role!=="Board"&&lm&&m.rec&&m.rec[lm]&&mscore(m.rec[lm],m.committee)<80);
   if(fl==="noeval")L=L.filter(m=>m.role!=="Board"&&lm&&!(m.rec&&m.rec[lm]));
   if(q)L=L.filter(m=>`${m.name||""} ${m.committee||""} ${m.role||""}`.toLowerCase().includes(q));
@@ -746,7 +774,8 @@ function mlistItems(){
 }
 function mlistHtml(){
   const L=mlistItems();
-  if(!L.length)return'<p class="mu">مفيش أعضاء بالبحث ده.</p>';
+  if(!L.length)return D.members.length?emptyCard("🔎","مفيش أعضاء بالبحث ده","جرّب تغيّر البحث أو الفلتر","مسح الفلاتر","S.mq='';S.mflt='all';S.mcf='all';render()"):emptyCard("👥","لسه مفيش أعضاء","ضيف أول عضو أو استورد قايمة","➕ عضو جديد","S.modal={t:'mem'};render()");
+  if(tview())return mlistTable(L);
   return L.map(m=>{const on=(S.sel||[]).includes(m.id);return `<div data-mid="${m.id}" style="border-radius:16px;${on?"outline:2px solid var(--pr);":""}">${memberRow(m)}</div>`}).join("");
 }
 let _lpT=null,_lpFired=false,_lpX=0,_lpY=0;
@@ -799,7 +828,7 @@ async function heicFix(f){
 }
 function memberRow(m,adm=true){
   const w=wc(m),mx=maxS(m.committee),B="padding:4px 9px;font-size:12px;border-radius:8px";
-  return`<div class="card" style="padding:8px 10px;margin-bottom:6px;${w>=3?"border-color:var(--bad)":""}"><div class="row" style="gap:8px;flex-wrap:nowrap">${avatar(m)}<div style="flex:1;min-width:0"><b style="font-size:14px">${esc(nm(m.name))}</b><div class="mu" style="font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(m.role||"")} · ${esc(m.committee)}${m.user_id?"":" · لم يسجّل بعد"}</div><div class="bar" style="height:4px;margin-top:4px"><i style="width:${Math.min(100,score(m)/mx*100)}%"></i></div></div><div style="text-align:center;flex:none"><div class="big" style="font-size:20px">${score(m)}</div><div style="display:flex;gap:3px;justify-content:center;align-items:center">${gpill(m)}${trend(delta(m))}</div></div></div>
+  return`<div class="card" style="padding:8px 10px;margin-bottom:6px;${gbd(m)}${w>=3?"border-color:var(--bad)":""}"><div class="row" style="gap:8px;flex-wrap:nowrap">${avatar(m)}<div style="flex:1;min-width:0"><b style="font-size:14px">${esc(nm(m.name))}</b><div class="mu" style="font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(m.role||"")} · ${esc(m.committee)}${m.user_id?"":" · لم يسجّل بعد"}</div><div class="bar" style="height:4px;margin-top:4px"><i style="width:${Math.min(100,score(m)/mx*100)}%"></i></div></div><div style="text-align:center;flex:none"><div class="big" style="font-size:20px">${score(m)}</div><div style="display:flex;gap:3px;justify-content:center;align-items:center">${gpill(m)}${trend(delta(m))}</div></div></div>
   <div class="row" style="gap:5px;margin-top:6px">${w?`<span class="pill dn">⚠️ ${w}</span>`:""}<span style="flex:1"></span><button class="g" style="${B}" onclick="S.modal={t:'rec',id:'${m.id}'};render()">+ تقييم</button><button class="g" style="${B}" onclick="S.modal={t:'hist',id:'${m.id}'};render()">الشهور</button><button class="g" style="${B}" onclick="S.modal={t:'view',id:'${m.id}'};render()">عرض</button>${adm||canWarnFor(m)?`<button class="g" style="${B}" onclick="S.modal={t:'warn',id:'${m.id}'};render()">إنذار</button>`:""}${adm?`<button class="g" style="${B}" onclick="S.modal={t:'mem',id:'${m.id}'};render()">تعديل</button>`:""}</div></div>`}
 function memberCard(m,adm){
   const w=wc(m),mx=maxS(m.committee);
@@ -897,7 +926,7 @@ function seenView(){
 }
 function hrView(){
   const mo=S.hm||curMonth(),mg=D.members.filter(m=>D.follows.some(f=>f.manager_id===m.id)),opts=[...new Set([curMonth(),...D.members.flatMap(m=>months(m))])].sort().reverse();
-  return`<div class="card"><label style="margin:0 0 6px">الشهر</label><select onchange="S.hm=this.value;render()">${opts.map(k=>`<option value="${k}" ${k===mo?"selected":""}>${ml(k)}</option>`).join("")}</select></div>`+
+  return`<div class="card"><label style="margin:0 0 6px">الشهر</label><select onchange="S.hm=this.value;render()">${opts.map(k=>`<option value="${k}" ${k===mo?"selected":""}>${ml(k)}</option>`).join("")}</select></div>`+lateSummary(mo)+
   (mg.map(g=>{
     const fl=D.follows.filter(f=>f.manager_id===g.id).map(f=>D.members.find(x=>x.id===f.member_id)).filter(Boolean);
     const mine=x=>x.rec[mo]&&x.meta[mo]&&x.meta[mo].by===g.id,done=fl.filter(mine),byAdm=fl.filter(x=>x.rec[mo]&&!mine(x)),miss=fl.filter(x=>!x.rec[mo]);
@@ -1174,9 +1203,9 @@ async function trashPurge(id){
 }
 async function trashLoad(){const tq=await sb.from("trash").select("*").order("deleted_at",{ascending:false});D.trash=tq.data||[];D.trashLoaded=true;render()}
 function trashView(){
-  if(!D.trashLoaded){trashLoad();return'<p class="mu">جاري التحميل…</p>'}
+  if(!D.trashLoaded){trashLoad();return skel(3)}
   const T=D.trash||[];
-  if(!T.length)return`<div class="card"><b>🗑 المحذوفات</b><p class="mu" style="margin:8px 0 0">السلة فاضية.</p></div>`;
+  if(!T.length)return emptyCard("🗑","السلة فاضية","أي حاجة تتحذف (أعضاء، تقييمات، إنذارات…) هتلاقيها هنا وتقدر تستعيدها.");
   return`<div class="card"><b>🗑 المحذوفات</b><p class="mu" style="margin:6px 0">استعيد أي حاجة اتحذفت بالغلط، أو احذفها نهائي.</p></div>`+T.map(t=>`<div class="card" style="padding:10px 12px;margin-bottom:6px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><div style="flex:1;min-width:150px"><b>${esc(t.label||"—")}</b><div class="mu">${TRASH_KIND[t.kind]||t.kind} · ${new Date(t.deleted_at).toLocaleString("ar-EG")}</div></div><button onclick="trashRestore('${t.id}')">↩ استعادة</button><button class="g" style="color:#fca5a5" onclick="trashPurge('${t.id}')">حذف نهائي</button></div>`).join("");
 }
 async function albZip(aid){
@@ -1359,14 +1388,14 @@ function adminView(){
   const sc=D.members.map(score),avg=sc.length?Math.round(sc.reduce((a,b)=>a+b,0)/sc.length):0;
   let sub="";
   if(S.tab==="home")sub=homeView();
-  else if(S.tab==="members")sub=`<div class="row" style="margin-bottom:12px"><button onclick="S.modal={t:'mem'};render()">➕ عضو جديد</button><button class="g" onclick="S.modal={t:'imp'};render()">⬆ استيراد</button><button class="g" onclick="S.modal={t:'flimp'};S.flImp=null;render()">🔗 استيراد المتابعة</button><button class="g" onclick="backup()">⬇ Excel</button></div>`+(pend?`<div class="card" style="border-color:var(--warn)"><div class="row"><b style="flex:1">🆕 ${pend} طلب تسجيل جديد</b><button onclick="S.tab='req';render()">مراجعة</button></div></div>`:"")+`<div class="grid"><div class="card"><div class="mu">إجمالي الأعضاء</div><div class="big">${D.members.length}</div></div><div class="card"><div class="mu">متوسط التقييم</div><div class="big">${avg}</div></div></div><div style="height:12px"></div>`+(()=>{const cs=comms(),cf=cs.includes(S.mcf)?S.mcf:"all";return`<div class="tabs"><button class="${cf==="all"?"on":""}" onclick="S.mcf='all';render()">الكل (${D.members.length})</button>${cs.map(c=>`<button class="${cf===c?"on":""}" onclick="S.mcf='${esc(c)}';render()">${esc(c)} (${D.members.filter(m=>m.committee===c).length})</button>`).join("")}</div><div class="row" style="gap:8px;margin:10px 0;flex-wrap:wrap"><input id="mq" placeholder="🔎 بحث بالاسم أو اللجنة أو الدور" value="${esc(S.mq||"")}" oninput="S.mq=this.value;$('#mlist').innerHTML=mlistHtml()" style="flex:1;min-width:160px"><select onchange="S.mflt=this.value;render()">${[["all","كل الأعضاء"],["warn","عندهم إنذارات"],["low","تقدير C أو أقل (آخر شهر)"],["noeval","مالهومش تقييم آخر شهر"]].map(([v,t])=>`<option value="${v}" ${(S.mflt||"all")===v?"selected":""}>${t}</option>`).join("")}</select><select onchange="S.msrt=this.value;render()">${MSRT.map(([v,t])=>`<option value="${v}" ${(S.msrt||"name_asc")===v?"selected":""}>${t}</option>`).join("")}</select></div><div id="bulkbar">${bulkHtml()}</div><div id="mlist">${mlistHtml()}</div>`})();
+  else if(S.tab==="members")sub=`<div class="row" style="margin-bottom:12px"><button onclick="S.modal={t:'mem'};render()">➕ عضو جديد</button><button class="g" onclick="S.modal={t:'imp'};render()">⬆ استيراد</button><button class="g" onclick="S.modal={t:'flimp'};S.flImp=null;render()">🔗 استيراد المتابعة</button><button class="g" onclick="backup()">⬇ Excel</button></div>`+(pend?`<div class="card" style="border-color:var(--warn)"><div class="row"><b style="flex:1">🆕 ${pend} طلب تسجيل جديد</b><button onclick="S.tab='req';render()">مراجعة</button></div></div>`:"")+`<div class="grid"><div class="card" style="cursor:pointer" onclick="S.mflt='all';S.mcf='all';S.mq='';render()"><div class="mu">إجمالي الأعضاء</div><div class="big">${D.members.length}</div></div><div class="card" style="cursor:pointer" onclick="navGo('dash')"><div class="mu">متوسط التقييم</div><div class="big">${avg}</div></div></div><div style="height:12px"></div>`+(()=>{const cs=comms(),cf=cs.includes(S.mcf)?S.mcf:"all";return`<div class="tabs"><button class="${cf==="all"?"on":""}" onclick="S.mcf='all';render()">الكل (${D.members.length})</button>${cs.map(c=>`<button class="${cf===c?"on":""}" onclick="S.mcf='${esc(c)}';render()">${esc(c)} (${D.members.filter(m=>m.committee===c).length})</button>`).join("")}</div><div class="row" style="gap:8px;margin:10px 0;flex-wrap:wrap"><input id="mq" placeholder="🔎 بحث بالاسم أو اللجنة أو الدور" value="${esc(S.mq||"")}" oninput="S.mq=this.value;$('#mlist').innerHTML=mlistHtml()" style="flex:1;min-width:160px"><select onchange="S.mflt=this.value;render()">${[["all","كل الأعضاء"],["need","محتاجين متابعة (أقل من 75% أو نازل)"],["warn","عندهم إنذارات"],["low","تقدير C أو أقل (آخر شهر)"],["noeval","مالهومش تقييم آخر شهر"]].map(([v,t])=>`<option value="${v}" ${(S.mflt||"all")===v?"selected":""}>${t}</option>`).join("")}</select><select onchange="S.msrt=this.value;render()">${MSRT.map(([v,t])=>`<option value="${v}" ${(S.msrt||"name_asc")===v?"selected":""}>${t}</option>`).join("")}</select></div>${tvSeg()}<div id="bulkbar">${bulkHtml()}</div><div id="mlist">${mlistHtml()}</div>`})();
   else if(S.tab==="evals")sub=evalsView();
   else if(S.tab==="events")sub=eventsView();
   else if(S.tab==="att")sub=attView();
   else if(S.tab==="security")sub=secView();
   else if(S.tab==="sheets")sub=sheetsView();
   else if(S.tab==="req")sub=reqView();
-  else if(S.tab==="committees")sub=comms().map((c,ci)=>{const r=D.members.filter(m=>m.committee===c).sort((a,b)=>score(b)-score(a)),a=Math.round(r.reduce((s,m)=>s+score(m),0)/r.length);return`<div class="card"><div class="row" style="justify-content:space-between"><b>لجنة ${esc(c)}</b><span class="mu">${r.length} أعضاء · متوسط ${a}</span></div>${(()=>{const cnt={};r.forEach(m=>Object.keys(m.rec||{}).forEach(k=>cnt[k]=(cnt[k]||0)+1));const ks=Object.keys(cnt).sort().reverse();return ks.length?`<div class="row" style="gap:8px;margin:8px 0;flex-wrap:wrap"><select id="dcm_${ci}" style="flex:1;min-width:150px;margin:0">${ks.map(k=>`<option value="${k}">${ml(k)} (${cnt[k]} تقييم)</option>`).join("")}</select><button class="g" style="color:#fca5a5" onclick="delComMonth(${ci})">🗑 حذف تقييم الشهر للجنة كلها</button></div>`:""})()}${r.map((m,i)=>`<div class="lb"><span>${denseRank(r)[i]}</span>${avatar(m)}<span style="flex:1">${esc(nm(m.name))}</span><b>${score(m)}</b></div>`).join("")}</div>`}).join("")||'<p class="mu">أضف أعضاء أولاً.</p>';
+  else if(S.tab==="committees")sub=comReportCard()+comms().map((c,ci)=>{const r=D.members.filter(m=>m.committee===c).sort((a,b)=>score(b)-score(a)),a=Math.round(r.reduce((s,m)=>s+score(m),0)/r.length);return`<div class="card"><div class="row" style="justify-content:space-between"><b>لجنة ${esc(c)}</b><span class="mu">${r.length} أعضاء · متوسط ${a}</span></div>${(()=>{const cnt={};r.forEach(m=>Object.keys(m.rec||{}).forEach(k=>cnt[k]=(cnt[k]||0)+1));const ks=Object.keys(cnt).sort().reverse();return ks.length?`<div class="row" style="gap:8px;margin:8px 0;flex-wrap:wrap"><select id="dcm_${ci}" style="flex:1;min-width:150px;margin:0">${ks.map(k=>`<option value="${k}">${ml(k)} (${cnt[k]} تقييم)</option>`).join("")}</select><button class="g" style="color:#fca5a5" onclick="delComMonth(${ci})">🗑 حذف تقييم الشهر للجنة كلها</button></div>`:""})()}${r.map((m,i)=>`<div class="lb"><span>${denseRank(r)[i]}</span>${avatar(m)}<span style="flex:1">${esc(nm(m.name))}</span><b>${score(m)}</b></div>`).join("")}</div>`}).join("")||'<p class="mu">أضف أعضاء أولاً.</p>';
   else if(S.tab==="dash"){const wl=D.members.map(m=>[m,wc(m)]).filter(x=>x[1]).sort((a,b)=>b[1]-a[1]);
     sub=`<div class="card"><b>🏆 أفضل 5 في الفريق</b>${top5List().map((m,i)=>`<div class="lb"><span>${denseRank(top5List())[i]}</span>${avatar(m)}<span style="flex:1">${esc(nm(m.name))} <span class="mu">· ${esc(m.committee)}</span></span>${trend(delta(m))}<b>${score(m)}</b></div>`).join("")}</div>
     <div class="card"><b>⚠️ يحتاجون متابعة (أقل من 75% أو في النازل)</b>${D.members.filter(m=>score(m)/maxS(m.committee)<0.75||delta(m)<=-5).map(m=>`<div class="lb"><span style="flex:1">${esc(nm(m.name))}</span>${trend(delta(m))}<b>${score(m)}</b></div>`).join("")||'<p class="mu">لا أحد 👏</p>'}</div>
@@ -1433,16 +1462,17 @@ function mgrList(mine){
   const cur=S.mgt&&tabsList.includes(S.mgt)?S.mgt:tabsList[0];
   const inTab=m=>cur===BT?isB(m):(!isB(m)&&m.committee===cur);
   const tabs=`<div class="tabs" style="flex-wrap:wrap">${tabsList.map(t=>`<button class="${t===cur?"on":""}" onclick="S.mq='';S.mgt='${t}';render()">${esc(t)} (${mine.filter(m=>t===BT?isB(m):(!isB(m)&&m.committee===t)).length})</button>`).join("")}</div>`;
-  const q=impNorm(S.mq||""),keyOf=m=>isB(m)?BT:m.committee,list=mine.filter(m=>!isB(m)||hasBoard).sort(cmp),vis=m=>q?impNorm(m.name).includes(q):keyOf(m)===cur;
-  S.mgc=cur;
-  const srch=`<div class="row" style="gap:8px;margin-bottom:8px;flex-wrap:nowrap"><input id="mgq" type="search" placeholder="🔍 ابحث بالاسم…" value="${esc(S.mq||"")}" oninput="mgFilter(this.value)" style="flex:1;margin:0"><span class="mu" id="mgc" style="font-size:12px;white-space:nowrap">${q?list.filter(vis).length+" نتيجة":""}</span></div>`;
-  return srch+bar+tabs+list.map(m=>`<div class="mgr" data-n="${esc(impNorm(m.name))}" data-t="${esc(keyOf(m))}" style="${vis(m)?"":"display:none"}">${memberRow(m,false)}</div>`).join("");
+  const q=impNorm(S.mq||""),keyOf=m=>isB(m)?BT:m.committee,list=mine.filter(m=>!isB(m)||hasBoard).sort(cmp),mo=curMonth(),isMiss=m=>!(m.rec&&m.rec[mo]),pmiss=list.filter(isMiss).length,mf=!!(S.mgMiss&&pmiss),vis=m=>(q?impNorm(m.name).includes(q):keyOf(m)===cur)&&(!mf||isMiss(m));
+  S.mgc=cur;S.mgf=mf;
+  const ptot=list.length,pdone=ptot-pmiss,prog=ptot?`<div class="card" style="padding:12px 14px;${pmiss&&new Date().getDate()>=20?"border-color:var(--warn)":""}"><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><b>📝 تقييمات ${ml(mo)}: ${pdone} من ${ptot}</b>${pmiss?`<button class="g" style="padding:5px 12px;font-size:12px;white-space:nowrap" onclick="S.mgMiss=!S.mgMiss;render()">${S.mgMiss?"عرض الكل":"الناقصين ("+pmiss+")"}</button>`:`<span class="pill up">✓ كمّلت</span>`}</div><div class="bar" style="margin-top:8px"><i style="width:${pdone/ptot*100}%"></i></div></div>`:"";
+  const srch=`<div class="row" style="gap:8px;margin-bottom:8px;flex-wrap:nowrap"><input id="mgq" type="search" placeholder="🔍 ابحث بالاسم…" value="${esc(S.mq||"")}" oninput="mgFilter(this.value)" style="flex:1;margin:0"><span class="mu" id="mgc" style="font-size:12px;white-space:nowrap">${q||mf?list.filter(vis).length+" نتيجة":""}</span></div>`;
+  return prog+srch+bar+tabs+list.map(m=>`<div class="mgr" data-x="${isMiss(m)?1:0}" data-n="${esc(impNorm(m.name))}" data-t="${esc(keyOf(m))}" style="${vis(m)?"":"display:none"}">${memberRow(m,false)}</div>`).join("");
 }
-function mgFilter(v){S.mq=v;const q=impNorm(v);let n=0;document.querySelectorAll(".mgr").forEach(e=>{const ok=q?e.dataset.n.includes(q):e.dataset.t===S.mgc;e.style.display=ok?"":"none";if(ok)n++});const c=document.getElementById("mgc");if(c)c.textContent=q?n+" نتيجة":""}
+function mgFilter(v){S.mq=v;const q=impNorm(v);let n=0;document.querySelectorAll(".mgr").forEach(e=>{const ok=(q?e.dataset.n.includes(q):e.dataset.t===S.mgc)&&(!S.mgf||e.dataset.x==="1");e.style.display=ok?"":"none";if(ok)n++});const c=document.getElementById("mgc");if(c)c.textContent=q||S.mgf?n+" نتيجة":""}
 function mgrView(){
   const mine=myFollows();
   return topbar()+tabBar([["follow","متابعة الأعضاء"]].concat(evalsTabs(),[["me","حسابي"],["leaders","👥 المسؤولون"]],isBoardAcc()?[["bcom","📊 لجنتي"]]:[],dTab(),evTab(),phTab(),ctTabs(),tecTab()))+
-  (S.tab==="me"?memberView(me,true):S.tab==="leaders"?leadersView(me.committee):S.tab==="events"&&evOk()?eventsView():S.tab==="designs"&&canDesign()?designsView():S.tab==="photos"&&canDesign()?photosView():S.tab==="albums"&&canDesign()?albumsView():S.tab==="cards"&&ctOk()?cardsView():S.tab==="evals"&&evalsTabs().length?evalsView():S.tab==="tec"&&isSMHead()?tecView():S.tab==="bcom"&&isBoardAcc()?bcomView():`<p class="mu">بتتابع ${mine.length} عضو</p>`+(mgrList(mine)||'<p class="mu">لم تُحدَّد لك متابعات بعد.</p>'));
+  (S.tab==="me"?memberView(me,true):S.tab==="leaders"?leadersView(me.committee):S.tab==="events"&&evOk()?eventsView():S.tab==="designs"&&canDesign()?designsView():S.tab==="photos"&&canDesign()?photosView():S.tab==="albums"&&canDesign()?albumsView():S.tab==="cards"&&ctOk()?cardsView():S.tab==="evals"&&evalsTabs().length?evalsView():S.tab==="tec"&&isSMHead()?tecView():S.tab==="bcom"&&isBoardAcc()?bcomView():`<p class="mu">بتتابع ${mine.length} عضو</p>`+(mgrList(mine)||emptyCard("👥","لسه مفيش أعضاء متابَعين","الأدمن هيحدّدلك الأعضاء اللي هتتابعهم.")));
 }
 
 /* ---------- الأحداث والحضور (نزولات / تاسكات / سيشنات / اجتماعات) ---------- */
@@ -1703,20 +1733,22 @@ let CUR_ADJ=null,NAV=null,RKEY="",MKEY="",DEFI=null,LASTME=null;
 const NI={home:"🏠",members:"👥",req:"🆕",committees:"🧩",dash:"🏆",announce:"📢",seen:"👁",hr:"✅",events:"📅",att:"📋",security:"🛡",sheets:"🔗",board:"🏛",photos:"🖼",designs:"🎨",follow:"👥",me:"👤",leaders:"🛡",bcom:"📊",evals:"📊",tec:"🧪",hrmap:"🔗"};
 const NLB={home:"الرئيسية",members:"الأعضاء",req:"الطلبات",committees:"اللجان",dash:"لوحة الشرف",announce:"الإعلان",seen:"الدخول",hr:"تسجيلات HR",events:"الأحداث",att:"سجل الحضور",security:"الأمان",sheets:"الشيتات",board:"البورد",photos:"الصور",designs:"الديزاينات",follow:"المتابعة",me:"حسابي",leaders:"المسؤولون",bcom:"لجنتي",evals:"التقييمات",tec:"TEC",hrmap:"توزيع HR"};
 const ADM_MAIN=["home","members","events","req"];
-const navSplit=()=>{const ids=(NAV||[]).map(t=>t[0]);if(isAdm()){const m=ADM_MAIN.filter(x=>ids.includes(x));return[m,ids.filter(x=>!m.includes(x))]}return ids.length<=4?[ids,[]]:[ids.slice(0,4),ids.slice(4)]};
+const navSplit=()=>{const ids=(NAV||[]).map(t=>t[0]);if(!isAdm()&&ids.length<=4)return[ids,[]];let pins=null;try{pins=JSON.parse(localStorage.getItem("tm-pins:"+(me&&me.id))||"null")}catch(e){}pins=Array.isArray(pins)?pins.filter(x=>ids.includes(x)).slice(0,4):[];const m=pins.length?pins:(isAdm()?ADM_MAIN.filter(x=>ids.includes(x)):ids.slice(0,4));return[m,ids.filter(x=>!m.includes(x))]};
 function navHtml(){
   if(!NAV||!me)return"";const[main,rest]=navSplit(),pend=isAdm()?D.signups.filter(s=>s.status==="pending").length:0;
   const b=id=>`<button class="${S.tab===id?"on":""}" onclick="navGo('${id}')"><i>${NI[id]||(MM_EXTRA[id]||[])[0]||"•"}</i><span>${NLB[id]||(MM_EXTRA[id]||[])[1]||id}</span>${id==="req"&&pend?`<em>${pend}</em>`:""}</button>`;
   return`<div class="nav"><div class="nav-in">${main.map(b).join("")}<button class="${rest.includes(S.tab)||S.more?"on":""}" onclick="S.more=!S.more;render()"><i>☰</i><span>المزيد</span></button></div></div>`}
-function navGo(id){if(id==="security")S.auLoaded=0;if(id==="sheets")S.ssLoaded=0;S.tab=id;S.more=false;render()}
+function navGo(id,fresh){if(id==="security")S.auLoaded=0;if(id==="sheets")S.ssLoaded=0;if(fresh)delete SCR[id];
+  try{if(OVH){OVH=false;if(id===S.tab){_ign++;history.back()}else history.replaceState({tab:id},"")}else if(id!==S.tab){if(!(history.state&&history.state.tab))history.replaceState({tab:S.tab},"");history.pushState({tab:id},"")}}catch(e){}
+  S.tab=id;S.more=false;render()}
 const MM_EXTRA={albums:["📸","صور الفعاليات"],birthdays:["🎂","أعياد الميلاد"],cards:["📄","الكروت"],trash:["🗑","المحذوفات"]};
-const MM_GROUPS=[["👥 الأعضاء",["members","req","committees","board","leaders"]],["📊 التقييم والحضور",["evals","dash","hr","att","events"]],["📢 المحتوى",["announce","photos","albums","birthdays","cards","designs"]],["⚙️ النظام",["security","sheets","seen","trash"]]];
+const MM_GROUPS=[["👥 الأعضاء",["members","req","committees","board","leaders"]],["📊 التقييم والحضور",["evals","dash","hr","hrmap","att","events"]],["📢 المحتوى",["announce","photos","albums","birthdays","cards","designs"]],["⚙️ النظام",["security","sheets","seen","trash"]]];
 function moreHtml(){
-  if(!S.more||!NAV||!me)return"";const[,rest]=navSplit(),ios=/iphone|ipad/i.test(navigator.userAgent)&&!navigator.standalone;
-  const used=new Set(),btn=id=>`<button class="mm-btn" onclick="navGo('${id}')"><i>${NI[id]||(MM_EXTRA[id]||[])[0]||"•"}</i><span>${NLB[id]||(MM_EXTRA[id]||[])[1]||id}</span></button>`;
+  if(!S.more||!NAV||!me)return"";const[main,rest]=navSplit(),canPin=(NAV||[]).length>4,all=canPin?[...main,...rest]:rest,ios=/iphone|ipad/i.test(navigator.userAgent)&&!navigator.standalone;
+  const used=new Set(),btn=id=>`<button class="mm-btn" onclick="navGo('${id}')">${canPin?`<span class="pin" onclick="event.stopPropagation();pinTog('${id}')">${main.includes(id)?"⭐":"☆"}</span>`:""}<i>${NI[id]||(MM_EXTRA[id]||[])[0]||"•"}</i><span>${NLB[id]||(MM_EXTRA[id]||[])[1]||id}</span></button>`;
   const sec=(t,items)=>items.length?`<div class="mm-sec"><div class="mm-h">${t}</div><div class="mm-grid">${items.join("")}</div></div>`:"";
-  const groups=MM_GROUPS.map(([t,ids])=>{const L=ids.filter(id=>rest.includes(id));L.forEach(id=>used.add(id));return sec(t,L.map(btn))}).join("");
-  const other=sec("🧭 أخرى",rest.filter(id=>!used.has(id)).map(btn));
+  const groups=MM_GROUPS.map(([t,ids])=>{const L=ids.filter(id=>all.includes(id));L.forEach(id=>used.add(id));return sec(t,L.map(btn))}).join("");
+  const other=sec("🧭 أخرى",all.filter(id=>!used.has(id)).map(btn));
   const acts=[];
   if(isAdm()){acts.push(`<button class="mm-btn" onclick="S.more=false;S.modal={t:'mem'};render()"><i>➕</i><span>عضو جديد</span></button>`,`<button class="mm-btn" onclick="S.more=false;S.modal={t:'imp'};render()"><i>⬆</i><span>استيراد أعضاء</span></button>`,`<button class="mm-btn" onclick="S.more=false;S.modal={t:'flimp'};S.flImp=null;render()"><i>🔗</i><span>استيراد المتابعة</span></button>`,`<button class="mm-btn" onclick="backup()"><i>⬇</i><span>نسخة Excel</span></button>`)}
   acts.push(`<button class="mm-btn" onclick="theme()"><i>🌓</i><span>الوضع</span></button>`);
@@ -1766,12 +1798,12 @@ function homeView(){
   const top=[...D.members].sort((a,b)=>score(b)-score(a)).slice(0,5),warns=D.members.filter(m=>wc(m)).length;
   const tile=(n,l,go,cls)=>`<button class="stat ${cls||""}" onclick="${go}"><b>${n}</b><span>${l}</span></button>`;
   return`<div class="hello"><div class="mu">${hr<12?"صباح الخير":hr<18?"نهارك سعيد":"مساء الخير"} 👋</div><h2>${esc(nm(me.name))}</h2></div>
-  <div class="grid">${tile(D.members.length,"عضو في الفريق","navGo('members')")}${tile(avg,"متوسط التقييم","navGo('dash')")}${tile(pend,"طلب تسجيل منتظر","navGo('req')",pend?"warn":"")}${tile(need,"محتاجين متابعة","navGo('dash')",need?"bad":"")}</div>
+  <div class="grid">${tile(D.members.length,"عضو في الفريق","S.mflt='all';S.mcf='all';S.mq='';navGo('members',1)")}${tile(avg,"متوسط التقييم","navGo('dash')")}${tile(pend,"طلب تسجيل منتظر","navGo('req')",pend?"warn":"")}${tile(need,"محتاجين متابعة","S.mflt='need';S.mcf='all';S.mq='';navGo('members',1)",need?"bad":"")}</div>
   <div class="qa"><button onclick="S.modal={t:'mem'};render()"><i>➕</i>عضو</button><button onclick="S.tab='events';render();evForm()"><i>📅</i>حدث جديد</button><button onclick="navGo('announce')"><i>📢</i>إعلان</button><button onclick="navGo('att')"><i>📋</i>الحضور</button></div>
-  <div class="card"><div class="row" style="justify-content:space-between"><b>📅 أحداث النهارده</b><button class="g" style="padding:5px 12px;font-size:13px" onclick="navGo('events')">كل الأحداث</button></div>
+  ${lateCard()}<div class="card"><div class="row" style="justify-content:space-between"><b>📅 أحداث النهارده</b><button class="g" style="padding:5px 12px;font-size:13px" onclick="navGo('events')">كل الأحداث</button></div>
   ${evT.length?evT.map(e=>{const n=(D.att||[]).filter(a=>a.event_id===e.id&&a.status==="present").length;return`<div class="lb"><span style="font-size:22px">${EVI[e.kind]||"•"}</span><div style="flex:1;min-width:0"><b>${esc(e.title)}</b><div class="mu">حضر ${n} · ${esc(KN[e.kind]||e.kind)}</div></div><button onclick="scnOpen('${e.id}')">📷 مسح</button></div>`}).join(""):`<p class="mu" style="margin:8px 0 0">مفيش أحداث النهارده.</p>`}</div>
   <div class="card"><b>🏆 أفضل 5 في الفريق</b>${top.map((m,i)=>`<div class="lb"><span class="rk" style="${i<3?['background:#f6c453;color:#1a1200','background:#c9d3ff;color:#101532','background:#d89a5b;color:#1f1000'][i]:''}">${i+1}</span>${avatar(m)}<span style="flex:1;min-width:0">${esc(nm(m.name))} <span class="mu">· ${esc(m.committee)}</span></span>${trend(delta(m))}<b>${score(m)}</b></div>`).join("")}</div>
-  ${warns?`<div class="card"><div class="row" style="justify-content:space-between"><span>🚨 ${warns} أعضاء عليهم إنذارات</span><button class="g" style="padding:5px 12px;font-size:13px" onclick="navGo('dash')">عرض</button></div></div>`:""}`}
+  ${warns?`<div class="card"><div class="row" style="justify-content:space-between"><span>🚨 ${warns} أعضاء عليهم إنذارات</span><button class="g" style="padding:5px 12px;font-size:13px" onclick="S.mflt='warn';S.mcf='all';S.mq='';navGo('members',1)">عرض</button></div></div>`:""}`}
 const ringSvg=(p,t)=>{const r=34,c=2*Math.PI*r,pp=Math.max(0,Math.min(1,p));return`<svg class="ring" viewBox="0 0 84 84" width="84" height="84"><circle cx="42" cy="42" r="${r}" fill="none" stroke="var(--bd)" stroke-width="8"/><circle cx="42" cy="42" r="${r}" fill="none" stroke="url(#rg)" stroke-width="8" stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${c*(1-pp)}" transform="rotate(-90 42 42)" style="transition:stroke-dashoffset .9s cubic-bezier(.22,.8,.28,1)"/><defs><linearGradient id="rg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#34d399"/><stop offset="1" stop-color="#22d3ee"/></linearGradient></defs><text x="42" y="47" text-anchor="middle" font-size="19" font-weight="800" fill="currentColor">${t}</text></svg>`};
 function badgesHtml(m,pos,total){
   const b=[];if(pos===1&&total>1)b.push("🥇 الأول في لجنتك");else if(pos>0&&pos<=3&&total>3)b.push("🏅 ضمن أفضل 3");
@@ -1824,12 +1856,12 @@ async function loadNt(quiet){
 function ntSys(n){try{if("Notification" in window&&Notification.permission==="granted"&&document.hidden&&navigator.serviceWorker)navigator.serviceWorker.getRegistration().then(r=>r&&r.showNotification(n.title,{body:n.body||"",icon:"icon-192.png",tag:n.id}))}catch(e){}}
 function ntOpen(){S.ntNew=new Set((D.nt||[]).filter(n=>!n.read_at).map(n=>n.id));S.nt=true;S.more=false;
   if(S.ntNew.size){D.nt.forEach(n=>{if(!n.read_at)n.read_at=new Date().toISOString()});sb.rpc("mark_notifs_read")}render()}
-function ntGo(){S.nt=false;if(NAV&&NAV.some(t=>t[0]==="me"))S.tab="me";render()}
+function ntGo(k){S.nt=false;const to=k==="reminder"?"follow":"me";if(NAV&&NAV.some(t=>t[0]===to))S.tab=to;render()}
 function ntAsk(){Notification.requestPermission().then(()=>render())}
 function ntHtml(){
   if(!S.nt||!me)return"";const L=D.nt||[],nw=S.ntNew||new Set();
   return`<div class="ov" onclick="if(event.target===this){S.nt=false;render()}"><div class="card"><div class="row" style="justify-content:space-between;margin-bottom:8px"><b style="font-size:17px">🔔 الإشعارات</b><button class="g ico" onclick="S.nt=false;render()">✕</button></div>
-  ${L.length?L.map(n=>`<div class="lb nt ${nw.has(n.id)?"new":""}" onclick="ntGo()"><span style="font-size:24px">${n.kind==="warn"?"⚠️":n.kind==="announce"?"📣":"🔔"}</span><div style="flex:1;min-width:0"><b>${esc(n.title)}</b><div class="mu">${esc(n.body||"")}</div><div class="mu" style="font-size:11px;margin-top:2px">${ntAgo(n.created_at)}</div></div></div>`).join(""):'<p class="mu">مفيش إشعارات لسه.</p>'}
+  ${L.length?L.map(n=>`<div class="lb nt ${nw.has(n.id)?"new":""}" onclick="ntGo('${n.kind}')"><span style="font-size:24px">${n.kind==="warn"?"⚠️":n.kind==="announce"?"📣":n.kind==="reminder"?"⏳":"🔔"}</span><div style="flex:1;min-width:0"><b>${esc(n.title)}</b><div class="mu">${esc(n.body||"")}</div><div class="mu" style="font-size:11px;margin-top:2px">${ntAgo(n.created_at)}</div></div></div>`).join(""):'<p class="mu">مفيش إشعارات لسه.</p>'}
   ${"Notification" in window&&Notification.permission==="default"?`<button class="g" style="margin-top:10px;width:100%" onclick="ntAsk()">🔔 تفعيل تنبيهات الجهاز</button><p class="mu" style="font-size:12px;margin:6px 0 0">بتظهر وانت فاتح الموقع أو التطبيق في الخلفية.</p>`:""}</div></div>`}
 setInterval(()=>{if(!document.hidden&&me&&loaded)loadNt(true)},60000);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden&&me&&loaded)loadNt(true)});
@@ -2386,7 +2418,7 @@ function modal(){
   if(!m)return"";
   if(t.t==="view")return`<div class="ov" onclick="if(event.target===this)closeM()"><div class="card">${memberView(m,false)}<button class="g" onclick="closeM()">إغلاق</button></div></div>`;
   if(t.t==="hist"){const ms=months(m).sort().reverse(),mx=maxS(m.committee);
-    return`<div class="ov"><div class="card"><b>سجل تقييمات: ${esc(nm(m.name))}</b>${ms.map(k=>{const sc=mscore(m.rec[k],m.committee),g=grade(sc);return`<div class="lb" style="flex-wrap:wrap"><span style="flex:1"><b>${ml(k)}</b> <span class="mu">${sc} / ${mx}</span> ${g?`<span class="pill up">${g}</span>`:""} ${D.ann.includes(k)?'<span class="pill up">معلن</span>':'<span class="pill st">غير معلن</span>'}</span>${isAdm()?`<button class="g" onclick="S.modal={t:'rec',id:'${m.id}',mo:'${k}'};render()">تعديل</button><button class="g" onclick="editTotal('${m.id}','${k}')">الإجمالي</button><button class="g" onclick="delRec('${m.id}','${k}')">×</button>`:""}</div>`}).join("")||'<p class="mu">لا توجد تقييمات.</p>'}<div class="row" style="margin-top:12px"><button class="g" onclick="closeM()">إغلاق</button></div></div></div>`;}
+    return`<div class="ov"><div class="card"><b>سجل تقييمات: ${esc(nm(m.name))}</b>${ms.map(k=>{const sc=mscore(m.rec[k],m.committee),g=grade(sc);return`<div class="lb" style="flex-wrap:wrap"><span style="flex:1"><b>${ml(k)}</b> <span class="mu">${sc} / ${mx}</span> ${g?`<span class="pill up">${g}</span>`:""} ${D.ann.includes(k)?'<span class="pill up">معلن</span>':'<span class="pill st">غير معلن</span>'}</span>${isAdm()?`<button class="g" onclick="S.modal={t:'rec',id:'${m.id}',mo:'${k}'};render()">تعديل</button><button class="g" onclick="editTotal('${m.id}','${k}')">الإجمالي</button><button class="g" onclick="delRec('${m.id}','${k}')">×</button>`:""}</div>`}).join("")||'<p class="mu">لا توجد تقييمات.</p>'}${isAdm()?histLogHtml(m):""}<div class="row" style="margin-top:12px"><button class="g" onclick="closeM()">إغلاق</button></div></div></div>`;}
   if(t.t==="warn"){const L=D.warn.filter(x=>x.member_id===m.id).sort((a,b)=>b.d.localeCompare(a.d));
     return`<div class="ov"><div class="card"><b>إنذارات: ${esc(nm(m.name))}</b> <span class="pill dn">${L.length}</span>${L.map(x=>`<div class="lb"><span class="mu">${esc(x.d)}</span><span style="flex:1">${esc(x.reason||"—")}</span><button class="g" onclick="delWarn('${x.id}')">×</button></div>`).join("")}
     <label>تاريخ الإنذار</label><input id="wd" type="date" value="${today()}"><label>السبب</label><input id="wr"><p class="err" id="mm"></p>
@@ -2577,7 +2609,7 @@ async function delRec(id,k){
 
 /* ---------- الحفظ التلقائي للمسودات ---------- */
 function clearDraft(id,mo){try{localStorage.removeItem(dk(id,mo))}catch(e){}}
-function closeM(discard){albPickReset();
+function closeM(discard){S.hlog=null;albPickReset();
   if(discard&&S.modal){
     if(S.modal.t==="rec")clearDraft(S.modal.id,S.modal.mo||($("#rm")&&$("#rm").value));
     if(S.modal.t==="mem"){try{localStorage.removeItem("tm-draft:mem:"+(S.modal.id||"new"))}catch(e){}}
@@ -3220,13 +3252,172 @@ function render(){
   try{morphInto($("#nv"),navH)}catch(e){$("#nv").innerHTML=navH}
   const mk=JSON.stringify([ok?S.modal:null,!!S.more&&!!navH,!!S.nt]);mdl.innerHTML=(ok?modal():"")+moreHtml()+ntHtml();
   if(mk===MKEY){const o=mdl.querySelector(".ov");if(o)o.classList.add("still")}MKEY=mk;
+  if(loaded&&me&&!HINIT){HINIT=true;try{history.replaceState({tab:S.tab},"")}catch(e){}}
+  {const ov=!!(ok||(S.more&&navH)||S.nt);if(ov&&!OVH){OVH=true;try{history.pushState({ov:1},"")}catch(e){}}else if(!ov&&OVH){OVH=false;_ign++;try{history.back()}catch(e){_ign--}}}
+  document.body.classList.toggle("hasSb",!!(NAV&&me&&session));try{morphInto($("#sb"),sideHtml())}catch(e){$("#sb").innerHTML=sideHtml()}
   const nc=mdl.querySelector(".card");if(nc&&my)nc.scrollTop=my;
-  window.scrollTo(0,same?y:0);
+  window.scrollTo(0,same?y:(SCR[S.tab]||0));CURT=S.tab;_rn=true;setTimeout(()=>{_rn=false},80);
   if(session&&me&&S.tab==="designs"&&canDesign()){if(!TPL_OK){TPL_OK=true;loadTpl().then(render)}if(!isAdm()&&D.dr===undefined)drLoad();setTimeout(()=>{dDrawAll();drawPresets()},0)}
   if(ok&&S.modal.t==="rec")fillRec(S.modal.id);
   if(ok&&S.modal.t==="mem")applyMemDraft();
   try{if(ok&&["rec","mem"].includes(S.modal.t))localStorage.setItem("tm-open-modal",JSON.stringify(S.modal));else if(!S.modal)localStorage.removeItem("tm-open-modal")}catch(e){}
 }
+
+/* ===== v2: تنقل أسهل (بحث شامل / سايدبار / تثبيت / رجوع) ===== */
+const SCR={};let CURT=null,_rn=false,OVH=false,_ign=0,HINIT=false;
+addEventListener("scroll",()=>{if(!_rn&&CURT)SCR[CURT]=window.scrollY},{passive:true});
+addEventListener("popstate",e=>{
+  if(_ign>0){_ign--;return}
+  if(OVH){OVH=false;S.more=false;S.nt=false;if(S.modal)closeM();else render();return}
+  const t=e.state&&e.state.tab;
+  if(t&&NAV&&NAV.some(x=>x[0]===t)&&t!==S.tab){S.tab=t;S.more=false;render()}
+});
+const emptyCard=(ic,t,sub,btn,go)=>`<div class="card" style="text-align:center;padding:22px 16px"><div style="font-size:34px">${ic}</div><b>${t}</b>${sub?`<div class="mu" style="margin:4px 0 0">${sub}</div>`:""}${btn?`<button class="g" style="margin-top:12px" onclick="${go}">${btn}</button>`:""}</div>`;
+const skel=(n=3)=>Array.from({length:n},()=>'<div class="sk" style="height:72px;margin-bottom:10px"></div>').join("");
+function pinTog(id){const[main]=navSplit();let a=main.slice();if(a.includes(id))a=a.filter(x=>x!==id);else{if(a.length>=4){toast("أقصى حاجة 4 تابات مثبّتة — شيل واحدة الأول","bad");return}a.push(id)}try{localStorage.setItem("tm-pins:"+(me&&me.id),JSON.stringify(a))}catch(e){}render()}
+/* ---- سايدبار للشاشات الكبيرة ---- */
+function sideHtml(){
+  if(!NAV||!me)return"";const ids=NAV.map(t=>t[0]),pend=isAdm()?D.signups.filter(s=>s.status==="pending").length:0;
+  const lbl=id=>{const t=NAV.find(x=>x[0]===id);return NLB[id]||(MM_EXTRA[id]||[])[1]||(t&&t[1])||id},ico=id=>NI[id]||(MM_EXTRA[id]||[])[0]||"•";
+  const item=id=>`<button class="sbi ${S.tab===id?"on":""}" onclick="navGo('${id}')"><i>${ico(id)}</i><span>${esc(lbl(id))}</span>${id==="req"&&pend?`<em>${pend}</em>`:""}</button>`;
+  let h="";
+  if(isAdm()){const used=new Set(["home"]);h+=item("home");MM_GROUPS.forEach(([t,L])=>{const l=L.filter(id=>ids.includes(id)&&!used.has(id));l.forEach(id=>used.add(id));if(l.length)h+=`<div class="sbh">${t}</div>`+l.map(item).join("")});const o=ids.filter(id=>!used.has(id));if(o.length)h+=`<div class="sbh">🧭 أخرى</div>`+o.map(item).join("")}
+  else h+=ids.map(item).join("");
+  h+=`<div class="sbh">⚡ أدوات</div><button class="sbi" onclick="gsOpen()"><i>🔍</i><span>بحث <kbd>Ctrl K</kbd></span></button><button class="sbi" onclick="S.more=true;render()"><i>☰</i><span>إجراءات وإعدادات</span></button>`;
+  return`<div class="sbx">${h}</div>`}
+/* ---- بحث شامل ---- */
+function gsOpen(){if(!me||!NAV||document.getElementById("gs"))return;
+  const d=document.createElement("div");d.id="gs";d.className="ov gs";d.onclick=e=>{if(e.target===d)gsClose()};
+  d.innerHTML=`<div class="card"><input id="gsq" type="search" placeholder="🔍 ابحث عن عضو أو صفحة…" autocomplete="off" oninput="gsRun(this.value)" onkeydown="gsKey(event)"><div id="gsr" style="margin-top:6px"></div></div>`;
+  document.body.appendChild(d);gsRun("");setTimeout(()=>{const i=document.getElementById("gsq");if(i)i.focus()},30)}
+function gsClose(){const d=document.getElementById("gs");if(d)d.remove()}
+function gsKey(e){if(e.key==="Escape"){gsClose();return}if(e.key==="Enter"){const f=document.querySelector("#gsr [data-go]");if(f){e.preventDefault();f.click()}}}
+function gsMem(id,t){gsClose();S.modal={t,id};render()}
+function gsPage(id){gsClose();navGo(id)}
+function gsRun(v){
+  const box=document.getElementById("gsr");if(!box)return;const q=impNorm(v||"");
+  const pool=isAdm()?D.members:(isMgr()?myFollows():[]);
+  const ms=q?pool.filter(m=>impNorm((m.name||"")+" "+(m.committee||"")+" "+(m.role||"")).includes(q)).slice(0,8):[];
+  const pg=(NAV||[]).filter(t=>!q||impNorm(t[1]+" "+(NLB[t[0]]||"")).includes(q)).slice(0,q?6:9);
+  const B="padding:4px 9px;font-size:12px;border-radius:8px";let first=true;const go=()=>{if(first){first=false;return" data-go=\"1\""}return""};
+  let h="";
+  if(ms.length)h+=`<div class="gsh">👥 أعضاء</div>`+ms.map(m=>`<div class="lb gsm" style="gap:8px"><span style="display:flex;gap:8px;align-items:center;flex:1;min-width:0;cursor:pointer"${go()} onclick="gsMem('${m.id}','view')">${avatar(m)}<span style="flex:1;min-width:0"><b style="font-size:14px">${esc(nm(m.name))}</b><div class="mu" style="font-size:11.5px">${esc(m.role||"")} · ${esc(m.committee)}</div></span>${gpill(m)}</span><button class="g" style="${B}" onclick="gsMem('${m.id}','rec')">+ تقييم</button><button class="g" style="${B}" onclick="gsMem('${m.id}','hist')">الشهور</button>${isAdm()?`<button class="g" style="${B}" onclick="gsMem('${m.id}','mem')">تعديل</button>`:""}</div>`).join("");
+  if(pg.length)h+=`<div class="gsh">🧭 صفحات</div>`+pg.map(t=>`<div class="lb gsp"${go()} onclick="gsPage('${t[0]}')"><span style="font-size:20px;width:26px;text-align:center">${NI[t[0]]||(MM_EXTRA[t[0]]||[])[0]||"•"}</span><span style="flex:1">${esc(NLB[t[0]]||(MM_EXTRA[t[0]]||[])[1]||t[1])}</span></div>`).join("");
+  box.innerHTML=h||'<p class="mu" style="margin:10px 4px">مفيش نتايج.</p>'}
+document.addEventListener("keydown",e=>{
+  const a=document.activeElement,typing=a&&(/INPUT|TEXTAREA|SELECT/.test(a.tagName)||a.isContentEditable);
+  if((e.ctrlKey||e.metaKey)&&String(e.key).toLowerCase()==="k"){e.preventDefault();gsOpen()}
+  else if(e.key==="/"&&!typing&&me&&!document.getElementById("gs")){e.preventDefault();gsOpen()}
+  else if(e.key==="Escape"&&document.getElementById("gs"))gsClose()});
+
+/* ===== v2: شكل + إضافات ===== */
+const GC={A:"#34d399",B:"#22d3ee",C:"#fbbf24",D:"#fb923c",F:"#f87171"};
+const gbd=m=>{const g=grade(score(m));return g?`border-inline-start:4px solid ${GC[g]};`:""};
+const tview=()=>{if(S.tv)return S.tv==="table";try{return localStorage.getItem("tm-tview")==="table"}catch(e){return false}};
+function setTv(v){S.tv=v;try{localStorage.setItem("tm-tview",v)}catch(e){}render()}
+const tvSeg=()=>`<div class="row" style="gap:6px;margin:0 0 8px"><span class="mu">العرض:</span><button class="g chip ${!tview()?"on":""}" style="padding:4px 12px;font-size:13px" onclick="setTv('cards')">▦ كروت</button><button class="g chip ${tview()?"on":""}" style="padding:4px 12px;font-size:13px" onclick="setTv('table')">☰ جدول</button></div>`;
+const gPill=g=>g?`<span class="pill ${"AB".includes(g)?"up":g==="C"?"st":"dn"}">${g}</span>`:"—";
+function mlistTable(L){
+  const B="padding:4px 9px;font-size:12px;border-radius:8px";
+  return`<div class="attw"><table class="att tb"><tr>${["الاسم","اللجنة","الدور","الدرجة","التقدير","التغير","إنذارات",""].map(h=>`<th>${h}</th>`).join("")}</tr>${L.map(m=>{const w=wc(m);return`<tr data-mid="${m.id}" style="cursor:pointer;${gbd(m)}" onclick="S.modal={t:'view',id:'${m.id}'};render()"><td class="s"><span style="display:flex;gap:8px;align-items:center">${avatar(m)}<b>${esc(nm(m.name))}</b></span></td><td>${esc(m.committee)}</td><td>${esc(m.role||"")}</td><td><b>${score(m)}</b><span class="mu">/${maxS(m.committee)}</span></td><td>${gPill(grade(score(m)))}</td><td>${months(m).length?trend(delta(m)):"—"}</td><td>${w?`<span class="pill dn">⚠️ ${w}</span>`:"—"}</td><td onclick="event.stopPropagation()"><button class="g" style="${B}" onclick="S.modal={t:'rec',id:'${m.id}'};render()">+ تقييم</button> <button class="g" style="${B}" onclick="S.modal={t:'hist',id:'${m.id}'};render()">الشهور</button>${isAdm()?` <button class="g" style="${B}" onclick="S.modal={t:'mem',id:'${m.id}'};render()">تعديل</button>`:""}</td></tr>`}).join("")}</table></div>`}
+/* ---- تنبيه التقييمات الناقصة ---- */
+function hrLate(mo){
+  const by={};D.follows.forEach(f=>{(by[f.manager_id]=by[f.manager_id]||[]).push(f.member_id)});const out=[];
+  for(const id in by){const g=D.members.find(x=>x.id===id);if(!g)continue;const L=by[id].map(i=>D.members.find(x=>x.id===i)).filter(x=>x&&x.role!=="Board"),miss=L.filter(x=>!(x.rec&&x.rec[mo]));if(miss.length)out.push({g,miss,total:L.length})}
+  return out.sort((a,b)=>b.miss.length-a.miss.length)}
+function lateCard(){const mo=curMonth();if(new Date().getDate()<15)return"";const late=hrLate(mo);if(!late.length)return"";
+  const n=late.reduce((a,x)=>a+x.miss.length,0);
+  return`<div class="card" style="border-color:var(--warn)"><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><span>⏳ ${late.length} HR لسه ما كمّلوش تقييمات ${ml(mo)} (${n} عضو ناقص)</span><button class="g" style="padding:5px 12px;font-size:13px" onclick="navGo('hr',1)">عرض</button></div></div>`}
+function lateSummary(mo){const late=hrLate(mo);
+  if(!late.length)return`<div class="card"><b>✓ كل الـHR كمّلوا تقييمات ${ml(mo)}</b></div>`;
+  const n=late.reduce((a,x)=>a+x.miss.length,0);
+  return`<div class="card" style="border-color:var(--warn)"><div class="row" style="flex-wrap:wrap"><b style="flex:1;min-width:180px">⏳ ${late.length} HR ناقص عندهم تقييمات (${n} عضو)</b><button onclick="sendReminders('${mo}')">🔔 ذكّر المتأخرين</button></div></div>`}
+async function sendReminders(mo){
+  const late=hrLate(mo);if(!late.length)return;
+  if(!confirm("هتبعت تذكير لـ "+late.length+" HR إن تقييمات "+ml(mo)+" ناقصة؟"))return;
+  const r=await sb.rpc("send_hr_reminders",{p_month:mo});
+  if(r.error)return alert("تعذر الإرسال: "+r.error.message+"\nشغّل ملف patch_reminders.sql في Supabase الأول.");
+  toast("اتبعت التذكير لـ "+(r.data??late.length)+" HR ✓","ok")}
+/* ---- جدول مقارنة الشهور في صفحة العضو ---- */
+function monthsCmp(m){
+  const ks=months(m).slice(-6);if(ks.length<2)return"";const mx=maxS(m.committee);
+  return`<div style="margin-top:10px">${ks.slice().reverse().map(k=>{const sc=mscore(m.rec[k],m.committee),pk=ks[ks.indexOf(k)-1],d=pk?Math.round((sc-mscore(m.rec[pk],m.committee))*10)/10:null;
+    return`<div class="lb" style="padding:6px 0"><span style="flex:1"><b>${ml(k)}</b></span><span>${sc}<span class="mu">/${mx}</span></span>${gPill(grade(sc))}${isAdm()&&d!=null?`<span class="pill ${d>0?"up":d<0?"dn":"st"}" style="min-width:52px;text-align:center">${d>0?"↗ +"+d:d<0?"↘ "+d:"➡ 0"}</span>`:""}</div>`}).join("")}</div>`}
+/* ---- سجل تعديلات العضو (أدمن) ---- */
+async function histLog(id){S.hlog={id,rows:null};render();const r=await sb.from("audit_log").select("*").eq("target_id",id).eq("tbl","records").order("id",{ascending:false}).limit(40);S.hlog={id,rows:r.error?[]:(r.data||[]),err:r.error?r.error.message:null};render()}
+function histLogHtml(m){
+  const h=S.hlog&&S.hlog.id===m.id?S.hlog:null;
+  if(!h)return`<button class="g" style="margin-top:10px;width:100%" onclick="histLog('${m.id}')">🕘 سجل التعديلات (مين عدّل وإمتى)</button>`;
+  if(!h.rows)return`<div style="margin-top:10px">${skel(2)}</div>`;
+  const sc=e=>e.action==="delete"&&e.old_data?`<div class="mu">كان ${mscore(e.old_data,m.committee)}</div>`:auScore(e);
+  return`<div style="margin-top:12px"><b>🕘 سجل التعديلات</b>${h.err?`<p class="err">${esc(h.err)}</p>`:""}${h.rows.map(e=>`<div class="lb" style="flex-wrap:wrap"><div style="flex:1;min-width:0"><div style="font-size:13px">${esc(e.summary||"")}${e.auto?` <span class="pill st" style="font-size:10px">تلقائي</span>`:""}</div><div class="mu" style="font-size:11.5px">${esc(e.actor_name||"النظام")} · ${auTime(e.at)}</div>${sc(e)}</div></div>`).join("")||'<p class="mu" style="margin:6px 0 0">مفيش تعديلات مسجّلة.</p>'}</div>`}
+/* ---- تقرير شهري للجان ---- */
+function prevMonthKey(k){const[y,m]=k.split("-").map(Number),d=new Date(Date.UTC(y,m-2,1));return d.getUTCFullYear()+"-"+String(d.getUTCMonth()+1).padStart(2,"0")}
+const rd1=x=>Math.round(x*10)/10;
+function comStats(c,mo){
+  const pk=prevMonthKey(mo),L=D.members.filter(m=>m.committee===c&&(c==="Board"||m.role!=="Board"));
+  const rows=L.filter(m=>m.rec&&m.rec[mo]).map(m=>{const sc=mscore(m.rec[mo],c),pv=m.rec[pk]?mscore(m.rec[pk],c):null;return{m,sc,pv,d:pv==null?null:rd1(sc-pv),g:grade(sc),w:D.warn.filter(x=>x.member_id===m.id).length}}).sort((a,b)=>b.sc-a.sc);
+  const pvs=L.filter(m=>m.rec&&m.rec[pk]).map(m=>mscore(m.rec[pk],c)),dist={A:0,B:0,C:0,D:0,F:0};rows.forEach(r=>{if(dist[r.g]!=null)dist[r.g]++});
+  return{c,L,rows,miss:L.filter(m=>!(m.rec&&m.rec[mo])),avg:rows.length?rd1(rows.reduce((a,r)=>a+r.sc,0)/rows.length):null,pavg:pvs.length?rd1(pvs.reduce((a,b)=>a+b,0)/pvs.length):null,dist,mx:maxS(c)}}
+function comReportCard(){
+  const ks=[...new Set(D.members.flatMap(m=>months(m)))].sort().reverse();if(!ks.length)return"";
+  const mo=ks.includes(S.crm)?S.crm:ks[0],cs=["all",...comms()],cc=cs.includes(S.crc)?S.crc:"all";
+  return`<div class="card"><b>📄 تقرير شهري للجان</b><div class="row" style="gap:8px;margin:8px 0;flex-wrap:nowrap"><select onchange="S.crm=this.value;render()">${ks.map(k=>`<option value="${k}" ${k===mo?"selected":""}>${ml(k)}</option>`).join("")}</select><select onchange="S.crc=this.value;render()">${cs.map(c=>`<option value="${esc(c)}" ${c===cc?"selected":""}>${c==="all"?"كل اللجان":esc(c)}</option>`).join("")}</select></div><div class="row"><button onclick="comReport('pdf')">📄 PDF</button><button class="g" onclick="comReport('csv')">⬇ Excel (CSV)</button></div></div>`}
+function openPrintDoc(title,body){
+  const css=[...document.querySelectorAll("style")].map(x=>x.textContent).join("\n");
+  const doc=`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title><style>${css}
+html,body{background:#fff!important;color:#141a2e;min-height:0}#rpt{display:block!important;padding:4px}.ft{display:none}</style></head><body><div id="rpt" dir="rtl" style="font-family:'Segoe UI',Tahoma,'Noto Sans Arabic',sans-serif">${body}</div><script>addEventListener("load",function(){setTimeout(function(){print()},300)})<\/script></body></html>`;
+  const pw=window.open("","_blank");if(pw){pw.document.open();pw.document.write(doc);pw.document.close();return}
+  const f=document.createElement("iframe");f.style.cssText="position:fixed;right:0;bottom:0;width:1px;height:1px;border:0;opacity:0";f.srcdoc=doc;document.body.appendChild(f);setTimeout(()=>f.remove(),60000)}
+function comReport(fmt){
+  const ks=[...new Set(D.members.flatMap(m=>months(m)))].sort().reverse();if(!ks.length)return;
+  const mo=ks.includes(S.crm)?S.crm:ks[0],cs=S.crc&&comms().includes(S.crc)?[S.crc]:comms(),T=cs.map(c=>comStats(c,mo)).filter(t=>t.L.length);
+  const dl=d=>d==null?"—":d>0?"↗ +"+d:d<0?"↘ "+d:"➡ 0";
+  if(fmt==="csv"){const rows=[["اللجنة","الشهر","الترتيب","الاسم","الدرجة","التقدير","درجة الشهر السابق","التغير","الإنذارات"]];
+    T.forEach(t=>{rows.push(["ملخص لجنة "+t.c,ml(mo),"","المتوسط",t.avg??"","","",t.avg!=null&&t.pavg!=null?rd1(t.avg-t.pavg):"",""]);t.rows.forEach((r,i)=>rows.push([t.c,ml(mo),i+1,nm(r.m.name),r.sc,r.g,r.pv??"",r.d??"",r.w]));t.miss.forEach(m=>rows.push([t.c,ml(mo),"",nm(m.name),"غير مقيَّم","","","",""]))});
+    csvDl(rows,"committee-report-"+mo+".csv");return}
+  const sec=t=>{const top=t.rows[0],low=t.rows[t.rows.length-1];
+    return`<div class="card" style="break-inside:avoid"><div class="row" style="justify-content:space-between"><b style="font-size:17px">لجنة ${esc(t.c)}</b><span class="mu">${t.rows.length} من ${t.L.length} متقيّم</span></div>
+    <div class="grid3" style="margin:10px 0"><div class="card"><div class="mu">المتوسط</div><div class="big">${t.avg??"—"}</div>${t.avg!=null&&t.pavg!=null?`<div class="mu">${dl(rd1(t.avg-t.pavg))} عن الشهر السابق</div>`:""}</div><div class="card"><div class="mu">الأعلى</div><div><b>${top?esc(nm2(top.m.name)):"—"}</b> ${top?top.sc:""}</div></div><div class="card"><div class="mu">الأقل</div><div><b>${low?esc(nm2(low.m.name)):"—"}</b> ${low?low.sc:""}</div></div></div>
+    <div class="mu" style="margin-bottom:6px">التقديرات: A ${t.dist.A} · B ${t.dist.B} · C ${t.dist.C} · D ${t.dist.D} · F ${t.dist.F}</div>
+    <table class="rt"><tr><th>#</th><th>الاسم</th><th>الدرجة</th><th>التقدير</th><th>التغير</th><th>إنذارات</th></tr>${t.rows.map((r,i)=>`<tr><td>${i+1}</td><td>${esc(nm(r.m.name))}</td><td>${r.sc} / ${t.mx}</td><td>${r.g||"—"}</td><td>${dl(r.d)}</td><td>${r.w||"—"}</td></tr>`).join("")}</table>
+    ${t.miss.length?`<div class="mu" style="margin-top:8px">غير مقيَّم: ${t.miss.map(x=>esc(nm2(x.name))).join("، ")}</div>`:""}</div>`};
+  openPrintDoc("تقرير "+ml(mo),`<div class="rh"><div><div style="font-size:20px;font-weight:800">YLY Dakahlia</div><div style="opacity:.85;font-size:13px">تقرير تقييم اللجان — ${ml(mo)}</div></div><div style="font-size:13px">${new Date().toLocaleDateString("ar-EG")}</div></div>${T.map(sec).join("")||'<div class="card">لا توجد بيانات.</div>'}<div style="text-align:center;direction:ltr;font-size:12px;color:#59628a;margin-top:18px;padding-top:10px;border-top:1px solid #dfe3f0">Developed by Mr. Yousef El-Gharbawy</div>`)}
+/* ---- توزيع HR: تحديد جماعي / توزيع تلقائي / نقل ---- */
+function hrSelT(id){const a=S.hrSel||[];S.hrSel=a.includes(id)?a.filter(x=>x!==id):[...a,id];render()}
+function hrSelAll(c){const{un}=hrData(),ids=un.filter(x=>x.committee===c).map(x=>x.id),a=new Set(S.hrSel||[]),all=ids.every(i=>a.has(i));ids.forEach(i=>all?a.delete(i):a.add(i));S.hrSel=[...a];render()}
+async function hrBulkAssign(){
+  const hid=($("#hrBulk")||{}).value,ids=(S.hrSel||[]).filter(i=>i!==hid);if(!hid)return alert("اختار الـ HR الأول");if(!ids.length)return;
+  const rows=ids.filter(i=>!D.follows.some(f=>f.manager_id===hid&&f.member_id===i)).map(i=>({manager_id:hid,member_id:i}));
+  if(rows.length){const r=await sb.from("follows").insert(rows);if(r.error)return alert(r.error.message)}
+  S.hrSel=[];await reload(["follows"],"تعيين جماعي");render();toast("اتعيّن "+rows.length+" عضو ✓","ok")}
+async function hrAuto(){
+  const{hrs,fol,un}=hrData(),com=S.hrc||"all",L=un.filter(x=>com==="all"||x.committee===com);
+  if(!L.length)return alert("مفيش أعضاء بدون HR");if(!hrs.length)return alert("مفيش HR");
+  const ld={};hrs.forEach(h=>ld[h.id]=(fol[h.id]||[]).length);const plan=[],byN=(a,b)=>nm2(a.name).localeCompare(nm2(b.name),"ar");
+  L.slice().sort(byN).forEach(x=>{const c=hrs.filter(h=>h.id!==x.id).sort((a,b)=>ld[a.id]-ld[b.id]||byN(a,b))[0];if(!c)return;ld[c.id]++;plan.push({manager_id:c.id,member_id:x.id})});
+  const v=hrs.map(h=>ld[h.id]);
+  if(!confirm("هتوزّع "+plan.length+" عضو على "+hrs.length+" HR بالتساوي (كل عضو بيروح للـHR الأقل متابعين).\nبعد التوزيع: من "+Math.min(...v)+" لـ "+Math.max(...v)+" عضو لكل HR.\nتقدر تتراجع بـ ↶."))return;
+  for(let i=0;i<plan.length;i+=100){const r=await sb.from("follows").insert(plan.slice(i,i+100));if(r.error)return alert(r.error.message)}
+  await reload(["follows"],"توزيع تلقائي");render();toast("اتوزّع "+plan.length+" عضو ✓","ok")}
+function hmOpen(){
+  if(document.getElementById("hm"))return;const{hrs,fol}=hrData(),from=hrs.filter(h=>(fol[h.id]||[]).length);
+  if(!from.length)return alert("مفيش HR عنده متابَعين");
+  const d=document.createElement("div");d.id="hm";d.className="ov";d.onclick=e=>{if(e.target===d)hmClose()};
+  d.innerHTML=`<div class="card"><div class="row" style="justify-content:space-between"><b style="font-size:17px">🔀 نقل متابَعين من HR لـ HR</b><button class="g ico" onclick="hmClose()">✕</button></div><label>من</label><select id="hmf" onchange="hmList()">${from.map(h=>`<option value="${h.id}">${esc(nm2(h.name))} (${(fol[h.id]||[]).length})</option>`).join("")}</select><div id="hml" style="margin:8px 0"></div><label>إلى</label><select id="hmt"></select><div class="row" style="margin-top:12px"><button onclick="hmGo()">نقل المحدد</button><button class="g" onclick="hmClose()">إلغاء</button></div></div>`;
+  document.body.appendChild(d);hmList()}
+function hmList(){
+  const{hrs,fol,srt}=hrData(),f=document.getElementById("hmf").value,L=srt(fol[f]||[]);
+  document.getElementById("hml").innerHTML=`<label class="row" style="margin:0 0 6px;gap:8px;color:var(--tx)"><input type="checkbox" style="width:auto;min-height:0;padding:0" onchange="document.querySelectorAll('.hmc').forEach(c=>c.checked=this.checked)"> تحديد الكل (${L.length})</label><div style="max-height:34dvh;overflow:auto">${L.map(x=>`<label class="lb" style="margin:0;gap:8px;color:var(--tx);font-size:14px"><input class="hmc" type="checkbox" value="${x.id}" style="width:auto;min-height:0;padding:0"><span style="flex:1">${esc(nm2(x.name))}</span><span class="pill st" style="font-size:10.5px">${esc(x.committee)}</span></label>`).join("")}</div>`;
+  document.getElementById("hmt").innerHTML=hrs.filter(h=>h.id!==f).map(h=>`<option value="${h.id}">${esc(nm2(h.name))} (${(fol[h.id]||[]).length})</option>`).join("")}
+function hmClose(){const d=document.getElementById("hm");if(d)d.remove()}
+async function hmGo(){
+  const f=document.getElementById("hmf").value,t=document.getElementById("hmt").value,ids=[...document.querySelectorAll(".hmc:checked")].map(c=>c.value);
+  if(!t)return alert("اختار الـ HR اللي هتنقل له");if(!ids.length)return alert("حدد أعضاء الأول");
+  const ex=new Set(D.follows.filter(x=>x.manager_id===t).map(x=>x.member_id)),add=ids.filter(i=>i!==t&&!ex.has(i)).map(i=>({manager_id:t,member_id:i}));
+  if(add.length){const r=await sb.from("follows").insert(add);if(r.error)return alert(r.error.message)}
+  const d=await sb.from("follows").delete().eq("manager_id",f).in("member_id",ids);if(d.error)return alert(d.error.message);
+  hmClose();await reload(["follows"],"نقل متابَعين");render();toast("اتنقل "+ids.length+" عضو ✓","ok")}
 
 if("serviceWorker" in navigator&&/^https?:/.test(location.protocol))navigator.serviceWorker.register("sw.js").catch(()=>{});
 boot();
