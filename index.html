@@ -543,10 +543,10 @@ function hrData(){
   const un=D.members.filter(x=>x.role!=="Board"&&!x.is_admin&&x.committee!=="HR"&&!has.has(x.id));
   const ord=c=>{const i=COM4.indexOf(c);return i<0?99:i},srt=L=>L.slice().sort((a,b)=>ord(a.committee)-ord(b.committee)||nm2(a.name).localeCompare(nm2(b.name),"ar"));
   const lm=new Map();D.board.forEach(b=>{if(b.member_id&&evCom(b).includes("HR")&&!lm.has(b.member_id)&&by[b.member_id])lm.set(b.member_id,{m:by[b.member_id],pos:b.position})});
-  const leads=[...lm.values()].map(o=>{const s=new Map();(fol[o.m.id]||[]).forEach(x=>s.set(x.id,x));D.members.forEach(x=>{if(x.committee==="HR"&&x.role!=="Board"&&x.id!==o.m.id)s.set(x.id,x)});return{m:o.m,pos:o.pos,L:[...s.values()]}});
-  const dm=new Map();D.follows.forEach(f=>{if(by[f.member_id]&&by[f.manager_id]){const a=dm.get(f.member_id)||[];if(!a.some(x=>x.id===f.manager_id))a.push(by[f.manager_id]);dm.set(f.member_id,a)}});
+  const leads=[],hid=new Set(lm.keys());
+  const dm=new Map();D.follows.forEach(f=>{if(by[f.member_id]&&by[f.manager_id]&&!hid.has(f.manager_id)){const a=dm.get(f.member_id)||[];if(!a.some(x=>x.id===f.manager_id))a.push(by[f.manager_id]);dm.set(f.member_id,a)}});
   const dups=[...dm.entries()].filter(([k,a])=>a.length>1).map(([k,a])=>({m:by[k],H:a.sort((x,y)=>nm2(x.name).localeCompare(nm2(y.name),"ar"))})).sort((x,y)=>nm2(x.m.name).localeCompare(nm2(y.m.name),"ar"));
-  return{hrs,fol,un,srt,leads,dups,dm}}
+  return{hrs:hrs.filter(h=>!hid.has(h.id)),fol,un,srt,leads,dups,dm}}
 function hrMapView(){
   const com=S.hrc||"all",{hrs,fol,un,srt,leads,dups,dm}=hrData(),inC=x=>com==="all"||x.committee===com;
   const noF=hrs.filter(h=>!(fol[h.id]||[]).length),unF=un.filter(inC),grp=L=>COM4.concat(["Board"]).map(c=>[c,L.filter(x=>x.committee===c)]).filter(x=>x[1].length);
@@ -573,10 +573,8 @@ async function hrAssign(mid,hid){
   if(r.error)return alert(r.error.message);
   await reload(["follows"],"تعيين HR");render();toast("اتعيّن ✓","ok")}
 function hrExport(){
-  const{hrs,fol,srt,leads}=hrData(),rows=[["اسم الـ HR","الأعضاء اللي بيتابعهم (كل اسم في سطر)","لجان الأعضاء (بنفس الترتيب)","المنصب"]],ids=new Set(leads.map(x=>x.m.id));
-  const add=(h,L,pos)=>{L=srt(L);rows.push([nm(h.name),L.map(x=>nm(x.name)).join("\n"),L.map(x=>x.committee).join(", "),pos])};
-  leads.forEach(x=>add(x.m,x.L,x.pos||"قيادة HR"));
-  hrs.filter(h=>!ids.has(h.id)).forEach(h=>add(h,fol[h.id]||[],""));
+  const{hrs,fol,srt}=hrData(),rows=[["اسم الـ HR","الأعضاء اللي بيتابعهم (كل اسم في سطر)","لجان الأعضاء (بنفس الترتيب)"]];
+  hrs.forEach(h=>{const L=srt(fol[h.id]||[]);rows.push([nm(h.name),L.map(x=>nm(x.name)).join("\n"),L.map(x=>x.committee).join(", ")])});
   csvDl(rows,"hr-distribution.csv")}
 async function refresh(){loaded=false;render();await load();render()}
 async function boot(){
