@@ -1977,44 +1977,53 @@ function impBirth(raw){
   return undefined;
 }
 function impBuild(rows,year,defMonth){
-  if(!rows.length)return{rows:[],months:[]};
+  if(!rows.length)return{rows:[],months:[],amb:[]};
   const hd=rows[0],hn=hd.map(impNorm),f={},mcol={};
   Object.keys(IMPH).forEach(k=>{const i=hn.findIndex(h=>IMPH[k].map(impNorm).includes(h));if(i>=0)f[k]=i});
   hd.forEach((h,i)=>{if(Object.values(f).includes(i))return;const mo=impMonthOf(h,year);if(mo)mcol[i]=mo});
   if(defMonth&&!Object.keys(mcol).length){const k=hd.findIndex((h,i)=>!Object.values(f).includes(i)&&/اجمالي|مجموع|تقييم|درجه|total|score/.test(impNorm(h)));if(k>=0)mcol[k]=defMonth}
   let idx,start=0;
-  if(Object.keys(f).length>=2){idx=Object.assign({name:-1,email:-1,password:-1,committee:-1,role:-1,photo:-1,birth:-1},f);start=1}
+  if(Object.keys(f).length>=2||(f.name>=0&&Object.keys(mcol).length)){idx=Object.assign({name:-1,email:-1,password:-1,committee:-1,role:-1,photo:-1,birth:-1},f);start=1}
   else idx={name:0,email:1,committee:2,role:3,password:-1,photo:-1,birth:-1};
-  const have=new Map(D.members.map(m=>[String(m.email).toLowerCase(),m])),seen=new Set(),out=[];
+  const have=new Map(D.members.map(m=>[String(m.email).toLowerCase(),m])),seen=new Set(),out=[],amb=[];
   rows.slice(start).forEach((r,i)=>{
-    const g=k=>idx[k]>=0?String(r[idx[k]]==null?"":r[idx[k]]).trim():"",name=g("name").replace(/\s+/g," "),email=g("email").toLowerCase(),password=g("password"),comRaw=g("committee"),roleRaw=g("role"),photo=g("photo"),bdRaw=g("birth");
-    const com=COM4.find(c=>c.toLowerCase()===comRaw.toLowerCase()),err=[],scores={};let role="Member";let bday=null;if(bdRaw){bday=impBirth(bdRaw);if(bday===undefined){err.push("تاريخ الميلاد مش مفهوم (اكتبه dd/mm/yyyy)");bday=null}}
+    const g=k=>idx[k]>=0?String(r[idx[k]]==null?"":r[idx[k]]).trim():"",name=g("name").replace(/\s+/g," "),email0=g("email").toLowerCase(),password=g("password"),comRaw=g("committee"),roleRaw=g("role"),photo=g("photo"),bdRaw=g("birth");
+    let email=email0;const com=COM4.find(c=>c.toLowerCase()===comRaw.toLowerCase()),err=[],scores={};let role="Member";let bday=null;if(bdRaw){bday=impBirth(bdRaw);if(bday===undefined){err.push("تاريخ الميلاد مش مفهوم (اكتبه dd/mm/yyyy)");bday=null}}
     Object.keys(mcol).forEach(ci=>{const raw=String(r[ci]==null?"":r[ci]).trim();if(raw==="")return;const v=parseFloat(raw.replace(",","."));if(isNaN(v))err.push("تقييم "+mcol[ci]+" مش رقم");else scores[mcol[ci]]=Math.round(v*100)/100});
+    const hasS0=Object.keys(scores).length>0;if(!name&&!email&&!hasS0)return;
+    let byName=false,nameErr="";
+    if(!email&&name){let h=flFind(name);
+      if(h.length>1&&comRaw){const f=h.filter(x=>impNorm(x.committee)===impNorm(comRaw));if(f.length)h=f}
+      if(h.length===1){email=String(h[0].email||"").toLowerCase();byName=true}
+      else{const c=h.length?h:flFuzzy(name);
+        if(c.length){if(hasS0&&!err.length)amb.push({line:i+start+1,name,scores,cands:c.map(x=>x.id),pick:"",fuzzy:!h.length});else if(!hasS0)out.push({line:i+start+1,mode:"skip",name,email:"",password:"",committee:"",role:"Member",scores,photo:"",birth:null,err:"مفيش تقييم في الصف"});else out.push({line:i+start+1,mode:"skip",name,email:"",password:"",committee:"",role:"Member",scores,photo:"",birth:null,err:err.join(" · ")});return}
+        nameErr="الاسم مش موجود في الأعضاء (ولو عضو جديد لازم تكتب إيميله)"}}
     const exist=have.get(email),hasS=Object.keys(scores).length>0;let mode="new";
-    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))err.push("إيميل غير صحيح");
+    if(nameErr)err.push(nameErr);
+    else if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))err.push("إيميل غير صحيح");
     else if(seen.has(email))err.push("مكرر في الملف");
-    else if(exist){if(hasS)mode="update";else{mode="skip";err.push("الإيميل موجود قبل كده")}}
-    if(mode==="new"){
+    else if(exist){if(hasS)mode="update";else{mode="skip";err.push(byName?"مفيش تقييم في الصف":"الإيميل موجود قبل كده")}}
+    if(mode==="new"&&!nameErr){
       if(!name)err.push("الاسم ناقص");
       if(!com)err.push(comRaw?"لجنة مش معروفة ("+comRaw+")":"اللجنة ناقصة");
       if(roleRaw&&/^board$/i.test(roleRaw))err.push("منصب Board يتضاف من تعديل العضو");else if(roleRaw&&!/^(member|عضو)$/i.test(roleRaw))role=roleRaw;
       if(password&&password.length<6)err.push("كلمة السر أقل من 6 حروف")}
     if(!err.length)seen.add(email);
     out.push({line:i+start+1,mode,name:mode==="update"?exist.name:name,email,password:mode==="new"?password:"",committee:mode==="update"?exist.committee:(com||comRaw),role,scores,photo,birth:bday,err:err.join(" · ")})});
-  return{rows:out,months:[...new Set(Object.values(mcol))]}}
+  return{rows:out,months:[...new Set(Object.values(mcol))],amb}}
 function impMerge(parts){
-  const by=new Map(),nomail=[],months=new Set();
-  parts.forEach(p=>{p.months.forEach(m=>months.add(m));p.rows.forEach(r=>{if(!r.email){nomail.push(r);return}if(!by.has(r.email))by.set(r.email,[]);by.get(r.email).push(r)})});
+  const by=new Map(),nomail=[],months=new Set(),amb=[];
+  parts.forEach(p=>{amb.push(...(p.amb||[]));p.months.forEach(m=>months.add(m));p.rows.forEach(r=>{if(!r.email){nomail.push(r);return}if(!by.has(r.email))by.set(r.email,[]);by.get(r.email).push(r)})});
   const out=[];
   by.forEach(group=>{const ok=group.filter(r=>!r.err),base=Object.assign({},ok[0]||group[0]);
     base.scores=Object.assign({},...group.map(r=>r.scores||{}));
     base.err=ok.length?"":(group.map(r=>r.err).filter(Boolean)[0]||"");
     out.push(base)});
-  return{rows:[...nomail,...out].sort((x,y)=>x.line-y.line),months:[...months].sort()}}
+  return{rows:[...nomail,...out].sort((x,y)=>x.line-y.line),months:[...months].sort(),amb}}
 function impCompute(I){
   const parts=(I.sheets||[]).filter(s=>s.rows&&s.rows.length).map(s=>impBuild(s.rows,I.year,impMonthOf(s.name,I.year)));
-  const m=impMerge(parts);I.rows=m.rows;I.months=m.months;I.sheetCount=parts.length;
-  I.err=I.rows.length?"":"الملف فاضي أو شكله مش مفهوم.";
+  const m=impMerge(parts);I.rows=m.rows;I.months=m.months;I.amb=m.amb||[];I.sheetCount=parts.length;
+  I.err=(I.rows.length||I.amb.length)?"":"الملف فاضي أو شكله مش مفهوم.";
 }
 async function impFile(f){
   if(!f)return;const year=(S.imp&&S.imp.year)||new Date().getFullYear();S.imp={fn:f.name,rows:[],months:[],busy:false,err:"",year,file:f,done:null,sheets:[]};
@@ -2051,8 +2060,17 @@ async function impPhoto(mid,link){
     return{ok:true};
   }catch(e){return{ok:false,msg:e.message||"فشل رفع الصورة"}}
 }
+function impAll(I){
+  const out=(I.rows||[]).filter(r=>!r.err).map(r=>Object.assign({},r)),by=new Map(out.map(r=>[r.email,r]));
+  (I.amb||[]).forEach(a=>{if(!a.pick)return;const m=D.members.find(x=>x.id===a.pick);if(!m)return;const e=String(m.email||"").toLowerCase(),ex=by.get(e);
+    if(ex){ex.scores=Object.assign({},ex.scores,a.scores);if(ex.mode==="skip")ex.mode="update";return}
+    const r={line:a.line,mode:"update",name:m.name,email:e,password:"",committee:m.committee,role:"Member",scores:a.scores,photo:"",birth:null,err:""};out.push(r);by.set(e,r)});
+  return out}
+function impPick(i,v){const a=S.imp&&S.imp.amb&&S.imp.amb[i];if(!a)return;a.pick=v;render()}
+function impAmbHtml(I){const A=I.amb||[];if(!A.length)return"";
+  return`<div style="margin-top:10px;max-height:30vh;overflow:auto;border:1px solid var(--warn);border-radius:12px;padding:8px 10px"><b style="font-size:13px">أسماء مش مطابقة بالظبط، اختار العضو الصح (اللي مش هتختاره مش هيتحفظ):</b>${A.map((a,i)=>`<div style="margin-top:8px"><div style="font-size:13px">سطر ${a.line}: <b>${esc(a.name)}</b> <span class="mu">${Object.keys(a.scores).map(k=>k.slice(5)+": "+a.scores[k]).join(" · ")}</span>${a.fuzzy?` <span class="pill st" style="font-size:10px">أقرب أسماء</span>`:""}</div><select onchange="impPick(${i},this.value)"><option value="">— اختار —</option>${a.cands.map(id=>{const x=D.members.find(z=>z.id===id)||{};return`<option value="${id}" ${a.pick===id?"selected":""}>${esc(nm(x.name))} · ${esc(x.committee||"")}</option>`}).join("")}</select></div>`).join("")}</div>`}
 async function impGo(){
-  const I=S.imp,ok=I.rows.filter(r=>!r.err);if(!ok.length||I.busy)return;I.busy=true;render();
+  const I=S.imp,ok=impAll(I);if(!ok.length||I.busy)return;I.busy=true;render();
   const res={members:0,accounts:0,scores:0,fails:[]},fbEmails=[],ids=new Map(D.members.map(m=>[m.email.toLowerCase(),m.id]));
   try{
     const news=ok.filter(r=>r.mode==="new");
@@ -2066,18 +2084,18 @@ async function impGo(){
     const bds=ok.filter(r=>r.birth&&ids.has(r.email)).map(r=>({member_id:ids.get(r.email),birth_date:r.birth}));for(let i=0;i<bds.length;i+=100){const br=await sb.from("member_birthdays").upsert(bds.slice(i,i+100),{onConflict:"member_id"});if(br.error){res.fails.push("حفظ تواريخ الميلاد: "+br.error.message);break}res.births=(res.births||0)+Math.min(100,bds.length-i)}
     for(const x of ok.filter(r=>r.photo&&ids.has(r.email))){const p=await impPhoto(ids.get(x.email),x.photo);if(p.ok)res.photos=(res.photos||0)+1;else res.fails.push(x.name+" (صورة): "+p.msg)}
   }catch(e){res.fails.push(e.message||String(e))}
-  I.busy=false;I.done=res;I.rows=[];await load();render();
+  I.busy=false;I.done=res;I.rows=[];I.amb=[];await load();render();
   if(!res.fails.length){toast(`اتضاف ${res.members} عضو · ${res.accounts} حساب · ${res.scores} تقييم${res.photos?` · ${res.photos} صورة`:""}${res.births?` · ${res.births} ميلاد`:""} ✓`,"ok");S.imp=null;S.modal=null;render()}}
 function impHtml(){
-  const I=S.imp||{rows:[],months:[]},ok=I.rows.filter(r=>!r.err),bad=I.rows.length-ok.length,nNew=ok.filter(r=>r.mode==="new").length,nUp=ok.length-nNew,nAcc=ok.filter(r=>r.password).length,nSc=ok.reduce((a,r)=>a+Object.keys(r.scores).length,0);
+  const I=S.imp||{rows:[],months:[]},ok=impAll(I),bad=I.rows.filter(r=>r.err).length,nNew=ok.filter(r=>r.mode==="new").length,nUp=ok.length-nNew,nAcc=ok.filter(r=>r.password).length,nSc=ok.reduce((a,r)=>a+Object.keys(r.scores).length,0);
   const dn=I.done;
   return`<div class="ov"><div class="card"><div class="row" style="justify-content:space-between"><b style="font-size:17px">⬆ استيراد أعضاء من شيت</b><button class="g ico" onclick="S.modal=null;S.imp=null;render()">✕</button></div>
-  <p class="mu" style="margin:6px 0;font-size:13px">ملف Excel (xlsx) أو CSV. لو الملف فيه أكتر من شيت، كل شيت بيتقري، ولو اسم الشيت شهر (زي أكتوبر أو Oct) بيتحسب تقييماته على الشهر ده. الأعمدة: <b>الاسم، الإيميل، كلمة السر، اللجنة، المنصب، الصورة (لينك درايف، اختياري)</b> وبعدهم أعمدة التقييم الإجمالي لأي شهر، زي <b>شهر 9</b> أو <b>شهر 11</b> أو <b>2026-11</b> أو اسم الشهر، وتقدر تضيف أي عدد من الشهور. كلهم اختياري ما عدا الإيميل (والاسم واللجنة للعضو الجديد).</p>
+  <p class="mu" style="margin:6px 0;font-size:13px">ملف Excel (xlsx) أو CSV. لو الملف فيه أكتر من شيت، كل شيت بيتقري، ولو اسم الشيت شهر (زي أكتوبر أو Oct) بيتحسب تقييماته على الشهر ده. الأعمدة: <b>الاسم، الإيميل، كلمة السر، اللجنة، المنصب، الصورة (لينك درايف، اختياري)</b> وبعدهم أعمدة التقييم الإجمالي لأي شهر، زي <b>شهر 9</b> أو <b>شهر 11</b> أو <b>2026-11</b> أو اسم الشهر، وتقدر تضيف أي عدد من الشهور. كلهم اختياري ما عدا الإيميل (والاسم واللجنة للعضو الجديد). <b>ولو الملف فيه الاسم والتقييم بس (من غير إيميل)</b>، بيتعرف على العضو بالاسم، ولو الاسم مختلف شوية بيطلعلك أقرب الأسماء تختار منها.</p>
   <div class="row"><label class="btn" style="margin:0;color:#fff">📁 اختيار الملف<input type="file" hidden accept=".xlsx,.csv,.txt,text/csv" onchange="impFile(this.files[0]);this.value=''"></label><button class="g" onclick="impTemplate()">⬇ نموذج جاهز</button>
   <label style="display:flex;gap:6px;align-items:center;margin:0">سنة التقييمات<input type="number" style="width:90px;min-height:38px" value="${I.year||new Date().getFullYear()}" onchange="impYear(this.value)"></label></div>
   ${I.err?`<p class="err">${esc(I.err)}</p>`:""}
   ${dn?`<div class="card" style="margin:10px 0;padding:12px"><b>النتيجة</b><div class="mu">اتضاف ${dn.members} عضو · ${dn.accounts} حساب · ${dn.scores} تقييم</div>${dn.fails.map(x=>`<div style="color:var(--bad);font-size:13px;margin-top:4px">❌ ${esc(x)}</div>`).join("")}</div>`:""}
-  ${I.rows.length?`<div class="row" style="margin:10px 0"><span class="pill up">جاهز ${ok.length}</span>${bad?`<span class="pill dn">فيه مشكلة ${bad}</span>`:""}${nUp?`<span class="pill st">تحديث تقييم ${nUp}</span>`:""}<span class="mu">${nNew} جديد · ${nAcc} حساب · ${nSc} تقييم${I.months&&I.months.length?" ("+I.months.join("، ")+")":""}</span></div>
+  ${I.rows.length||(I.amb||[]).length?`${impAmbHtml(I)}<div class="row" style="margin:10px 0"><span class="pill up">جاهز ${ok.length}</span>${bad?`<span class="pill dn">فيه مشكلة ${bad}</span>`:""}${nUp?`<span class="pill st">تحديث تقييم ${nUp}</span>`:""}<span class="mu">${nNew} جديد · ${nAcc} حساب · ${nSc} تقييم${I.months&&I.months.length?" ("+I.months.join("، ")+")":""}</span></div>
   <div style="max-height:36vh;overflow:auto;border:1px solid var(--bd);border-radius:12px">${I.rows.slice(0,200).map(r=>`<div class="lb" style="align-items:flex-start;padding:8px 10px;${r.err?"background:rgba(248,113,113,.1)":""}"><span>${r.err?"❌":r.mode==="update"?"🔄":"✅"}</span><div style="flex:1;min-width:0"><b style="font-size:14px">${esc(r.name||"—")}</b> <span class="mu">${esc(r.committee||"")}</span>${r.password?` <span class="pill up" style="font-size:10px">حساب ••••</span>`:""}<div class="mu" dir="ltr" style="text-align:right;font-size:12px">${esc(r.email||"—")}</div>${Object.keys(r.scores).length?`<div class="mu" style="font-size:12px">${Object.keys(r.scores).map(k=>k.slice(5)+": "+r.scores[k]).join(" · ")}</div>`:""}${r.err?`<div style="color:var(--bad);font-size:12px">${esc(r.err)}</div>`:""}</div></div>`).join("")}</div>
   ${I.rows.length>200?`<p class="mu">بيعرض أول 200 صف.</p>`:""}
   <div class="row" style="margin-top:12px"><button ${ok.length&&!I.busy?"":"disabled"} onclick="impGo()">${I.busy?"جاري الاستيراد…":`استيراد ${ok.length} صف`}</button><button class="g" onclick="S.modal=null;S.imp=null;render()">إلغاء</button></div>
