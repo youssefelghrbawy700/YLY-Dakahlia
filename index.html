@@ -316,6 +316,7 @@ async function saveRec(id){
 }
 let D={members:[],warn:[],ann:[],signups:[],follows:[],board:[],ev:[],att:[],nt:[]},S={tab:"members",modal:null,auth:"in",msg:"",em:"",recover:false},session=null,me=null,myWarn=0,loaded=false;
 const isAdm=()=>!!(me&&me.is_admin);
+const recLim=()=>!!(me&&!me.is_admin&&me.committee==="HR"&&roleSel(me.role)!=="Board");
 const ml=k=>{const[y,m]=k.split("-");return MO[+m-1]+" "+y};
 const wc=m=>(me&&m.id===me.id&&!isAdm())?myWarn:D.warn.filter(x=>x.member_id===m.id).length;
 const avatar=(m,lg)=>m.avatar_url?imgT(m.avatar_url,"av"+(lg?" lg":"")):`<div class="av${lg?" lg":""}">${esc((m.name||"?")[0])}</div>`;
@@ -2291,9 +2292,10 @@ function modal(){
     <div class="row" style="margin-top:12px"><button class="d" onclick="addWarn('${m.id}')">إضافة إنذار</button><button class="g" onclick="closeM()">إغلاق</button></div></div></div>`;}
   const now=curMonth();
   return`<div class="ov"><div class="card"><b>تقييم شهر: ${esc(nm(m.name))}</b> <span class="mu" id="ds"></span><label>الشهر</label><input id="rm" type="month" value="${t.mo||now}" onchange="fillRec('${m.id}')">
-  ${ks(m.committee).map(([id,l])=>`<label>${l} (المنجز / المطلوب)</label><div class="row"><input id="${id}a" type="number" min="0" placeholder="منجز"><input id="${id}b" type="number" min="0" placeholder="مطلوب"></div><div id="lg_${id}"></div><button type="button" class="g" style="margin-top:6px" onclick="addLog('${id}')">+ إضافة تاريخ</button><div id="ex_${id}"></div><button type="button" class="g" style="margin-top:6px" onclick="addEx('${id}')">+ إضافة اعتذار</button>`).join("")}
+  ${recLim()?`<p class="mu" style="font-size:12px;margin:8px 0 0">النزولات والتاسكات والسيشنات وباقي البنود بتتسجل تلقائي من الأحداث (يدوي أو QR). هنا بس التفاعل والتدرج والبونص.</p>`:""}
+  <div ${recLim()?'style="display:none"':""}>${ks(m.committee).map(([id,l])=>`<label>${l} (المنجز / المطلوب)</label><div class="row"><input id="${id}a" type="number" min="0" placeholder="منجز"><input id="${id}b" type="number" min="0" placeholder="مطلوب"></div><div id="lg_${id}"></div><button type="button" class="g" style="margin-top:6px" onclick="addLog('${id}')">+ إضافة تاريخ</button><div id="ex_${id}"></div><button type="button" class="g" style="margin-top:6px" onclick="addEx('${id}')">+ إضافة اعتذار</button>`).join("")}</div>
   ${xs(m.committee).map(([k,l])=>`<label>${l} (من ${cfg(m.committee).x[k]})</label><input id="${k}" type="number" min="0" max="${cfg(m.committee).x[k]}" step="0.5">`).join("")}
-  <label>درجة إجمالية يدوية من 0 إلى ${maxS(m.committee)} (اختياري، لو كتبتها بتحل محل الحساب التلقائي)</label><input id="rmn" type="number" min="0" max="${maxS(m.committee)}" placeholder="سيبها فاضية للحساب التلقائي">
+  <div ${recLim()?'style="display:none"':""}><label>درجة إجمالية يدوية من 0 إلى ${maxS(m.committee)} (اختياري، لو كتبتها بتحل محل الحساب التلقائي)</label><input id="rmn" type="number" min="0" max="${maxS(m.committee)}" placeholder="سيبها فاضية للحساب التلقائي"></div>
   <p class="err" id="mm"></p><div class="row" style="margin-top:12px"><button onclick="saveRec('${m.id}')">حفظ التقييم</button><button class="g" onclick="closeM(true)">إلغاء</button></div></div></div>`;
 }
 function togFl(){const w=document.getElementById("flw"),c=$("#mc");if(w&&c)w.style.display=c.value==="HR"?"block":"none"}
