@@ -213,6 +213,7 @@ body.hasSb #tst{inset-block-end:24px}
 table.tb td,table.tb th{text-align:start}.tb .av{width:30px;height:30px;border-radius:10px;font-size:13px}
 .tb tbody tr:hover,.tb tr[data-mid]:hover{background:var(--inp)}
 img.crest{display:block;object-fit:cover;background:#000;border-radius:50%;padding:0;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+.tlogo{width:46px;height:46px;border-radius:50%;object-fit:cover;background:#000;flex:none;box-shadow:0 4px 14px rgba(0,0,0,.45)}
 </style>
 </head>
 <body>
@@ -371,7 +372,7 @@ function recoverView(){
   return`<div class="auth"><div class="box"><img class="crest" src="logo.png" alt="YLY"><h1 class="ttl">كلمة مرور جديدة</h1>
   <div class="card" style="margin-top:18px"><label>كلمة المرور الجديدة</label><input id="np" type="password" dir="ltr" autocomplete="new-password"><p class="err">${esc(S.msg)}</p><button style="width:100%;padding:12px" onclick="setNewPw()">حفظ</button></div></div></div>`;
 }
-const topbar=(extra)=>`<div class="top"><div class="row" style="gap:10px;flex-wrap:nowrap">${me?avatar(me):""}<div><div class="logo">YLY Dakahlia</div></div></div><div class="row" style="flex-wrap:nowrap">${extra||""}${unBtns()}${me?`<button class="g ico" onclick="gsOpen()" aria-label="بحث">🔍</button>`:""}${me?`<button class="g ico bellb" onclick="ntOpen()" aria-label="الإشعارات">🔔${ntCnt()?`<em>${ntCnt()}</em>`:""}</button>`:""}<button class="g ico" onclick="theme()" aria-label="الوضع">🌓</button>${me?"":`<button class="g" onclick="logout()">خروج</button>`}</div></div>`;
+const topbar=(extra)=>`<div class="top"><div class="row" style="gap:10px;flex-wrap:nowrap"><img class="tlogo" src="logo.png" alt="YLY"><div><div class="logo">YLY Dakahlia</div></div></div><div class="row" style="flex-wrap:nowrap">${extra||""}${unBtns()}${me?`<button class="g ico" onclick="gsOpen()" aria-label="بحث">🔍</button>`:""}${me?`<button class="g ico bellb" onclick="ntOpen()" aria-label="الإشعارات">🔔${ntCnt()?`<em>${ntCnt()}</em>`:""}</button>`:""}<button class="g ico" onclick="theme()" aria-label="الوضع">🌓</button>${me?"":`<button class="g" onclick="logout()">خروج</button>`}</div></div>`;
 
 function avatarBanner(){
   return`<div class="card" style="border-color:var(--pr)"><b>📸 ارفع صورتك الشخصية</b><p class="mu" style="margin:4px 0 10px">هتظهر في حسابك وعند الإدارة.</p><label class="btn" style="margin:0;color:#fff">اختيار صورة<input type="file" accept="image/*" hidden onchange="upAvatar(this.files[0])"></label></div>`;
