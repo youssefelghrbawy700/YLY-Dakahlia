@@ -788,10 +788,10 @@ async function heicFix(f){
   try{await loadHeic();const out=await window.heic2any({blob:f,toType:"image/jpeg",quality:0.95});const b=Array.isArray(out)?out[0]:out;return new File([b],(f.name||"photo").replace(/\.(heic|heif)$/i,"")+".jpg",{type:"image/jpeg"})}
   finally{prgHide()}
 }
-function memberRow(m){
+function memberRow(m,adm=true){
   const w=wc(m),mx=maxS(m.committee),B="padding:4px 9px;font-size:12px;border-radius:8px";
   return`<div class="card" style="padding:8px 10px;margin-bottom:6px;${w>=3?"border-color:var(--bad)":""}"><div class="row" style="gap:8px;flex-wrap:nowrap">${avatar(m)}<div style="flex:1;min-width:0"><b style="font-size:14px">${esc(nm(m.name))}</b><div class="mu" style="font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(m.role||"")} · ${esc(m.committee)}${m.user_id?"":" · لم يسجّل بعد"}</div><div class="bar" style="height:4px;margin-top:4px"><i style="width:${Math.min(100,score(m)/mx*100)}%"></i></div></div><div style="text-align:center;flex:none"><div class="big" style="font-size:20px">${score(m)}</div><div style="display:flex;gap:3px;justify-content:center;align-items:center">${gpill(m)}${trend(delta(m))}</div></div></div>
-  <div class="row" style="gap:5px;margin-top:6px">${w?`<span class="pill dn">⚠️ ${w}</span>`:""}<span style="flex:1"></span><button class="g" style="${B}" onclick="S.modal={t:'rec',id:'${m.id}'};render()">+ تقييم</button><button class="g" style="${B}" onclick="S.modal={t:'hist',id:'${m.id}'};render()">الشهور</button><button class="g" style="${B}" onclick="S.modal={t:'view',id:'${m.id}'};render()">عرض</button><button class="g" style="${B}" onclick="S.modal={t:'warn',id:'${m.id}'};render()">إنذار</button><button class="g" style="${B}" onclick="S.modal={t:'mem',id:'${m.id}'};render()">تعديل</button></div></div>`}
+  <div class="row" style="gap:5px;margin-top:6px">${w?`<span class="pill dn">⚠️ ${w}</span>`:""}<span style="flex:1"></span><button class="g" style="${B}" onclick="S.modal={t:'rec',id:'${m.id}'};render()">+ تقييم</button><button class="g" style="${B}" onclick="S.modal={t:'hist',id:'${m.id}'};render()">الشهور</button><button class="g" style="${B}" onclick="S.modal={t:'view',id:'${m.id}'};render()">عرض</button>${adm||canWarnFor(m)?`<button class="g" style="${B}" onclick="S.modal={t:'warn',id:'${m.id}'};render()">إنذار</button>`:""}${adm?`<button class="g" style="${B}" onclick="S.modal={t:'mem',id:'${m.id}'};render()">تعديل</button>`:""}</div></div>`}
 function memberCard(m,adm){
   const w=wc(m),mx=maxS(m.committee);
   return`<div class="card" ${w>=3?'style="border-color:var(--bad)"':""}><div class="row">${avatar(m)}<div style="flex:1"><b>${esc(nm(m.name))}</b><div class="mu">${esc(m.role||"")} · ${esc(m.committee)}${m.user_id?"":" · لم يسجّل بعد"}</div></div><div class="big" style="font-size:26px">${score(m)}</div></div>
@@ -1421,7 +1421,7 @@ function mgrList(mine){
   const cur=S.mgt&&tabsList.includes(S.mgt)?S.mgt:tabsList[0];
   const inTab=m=>cur===BT?isB(m):(!isB(m)&&m.committee===cur);
   const tabs=`<div class="tabs" style="flex-wrap:wrap">${tabsList.map(t=>`<button class="${t===cur?"on":""}" onclick="S.mgt='${t}';render()">${esc(t)} (${mine.filter(m=>t===BT?isB(m):(!isB(m)&&m.committee===t)).length})</button>`).join("")}</div>`;
-  return bar+tabs+mine.filter(inTab).sort(cmp).map(m=>memberCard(m,false)).join("");
+  return bar+tabs+mine.filter(inTab).sort(cmp).map(m=>memberRow(m,false)).join("");
 }
 function mgrView(){
   const mine=myFollows();
