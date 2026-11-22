@@ -444,7 +444,7 @@ async function load(){
   const by={};a.data.forEach(m=>{m.rec={};m.meta={};by[m.id]=m});
   b.data.forEach(r=>{const m=by[r.member_id];if(m){m.rec[r.month]=r.data;m.meta[r.month]={by:r.by_member,at:r.updated_at}}});
   D.members=a.data;D.warn=w.data||[];D.ann=(n.data||[]).map(x=>x.month);D.signups=su.data||[];D.follows=fo.data||[];D.board=bd.data||[];{const al=await sb.from("event_albums").select("*").order("event_date",{ascending:false}),ap=await sb.from("event_photos").select("*").order("created_at");D.albums=al.data||[];D.albPhotos=ap.data||[];D.albUrl={};D.albUrlReady=false}await loadEv();
-  me=D.members.find(m=>m.user_id===session.user.id)||null;if(isAdm()&&S.tab==="trash"){const tq=await sb.from("trash").select("*").order("deleted_at",{ascending:false});D.trash=tq.data||[];D.trashLoaded=true}
+  me=D.members.find(m=>m.user_id===session.user.id)||null;document.documentElement.classList.toggle("nosel",!(me&&me.is_admin&&localStorage.getItem("selText")==="1"));if(isAdm()&&S.tab==="trash"){const tq=await sb.from("trash").select("*").order("deleted_at",{ascending:false});D.trash=tq.data||[];D.trashLoaded=true}
 if(isAdm()){const bq=await sb.from("member_birthdays").select("member_id,birth_date");D.bdays={};(bq.data||[]).forEach(x=>D.bdays[x.member_id]=x.birth_date)}
 setTimeout(evReconcile,0);if(isAdm())setTimeout(()=>{try{sb.rpc("backup_if_due").then(()=>{},()=>{})}catch(e){}},2000);setTimeout(()=>loadNt().then(()=>render()),0);loadCfg().then(()=>{RECB=false;evReconcile()});
   const c=await sb.rpc("my_warning_count");myWarn=c.data||0;
@@ -466,7 +466,7 @@ setTimeout(evReconcile,0);if(isAdm())setTimeout(()=>{try{sb.rpc("backup_if_due")
 const UN={st:[],rd:[],busy:0},UNT=["members","records","warn","follows","board"],TBL={members:"members",records:"records",warn:"warnings",follows:"follows",board:"board"};
 const unKey={members:r=>r.id,records:r=>r.member_id+"|"+r.month,warn:r=>r.id,follows:r=>r.manager_id+"|"+r.member_id,board:r=>r.id};
 function unRows(t){
-  if(t==="members")return D.members.map(m=>{const{rec,meta,last_seen,session_seconds,updated_at,...r}=m;return r});
+  if(t==="members")return D.members.map(m=>{const{rec,meta,last_seen,session_seconds,session_start,total_seconds,visits,updated_at,...r}=m;return r});
   if(t==="records"){const o=[];D.members.forEach(m=>Object.keys(m.rec||{}).forEach(k=>{const mt=(m.meta||{})[k]||{};o.push({member_id:m.id,month:k,data:m.rec[k],by_member:mt.by})}));return o}
   return t==="warn"?D.warn:t==="follows"?D.follows:D.board}
 function unSnap(parts){const o={};parts.filter(t=>unKey[t]).forEach(t=>{const m=new Map();unRows(t).forEach(r=>m.set(unKey[t](r),r));o[t]=m});return o}
@@ -519,28 +519,37 @@ function hrData(){
   const ord=c=>{const i=COM4.indexOf(c);return i<0?99:i},srt=L=>L.slice().sort((a,b)=>ord(a.committee)-ord(b.committee)||nm2(a.name).localeCompare(nm2(b.name),"ar"));
   const lm=new Map();D.board.forEach(b=>{if(b.member_id&&evCom(b).includes("HR")&&!lm.has(b.member_id)&&by[b.member_id])lm.set(b.member_id,{m:by[b.member_id],pos:b.position})});
   const leads=[...lm.values()].map(o=>{const s=new Map();(fol[o.m.id]||[]).forEach(x=>s.set(x.id,x));D.members.forEach(x=>{if(x.committee==="HR"&&x.role!=="Board"&&x.id!==o.m.id)s.set(x.id,x)});return{m:o.m,pos:o.pos,L:[...s.values()]}});
-  return{hrs,fol,un,srt,leads}}
+  const dm=new Map();D.follows.forEach(f=>{if(by[f.member_id]&&by[f.manager_id]){const a=dm.get(f.member_id)||[];if(!a.some(x=>x.id===f.manager_id))a.push(by[f.manager_id]);dm.set(f.member_id,a)}});
+  const dups=[...dm.entries()].filter(([k,a])=>a.length>1).map(([k,a])=>({m:by[k],H:a.sort((x,y)=>nm2(x.name).localeCompare(nm2(y.name),"ar"))})).sort((x,y)=>nm2(x.m.name).localeCompare(nm2(y.m.name),"ar"));
+  return{hrs,fol,un,srt,leads,dups,dm}}
 function hrMapView(){
-  const com=S.hrc||"all",{hrs,fol,un,srt,leads}=hrData(),inC=x=>com==="all"||x.committee===com;
+  const com=S.hrc||"all",{hrs,fol,un,srt,leads,dups,dm}=hrData(),inC=x=>com==="all"||x.committee===com;
   const noF=hrs.filter(h=>!(fol[h.id]||[]).length),unF=un.filter(inC),grp=L=>COM4.concat(["Board"]).map(c=>[c,L.filter(x=>x.committee===c)]).filter(x=>x[1].length);
-  const rowOf=(h,all,tag)=>{const L=all.filter(inC);
-    return`<div class="lb" style="align-items:flex-start;gap:8px;${all.length?"":"background:rgba(248,113,113,.1);border-radius:10px"}">${avatar(h)}<div style="flex:1;min-width:0"><b>${esc(nm2(h.name))}</b> ${tag?`<span class="pill up" style="font-size:11px">${esc(tag)}</span>`:""} <span class="mu" style="font-size:12px">${com==="all"?all.length:L.length+"/"+all.length} عضو</span> ${all.length?"":`<span class="pill dn" style="font-size:11px">مش بيتابع حد</span>`}
-      ${grp(L).map(([c,A])=>`<div style="font-size:12.5px;margin-top:3px"><span class="pill st" style="font-size:10.5px">${esc(c)}</span> ${A.map(x=>esc(nm2(x.name))).join("، ")}</div>`).join("")||(all.length?`<div class="mu" style="font-size:12px">مفيش من ${esc(com)}</div>`:"")}</div>
+  const rowOf=(h,all,tag)=>{const F=!!S.hrdupIn,L=all.filter(x=>inC(x)&&(!F||((dm.get(x.id)||[]).length>1&&(dm.get(x.id)||[]).some(y=>y.id===h.id))));if(F&&!L.length)return"";
+    return`<div class="lb" style="align-items:flex-start;gap:8px;${all.length?"":"background:rgba(248,113,113,.1);border-radius:10px"}">${avatar(h)}<div style="flex:1;min-width:0"><b>${esc(nm2(h.name))}</b> ${tag?`<span class="pill up" style="font-size:11px">${esc(tag)}</span>`:""} <span class="mu" style="font-size:12px">${com==="all"&&!F?all.length:L.length+"/"+all.length} عضو</span> ${all.length?"":`<span class="pill dn" style="font-size:11px">مش بيتابع حد</span>`}
+      ${grp(L).map(([c,A])=>`<div style="font-size:12.5px;margin-top:3px"><span class="pill st" style="font-size:10.5px">${esc(c)}</span> ${A.map(x=>esc(nm2(x.name))+(F?` <span class="mu" style="font-size:11px">(كمان عند: ${(dm.get(x.id)||[]).filter(y=>y.id!==h.id).map(y=>esc(nm2(y.name))).join("، ")})</span>`:"")).join("، ")}</div>`).join("")||(all.length?`<div class="mu" style="font-size:12px">مفيش من ${esc(com)}</div>`:"")}</div>
       <button class="g chip" onclick="S.modal={t:'mem',id:'${h.id}'};render()">تعديل</button></div>`};
   const leadIds=new Set(leads.map(x=>x.m.id));
   const rows=leads.map(x=>rowOf(x.m,srt(x.L),x.pos||"قيادة HR")).join("")+hrs.filter(h=>!leadIds.has(h.id)).map(h=>rowOf(h,srt(fol[h.id]||[]),"")).join("");
   const unHtml=grp(unF).map(([c,A])=>`<div style="margin-top:10px"><b>${esc(c)}</b> <span class="mu">(${A.length})</span>${A.sort((a,b)=>nm2(a.name).localeCompare(nm2(b.name),"ar")).map(x=>`<div class="lb" style="gap:8px;align-items:center">${avatar(x)}<span style="flex:1;min-width:0">${esc(nm2(x.name))}</span><select style="max-width:46%" onchange="hrAssign('${x.id}',this.value)"><option value="">تعيين HR…</option>${hrs.filter(h=>h.id!==x.id).map(h=>`<option value="${h.id}">${esc(nm2(h.name))}</option>`).join("")}</select></div>`).join("")}</div>`).join("");
-  return`<div class="row" style="margin-bottom:10px;flex-wrap:wrap"><span class="pill up">${hrs.length} HR</span><span class="pill ${noF.length?"dn":"up"}">HR بدون متابعين: ${noF.length}</span><span class="pill ${un.length?"dn":"up"}">أعضاء بدون HR: ${un.length}</span><span style="flex:1"></span><button class="g" onclick="hrExport()">⬇ تصدير التوزيع</button><button class="g" onclick="S.modal={t:'flimp'};S.flImp=null;render()">🔗 استيراد</button></div>
+  return`<div class="row" style="margin-bottom:10px;flex-wrap:wrap"><span class="pill up">${hrs.length} HR</span><span class="pill ${noF.length?"dn":"up"}">HR بدون متابعين: ${noF.length}</span><span class="pill ${un.length?"dn":"up"}">أعضاء بدون HR: ${un.length}</span><button class="g chip ${S.hrdup?"on":""}" style="${dups.length&&!S.hrdup?"border-color:var(--warn)":""}" onclick="S.hrdup=!S.hrdup;render()">⚠ ليهم أكتر من HR: ${dups.length}</button><span style="flex:1"></span><button class="g" onclick="hrExport()">⬇ تصدير التوزيع</button><button class="g" onclick="S.modal={t:'flimp'};S.flImp=null;render()">🔗 استيراد</button></div>
   <div class="row" style="margin-bottom:10px;flex-wrap:wrap">${["all"].concat(COM4).map(c=>`<button class="g chip ${com===c?"on":""}" onclick="S.hrc='${c}';render()">${c==="all"?"كل اللجان":c}</button>`).join("")}</div>
-  <div class="card"><b>كل HR بيتابع مين</b><div style="margin-top:6px">${rows||'<p class="mu">مفيش أعضاء في لجنة HR.</p>'}</div></div>
-  <div class="card" style="margin-top:12px"><b>أعضاء مفيش HR بيتابعهم</b> <span class="mu" style="font-size:12px">(البورد والأدمن وأعضاء HR مستثنين)</span>${unHtml||'<p class="mu" style="margin:8px 0 0">✓ كل الأعضاء ليهم HR.</p>'}</div>`}
+  ${S.hrdup?(()=>{const L=dups.filter(d=>inC(d.m));return`<div class="card"><b>أعضاء ليهم أكتر من HR</b> <span class="mu" style="font-size:12px">(${L.length}) · شيل المتابعة الزيادة بـ ✕ (وتقدر تتراجع بـ ↶)</span>${L.map(d=>`<div class="lb" style="gap:8px;align-items:flex-start">${avatar(d.m)}<div style="flex:1;min-width:0"><b>${esc(nm2(d.m.name))}</b> <span class="pill st" style="font-size:10.5px">${esc(d.m.committee)}</span><div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:6px">${d.H.map(h=>`<span class="pill up" style="font-size:12px">${esc(nm2(h.name))} <a href="#" onclick="event.preventDefault();hrUnfollow('${h.id}','${d.m.id}')" style="color:var(--bad);text-decoration:none;margin-inline-start:4px">✕</a></span>`).join("")}</div></div></div>`).join("")||'<p class="mu" style="margin:8px 0 0">✓ مفيش أعضاء ليهم أكتر من HR.</p>'}</div>`})():`
+  <div class="card"><div class="row" style="gap:8px;flex-wrap:wrap"><b style="flex:1">كل HR بيتابع مين</b><button class="g chip ${S.hrdupIn?"on":""}" onclick="S.hrdupIn=!S.hrdupIn;render()">⚠ الأعضاء اللي ليهم أكتر من HR (${dups.filter(d=>inC(d.m)).length})</button></div><div style="margin-top:6px">${rows||(S.hrdupIn?'<p class="mu">✓ مفيش أعضاء ليهم أكتر من HR.</p>':'<p class="mu">مفيش أعضاء في لجنة HR.</p>')}</div></div>
+  <div class="card" style="margin-top:12px"><b>أعضاء مفيش HR بيتابعهم</b> <span class="mu" style="font-size:12px">(البورد والأدمن وأعضاء HR مستثنين)</span>${unHtml||'<p class="mu" style="margin:8px 0 0">✓ كل الأعضاء ليهم HR.</p>'}</div>`}`}
+async function hrUnfollow(hid,mid){
+  const r=await sb.from("follows").delete().eq("manager_id",hid).eq("member_id",mid);
+  if(r.error)return alert(r.error.message);
+  await reload(["follows"],"شيل متابعة زيادة");render();toast("اتشالت ✓","ok")}
 async function hrAssign(mid,hid){
   if(!hid)return;const r=await sb.from("follows").insert({manager_id:hid,member_id:mid});
   if(r.error)return alert(r.error.message);
   await reload(["follows"],"تعيين HR");render();toast("اتعيّن ✓","ok")}
 function hrExport(){
-  const{hrs,fol,srt}=hrData(),rows=[["اسم الـ HR","الأعضاء اللي بيتابعهم (كل اسم في سطر)","لجان الأعضاء (بنفس الترتيب)"]];
-  hrs.forEach(h=>{const L=srt(fol[h.id]||[]);rows.push([nm(h.name),L.map(x=>nm(x.name)).join("\n"),L.map(x=>x.committee).join(", ")])});
+  const{hrs,fol,srt,leads}=hrData(),rows=[["اسم الـ HR","الأعضاء اللي بيتابعهم (كل اسم في سطر)","لجان الأعضاء (بنفس الترتيب)","المنصب"]],ids=new Set(leads.map(x=>x.m.id));
+  const add=(h,L,pos)=>{L=srt(L);rows.push([nm(h.name),L.map(x=>nm(x.name)).join("\n"),L.map(x=>x.committee).join(", "),pos])};
+  leads.forEach(x=>add(x.m,x.L,x.pos||"قيادة HR"));
+  hrs.filter(h=>!ids.has(h.id)).forEach(h=>add(h,fol[h.id]||[],""));
   csvDl(rows,"hr-distribution.csv")}
 async function refresh(){loaded=false;render();await load();render()}
 async function boot(){
@@ -741,7 +750,7 @@ function mlistHtml(){
   return L.map(m=>{const on=(S.sel||[]).includes(m.id);return `<div data-mid="${m.id}" style="border-radius:16px;${on?"outline:2px solid var(--pr);":""}">${memberRow(m)}</div>`}).join("");
 }
 let _lpT=null,_lpFired=false,_lpX=0,_lpY=0;
-document.documentElement.classList.toggle("nosel",localStorage.getItem("selText")!=="1");
+document.documentElement.classList.add("nosel");
 document.addEventListener("pointerdown",e=>{const c=e.target.closest&&e.target.closest("[data-mid]");if(!c||!c.closest("#mlist"))return;_lpFired=false;_lpX=e.clientX;_lpY=e.clientY;clearTimeout(_lpT);_lpT=setTimeout(()=>{_lpFired=true;const id=c.dataset.mid,on=!(S.sel||[]).includes(id);selT(id,on);c.style.outline=on?"2px solid var(--pr)":"";if(navigator.vibrate)navigator.vibrate(20)},450)});
 document.addEventListener("pointermove",e=>{if(Math.hypot(e.clientX-_lpX,e.clientY-_lpY)>12)clearTimeout(_lpT)});
 ["pointerup","pointerleave","pointercancel"].forEach(ev=>document.addEventListener(ev,()=>clearTimeout(_lpT)));
@@ -750,7 +759,7 @@ document.addEventListener("click",e=>{const c=e.target.closest&&e.target.closest
 const SEL_CSS=`.nosel,.nosel *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}.nosel input,.nosel textarea,.nosel select,.nosel [contenteditable]{-webkit-user-select:text;user-select:text}`;
 (()=>{const st=document.createElement("style");st.textContent=SEL_CSS;document.head.appendChild(st)})();
 document.addEventListener("selectstart",e=>{if(document.documentElement.classList.contains("nosel")&&!(e.target.closest&&e.target.closest("input,textarea,select,[contenteditable]")))e.preventDefault()});
-function toggleSel(){const on=localStorage.getItem("selText")!=="1";localStorage.setItem("selText",on?"1":"0");document.documentElement.classList.toggle("nosel",!on);render()}
+function toggleSel(){if(!isAdm())return;const on=localStorage.getItem("selText")!=="1";localStorage.setItem("selText",on?"1":"0");document.documentElement.classList.toggle("nosel",!on);render()}
 function selT(id,on){const cur=(S.sel||[]).filter(x=>x!==id);S.sel=on?[...cur,id]:cur;const bb=document.getElementById("bulkbar");if(bb)bb.innerHTML=bulkHtml()}
 function selAll(){S.sel=mlistItems().map(m=>m.id);render()}
 function bulkHtml(){
@@ -1420,9 +1429,13 @@ function mgrList(mine){
   if(!tabsList.length)return bar;
   const cur=S.mgt&&tabsList.includes(S.mgt)?S.mgt:tabsList[0];
   const inTab=m=>cur===BT?isB(m):(!isB(m)&&m.committee===cur);
-  const tabs=`<div class="tabs" style="flex-wrap:wrap">${tabsList.map(t=>`<button class="${t===cur?"on":""}" onclick="S.mgt='${t}';render()">${esc(t)} (${mine.filter(m=>t===BT?isB(m):(!isB(m)&&m.committee===t)).length})</button>`).join("")}</div>`;
-  return bar+tabs+mine.filter(inTab).sort(cmp).map(m=>memberRow(m,false)).join("");
+  const tabs=`<div class="tabs" style="flex-wrap:wrap">${tabsList.map(t=>`<button class="${t===cur?"on":""}" onclick="S.mq='';S.mgt='${t}';render()">${esc(t)} (${mine.filter(m=>t===BT?isB(m):(!isB(m)&&m.committee===t)).length})</button>`).join("")}</div>`;
+  const q=impNorm(S.mq||""),keyOf=m=>isB(m)?BT:m.committee,list=mine.filter(m=>!isB(m)||hasBoard).sort(cmp),vis=m=>q?impNorm(m.name).includes(q):keyOf(m)===cur;
+  S.mgc=cur;
+  const srch=`<div class="row" style="gap:8px;margin-bottom:8px;flex-wrap:nowrap"><input id="mgq" type="search" placeholder="🔍 ابحث بالاسم…" value="${esc(S.mq||"")}" oninput="mgFilter(this.value)" style="flex:1;margin:0"><span class="mu" id="mgc" style="font-size:12px;white-space:nowrap">${q?list.filter(vis).length+" نتيجة":""}</span></div>`;
+  return srch+bar+tabs+list.map(m=>`<div class="mgr" data-n="${esc(impNorm(m.name))}" data-t="${esc(keyOf(m))}" style="${vis(m)?"":"display:none"}">${memberRow(m,false)}</div>`).join("");
 }
+function mgFilter(v){S.mq=v;const q=impNorm(v);let n=0;document.querySelectorAll(".mgr").forEach(e=>{const ok=q?e.dataset.n.includes(q):e.dataset.t===S.mgc;e.style.display=ok?"":"none";if(ok)n++});const c=document.getElementById("mgc");if(c)c.textContent=q?n+" نتيجة":""}
 function mgrView(){
   const mine=myFollows();
   return topbar()+tabBar([["follow","متابعة الأعضاء"]].concat(evalsTabs(),[["me","حسابي"],["leaders","👥 المسؤولون"]],isBoardAcc()?[["bcom","📊 لجنتي"]]:[],dTab(),evTab(),phTab(),ctTabs(),tecTab()))+
@@ -1704,7 +1717,7 @@ function moreHtml(){
   const acts=[];
   if(isAdm()){acts.push(`<button class="mm-btn" onclick="S.more=false;S.modal={t:'mem'};render()"><i>➕</i><span>عضو جديد</span></button>`,`<button class="mm-btn" onclick="S.more=false;S.modal={t:'imp'};render()"><i>⬆</i><span>استيراد أعضاء</span></button>`,`<button class="mm-btn" onclick="S.more=false;S.modal={t:'flimp'};S.flImp=null;render()"><i>🔗</i><span>استيراد المتابعة</span></button>`,`<button class="mm-btn" onclick="backup()"><i>⬇</i><span>نسخة Excel</span></button>`)}
   acts.push(`<button class="mm-btn" onclick="theme()"><i>🌓</i><span>الوضع</span></button>`);
-  acts.push(`<button class="mm-btn" onclick="toggleSel()"><i>🔤</i><span>${localStorage.getItem("selText")==="1"?"إيقاف تحديد النص":"تحديد النص"}</span></button>`);
+  if(isAdm())acts.push(`<button class="mm-btn" onclick="toggleSel()"><i>🔤</i><span>${localStorage.getItem("selText")==="1"?"إيقاف تحديد النص":"تحديد النص"}</span></button>`);
   if(DEFI)acts.push(`<button class="mm-btn" onclick="installApp()"><i>📲</i><span>تثبيت التطبيق</span></button>`);
   acts.push(`<button class="mm-btn mm-out" onclick="logout()"><i>🚪</i><span>خروج</span></button>`);
   const css=`<style>.mm-sec{margin-bottom:16px}.mm-h{font-size:13px;font-weight:800;opacity:.85;margin:0 4px 8px}.mm-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.mm-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:86px;padding:10px 6px;border-radius:16px;font-size:13px;text-align:center;background:var(--inp);border:1px solid var(--bd);color:var(--tx)}.mm-btn i{font-style:normal;font-size:24px;line-height:1}.mm-btn span{line-height:1.25}.mm-out{color:#fca5a5}</style>`;
