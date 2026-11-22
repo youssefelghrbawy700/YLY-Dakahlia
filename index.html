@@ -1363,7 +1363,7 @@ function adminView(){
   else if(S.tab==="security")sub=secView();
   else if(S.tab==="sheets")sub=sheetsView();
   else if(S.tab==="req")sub=reqView();
-  else if(S.tab==="committees")sub=comms().map(c=>{const r=D.members.filter(m=>m.committee===c).sort((a,b)=>score(b)-score(a)),a=Math.round(r.reduce((s,m)=>s+score(m),0)/r.length);return`<div class="card"><div class="row" style="justify-content:space-between"><b>لجنة ${esc(c)}</b><span class="mu">${r.length} أعضاء · متوسط ${a}</span></div>${r.map((m,i)=>`<div class="lb"><span>${denseRank(r)[i]}</span>${avatar(m)}<span style="flex:1">${esc(nm(m.name))}</span><b>${score(m)}</b></div>`).join("")}</div>`}).join("")||'<p class="mu">أضف أعضاء أولاً.</p>';
+  else if(S.tab==="committees")sub=comms().map((c,ci)=>{const r=D.members.filter(m=>m.committee===c).sort((a,b)=>score(b)-score(a)),a=Math.round(r.reduce((s,m)=>s+score(m),0)/r.length);return`<div class="card"><div class="row" style="justify-content:space-between"><b>لجنة ${esc(c)}</b><span class="mu">${r.length} أعضاء · متوسط ${a}</span></div>${(()=>{const cnt={};r.forEach(m=>Object.keys(m.rec||{}).forEach(k=>cnt[k]=(cnt[k]||0)+1));const ks=Object.keys(cnt).sort().reverse();return ks.length?`<div class="row" style="gap:8px;margin:8px 0;flex-wrap:wrap"><select id="dcm_${ci}" style="flex:1;min-width:150px;margin:0">${ks.map(k=>`<option value="${k}">${ml(k)} (${cnt[k]} تقييم)</option>`).join("")}</select><button class="g" style="color:#fca5a5" onclick="delComMonth(${ci})">🗑 حذف تقييم الشهر للجنة كلها</button></div>`:""})()}${r.map((m,i)=>`<div class="lb"><span>${denseRank(r)[i]}</span>${avatar(m)}<span style="flex:1">${esc(nm(m.name))}</span><b>${score(m)}</b></div>`).join("")}</div>`}).join("")||'<p class="mu">أضف أعضاء أولاً.</p>';
   else if(S.tab==="dash"){const wl=D.members.map(m=>[m,wc(m)]).filter(x=>x[1]).sort((a,b)=>b[1]-a[1]);
     sub=`<div class="card"><b>🏆 أفضل 5 في الفريق</b>${top5List().map((m,i)=>`<div class="lb"><span>${denseRank(top5List())[i]}</span>${avatar(m)}<span style="flex:1">${esc(nm(m.name))} <span class="mu">· ${esc(m.committee)}</span></span>${trend(delta(m))}<b>${score(m)}</b></div>`).join("")}</div>
     <div class="card"><b>⚠️ يحتاجون متابعة (أقل من 75% أو في النازل)</b>${D.members.filter(m=>score(m)/maxS(m.committee)<0.75||delta(m)<=-5).map(m=>`<div class="lb"><span style="flex:1">${esc(nm(m.name))}</span>${trend(delta(m))}<b>${score(m)}</b></div>`).join("")||'<p class="mu">لا أحد 👏</p>'}</div>
@@ -2552,6 +2552,15 @@ async function editTotal(id,k){
   const x=await sb.from("records").upsert({member_id:id,month:k,data:r},{onConflict:"member_id,month"});if(x.error)return alert(x.error.message);
   await reload(["records"],"تعديل درجة إجمالية");render();
 }
+async function delComMonth(ci){
+  const c=comms()[ci],sel=document.getElementById("dcm_"+ci),k=sel&&sel.value;
+  if(!c||!k)return alert("اختار الشهر الأول");
+  const ms=D.members.filter(m=>m.committee===c&&m.rec&&m.rec[k]!==undefined);
+  if(!ms.length)return alert("مفيش تقييمات للجنة دي في الشهر ده");
+  if(!confirm("هتحذف تقييم "+ml(k)+" لـ "+ms.length+" عضو في لجنة "+c+(D.ann.includes(k)?"\n⚠ الشهر ده معلن للأعضاء":"")+"\nتقدر تتراجع بزرار ↶ بعد الحذف."))return;
+  const x=await sb.from("records").delete().eq("month",k).in("member_id",ms.map(m=>m.id));
+  if(x.error)return alert(x.error.message);
+  await reload(["records"],"حذف تقييم لجنة "+c+" — "+ml(k));render();toast("اتحذف تقييم "+ms.length+" عضو ✓","ok")}
 async function delRec(id,k){if(!confirm("حذف تقييم الشهر ده؟"))return;const x=await sb.from("records").delete().eq("member_id",id).eq("month",k);if(x.error)return alert(x.error.message);await reload(["records"],"حذف تقييم شهر");render()}
 
 /* ---------- الحفظ التلقائي للمسودات ---------- */
