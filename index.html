@@ -1262,7 +1262,7 @@ function adminView(){
   const sc=D.members.map(score),avg=sc.length?Math.round(sc.reduce((a,b)=>a+b,0)/sc.length):0;
   let sub="";
   if(S.tab==="home")sub=homeView();
-  else if(S.tab==="members")sub=`<div class="row" style="margin-bottom:12px"><button onclick="S.modal={t:'mem'};render()">➕ عضو جديد</button><button class="g" onclick="S.modal={t:'imp'};render()">⬆ استيراد</button><button class="g" onclick="backup()">⬇ Excel</button></div>`+(pend?`<div class="card" style="border-color:var(--warn)"><div class="row"><b style="flex:1">🆕 ${pend} طلب تسجيل جديد</b><button onclick="S.tab='req';render()">مراجعة</button></div></div>`:"")+`<div class="grid"><div class="card"><div class="mu">إجمالي الأعضاء</div><div class="big">${D.members.length}</div></div><div class="card"><div class="mu">متوسط التقييم</div><div class="big">${avg}</div></div></div><div style="height:12px"></div>`+(()=>{const cs=comms(),cf=cs.includes(S.mcf)?S.mcf:"all";return`<div class="tabs"><button class="${cf==="all"?"on":""}" onclick="S.mcf='all';render()">الكل (${D.members.length})</button>${cs.map(c=>`<button class="${cf===c?"on":""}" onclick="S.mcf='${esc(c)}';render()">${esc(c)} (${D.members.filter(m=>m.committee===c).length})</button>`).join("")}</div><div class="row" style="gap:8px;margin:10px 0;flex-wrap:wrap"><input id="mq" placeholder="🔎 بحث بالاسم أو اللجنة أو الدور" value="${esc(S.mq||"")}" oninput="S.mq=this.value;$('#mlist').innerHTML=mlistHtml()" style="flex:1;min-width:160px"><select onchange="S.mflt=this.value;render()">${[["all","كل الأعضاء"],["warn","عندهم إنذارات"],["low","تقدير C أو أقل (آخر شهر)"],["noeval","مالهومش تقييم آخر شهر"]].map(([v,t])=>`<option value="${v}" ${(S.mflt||"all")===v?"selected":""}>${t}</option>`).join("")}</select><select onchange="S.msrt=this.value;render()">${MSRT.map(([v,t])=>`<option value="${v}" ${(S.msrt||"name_asc")===v?"selected":""}>${t}</option>`).join("")}</select></div><div id="bulkbar">${bulkHtml()}</div><div id="mlist">${mlistHtml()}</div>`})();
+  else if(S.tab==="members")sub=`<div class="row" style="margin-bottom:12px"><button onclick="S.modal={t:'mem'};render()">➕ عضو جديد</button><button class="g" onclick="S.modal={t:'imp'};render()">⬆ استيراد</button><button class="g" onclick="S.modal={t:'flimp'};S.flImp=null;render()">🔗 استيراد المتابعة</button><button class="g" onclick="backup()">⬇ Excel</button></div>`+(pend?`<div class="card" style="border-color:var(--warn)"><div class="row"><b style="flex:1">🆕 ${pend} طلب تسجيل جديد</b><button onclick="S.tab='req';render()">مراجعة</button></div></div>`:"")+`<div class="grid"><div class="card"><div class="mu">إجمالي الأعضاء</div><div class="big">${D.members.length}</div></div><div class="card"><div class="mu">متوسط التقييم</div><div class="big">${avg}</div></div></div><div style="height:12px"></div>`+(()=>{const cs=comms(),cf=cs.includes(S.mcf)?S.mcf:"all";return`<div class="tabs"><button class="${cf==="all"?"on":""}" onclick="S.mcf='all';render()">الكل (${D.members.length})</button>${cs.map(c=>`<button class="${cf===c?"on":""}" onclick="S.mcf='${esc(c)}';render()">${esc(c)} (${D.members.filter(m=>m.committee===c).length})</button>`).join("")}</div><div class="row" style="gap:8px;margin:10px 0;flex-wrap:wrap"><input id="mq" placeholder="🔎 بحث بالاسم أو اللجنة أو الدور" value="${esc(S.mq||"")}" oninput="S.mq=this.value;$('#mlist').innerHTML=mlistHtml()" style="flex:1;min-width:160px"><select onchange="S.mflt=this.value;render()">${[["all","كل الأعضاء"],["warn","عندهم إنذارات"],["low","تقدير C أو أقل (آخر شهر)"],["noeval","مالهومش تقييم آخر شهر"]].map(([v,t])=>`<option value="${v}" ${(S.mflt||"all")===v?"selected":""}>${t}</option>`).join("")}</select><select onchange="S.msrt=this.value;render()">${MSRT.map(([v,t])=>`<option value="${v}" ${(S.msrt||"name_asc")===v?"selected":""}>${t}</option>`).join("")}</select></div><div id="bulkbar">${bulkHtml()}</div><div id="mlist">${mlistHtml()}</div>`})();
   else if(S.tab==="evals")sub=evalsView();
   else if(S.tab==="events")sub=eventsView();
   else if(S.tab==="att")sub=attView();
@@ -1616,7 +1616,7 @@ function moreHtml(){
   const groups=MM_GROUPS.map(([t,ids])=>{const L=ids.filter(id=>rest.includes(id));L.forEach(id=>used.add(id));return sec(t,L.map(btn))}).join("");
   const other=sec("🧭 أخرى",rest.filter(id=>!used.has(id)).map(btn));
   const acts=[];
-  if(isAdm()){acts.push(`<button class="mm-btn" onclick="S.more=false;S.modal={t:'mem'};render()"><i>➕</i><span>عضو جديد</span></button>`,`<button class="mm-btn" onclick="S.more=false;S.modal={t:'imp'};render()"><i>⬆</i><span>استيراد أعضاء</span></button>`,`<button class="mm-btn" onclick="backup()"><i>⬇</i><span>نسخة Excel</span></button>`)}
+  if(isAdm()){acts.push(`<button class="mm-btn" onclick="S.more=false;S.modal={t:'mem'};render()"><i>➕</i><span>عضو جديد</span></button>`,`<button class="mm-btn" onclick="S.more=false;S.modal={t:'imp'};render()"><i>⬆</i><span>استيراد أعضاء</span></button>`,`<button class="mm-btn" onclick="S.more=false;S.modal={t:'flimp'};S.flImp=null;render()"><i>🔗</i><span>استيراد المتابعة</span></button>`,`<button class="mm-btn" onclick="backup()"><i>⬇</i><span>نسخة Excel</span></button>`)}
   acts.push(`<button class="mm-btn" onclick="theme()"><i>🌓</i><span>الوضع</span></button>`);
   acts.push(`<button class="mm-btn" onclick="toggleSel()"><i>🔤</i><span>${localStorage.getItem("selText")==="1"?"إيقاف تحديد النص":"تحديد النص"}</span></button>`);
   if(DEFI)acts.push(`<button class="mm-btn" onclick="installApp()"><i>📲</i><span>تثبيت التطبيق</span></button>`);
@@ -2253,6 +2253,7 @@ function LOGOCARD(){return`<div class="card"><b>🏷 شعارات الديزاي
 function modal(){
   const t=S.modal,m=D.members.find(x=>x.id===t.id);
   if(t.t==="imp")return impHtml();
+  if(t.t==="flimp")return flImpHtml();
   if(t.t==="bdayadd"){const opts=[...D.members].sort((a,b)=>nm(a.name).localeCompare(nm(b.name),"ar")).map(m=>`<option value="${m.id}">${esc(nm(m.name))} · ${esc(m.committee||"")}</option>`).join("");return`<div class="ov" onclick="if(event.target===this)closeM()"><div class="card"><b>🎂 إضافة تاريخ ميلاد</b><label>العضو</label><select id="bdm">${opts}</select><label>تاريخ الميلاد</label><input id="bdd" type="date"><p class="err" id="mm"></p><div class="row"><button onclick="bdaySave()">حفظ</button><button class="g" onclick="closeM()">إلغاء</button></div></div></div>`}
    if(t.t==="bdayimp"){const r=S.bdImp;return`<div class="ov" onclick="if(event.target===this)closeM()"><div class="card"><b>⬆ استيراد أعياد الميلاد من Excel</b><p class="mu" style="margin:6px 0">لازم الملف يكون فيه عمود للاسم وعمود لتاريخ الميلاد (زي: الاسم، تاريخ الميلاد).</p><input type="file" accept=".xlsx,.csv" onchange="bdayImport(this.files[0])">${r?`<p style="margin:10px 0 4px"><b>${r.ok.length}</b> تاريخ جاهز للحفظ</p>${r.miss.length?`<p class="mu" style="font-size:12px">مش هيتحفظوا (${r.miss.length}): ${esc(r.miss.join("، "))}</p>`:""}`:""}<p class="err" id="mm"></p><div class="row"><button ${r&&r.ok.length?"":"disabled"} onclick="bdayImportSave()">حفظ</button><button class="g" onclick="S.bdImp=null;closeM()">إلغاء</button></div></div></div>`}
    if(t.t==="album"||t.t==="albadd"){const isNew=t.t==="album";const dr=JSON.parse(localStorage.getItem("albDraft")||"{}");const a=isNew?null:D.albums.find(x=>x.id===t.alb);return`<div class="ov" onclick="if(event.target===this)closeM()"><div class="card"><b>${isNew?"فعالية جديدة":"إضافة صور لـ "+esc(a?a.name:"")}</b>${isNew?`<label>اسم الفعالية</label><input id="an" value="${esc(dr.name||"")}" oninput="albDraftSave()"><label>التاريخ</label><input id="ad" type="date" value="${esc(dr.date||today())}" oninput="albDraftSave()">`:""}<label>الصور (تقدر تختار كذا صورة، بترفع بالحجم الأصلي)</label><input id="af" type="file" accept="image/*" multiple><label>أو لينكات درايف (صورة أو فولدر كامل، سطر لكل لينك)</label><textarea id="adl" rows="4" style="width:100%"></textarea><button type="button" class="g" style="margin-top:6px" onclick="albPickGo()">📂 عرض صور الفولدر واختيار منها</button>${albPickHtml()}<p class="mu" id="mm" style="margin:8px 0">${esc(ALBPEND.msg||"")}</p>${(ALBPEND.fail.length+(ALBPEND.dfail||[]).length)?`<button onclick="albRetry()">🔁 إعادة رفع اللي فشل (${ALBPEND.fail.length+(ALBPEND.dfail||[]).length})</button>`:""}<div class="row"><button onclick="${isNew?"albSave()":`albAddSave('${t.alb}')`}">رفع</button><button class="g" onclick="closeM()">إلغاء</button></div></div></div>`}
@@ -2274,7 +2275,7 @@ function modal(){
     <label>اللجنة</label><select id="mc" onchange="togFl()">${comOpts(m?.committee).map(c=>`<option ${c===(m?.committee||"PR")?"selected":""}>${esc(c)}</option>`).join("")}</select>
     ${(()=>{const be=m?D.board.find(b=>b.member_id===m.id):null;return`<div id="bdw" style="display:${roleSel(m?.role)==="Board"?"block":"none"}"><label>مسؤول في لجنة إيه؟ (دوس على واحدة أو أكتر)</label>${chipsHtml(be?bCom(be):[],"mbcs")}<label>المنصب في البورد</label><select id="mbp">${(()=>{const P=["Head","Vice Head","Leader","Advisor"],cur=be?.position||"";const L=cur&&!P.includes(cur)?[cur,...P]:P;return L.map(p=>`<option value="${esc(p)}" ${p===cur?"selected":""}>${esc(p)}</option>`).join("")})()}</select><button type="button" class="g chip" style="margin-top:6px" onclick="document.querySelectorAll('#mbcs .bcm').forEach(x=>x.classList.add('on'))">كل اللجان (مسؤول فيها)</button><label>يقيّم تقييمات لجان إيه؟ (مستقل عن المسؤولية)</label>${evChipsHtml(be?evCom(be):[],"mbevcs")}<button type="button" class="g chip" style="margin-top:6px" onclick="document.querySelectorAll('#mbevcs .evc').forEach(x=>x.classList.add('on'))">كل اللجان (تقييم)</button><p class="mu" style="font-size:12px;margin:6px 0 0">الهيد والفايس هيد بيكتبوا ويشيلوا الإنذارات في اللجان دي. الليدر بيعدّل التقييمات بس.</p></div>`})()}
     <div id="flw" style="display:${(m?.committee||"PR")==="HR"?"block":"none"}"><label>الأعضاء اللي هيضيفهم ويعدّل تقييمهم (هو بس يشوفهم)</label><input placeholder="بحث بالاسم..." oninput="filterFl(this.value)">
-    <div style="max-height:170px;overflow:auto;margin-top:6px">${D.members.filter(x=>x.id!==m?.id).map(x=>`<label class="fli" data-n="${esc(x.name)} ${esc(x.committee)}" style="display:flex;gap:6px;align-items:center;margin:2px 0;color:var(--tx)"><input type="checkbox" class="fl" value="${x.id}" style="width:auto" ${fl.includes(x.id)?"checked":""}>${esc(nm2(x.name))} <span class="mu">${esc(x.committee)}</span></label>`).join("")}</div></div>
+    ${flListHtml(m?.id,fl)}</div>
     ${m?`<div class="card" style="margin:14px 0 0;padding:12px"><b>👤 الصورة والحساب</b>
       <div class="row" style="margin-top:8px">${avatar(m)}<label class="btn g" style="margin:0;color:var(--tx)">📷 ${m.avatar_url?"تغيير":"رفع"} صورة<input type="file" hidden accept="image/*" onchange="adminAvatar('${m.id}',this.files[0]);this.value=''"></label></div>
       ${m.user_id?`<label>كلمة سر جديدة (٦ حروف على الأقل)</label><div class="row" style="flex-wrap:nowrap"><input id="npw" type="text" dir="ltr" autocomplete="off" placeholder="كلمة السر الجديدة"><button type="button" onclick="adminPw('${m.id}')">تغيير</button></div>
@@ -2296,7 +2297,96 @@ function modal(){
   <p class="err" id="mm"></p><div class="row" style="margin-top:12px"><button onclick="saveRec('${m.id}')">حفظ التقييم</button><button class="g" onclick="closeM(true)">إلغاء</button></div></div></div>`;
 }
 function togFl(){const w=document.getElementById("flw"),c=$("#mc");if(w&&c)w.style.display=c.value==="HR"?"block":"none"}
-function filterFl(q){q=q.trim();document.querySelectorAll(".fli").forEach(e=>e.style.display=(!q||e.dataset.n.includes(q))?"flex":"none")}
+function filterFl(q){q=impNorm(q);document.querySelectorAll(".fli").forEach(e=>e.style.display=(!q||e.dataset.n.includes(q))?"flex":"none");document.querySelectorAll(".flg").forEach(g=>{g.style.display=[...g.querySelectorAll(".fli")].some(e=>e.style.display!=="none")?"block":"none"})}
+function flListHtml(mid,sel){
+  sel=sel||[];const by={};
+  D.members.filter(x=>x.id!==mid).forEach(x=>{const c=x.committee||"—";(by[c]=by[c]||[]).push(x)});
+  const keys=[...COM4.filter(c=>by[c]),...Object.keys(by).filter(c=>!COM4.includes(c)).sort()];
+  const cmp=(a,b)=>nm2(a.name).localeCompare(nm2(b.name),"ar"),tot=keys.reduce((a,c)=>a+by[c].length,0);
+  return`<div id="flc" class="mu" style="font-size:13px;margin:6px 0 4px">${flCountTxt(sel.filter(i=>D.members.some(x=>x.id===i&&x.id!==mid)).length,tot)}</div>
+  <div style="max-height:340px;overflow:auto;border:1px solid var(--bd);border-radius:12px;padding:2px 10px" onchange="flCount()">${keys.map(c=>{const L=by[c].slice().sort(cmp);
+    return`<div class="flg" style="margin:8px 0"><div class="row" style="justify-content:space-between;align-items:center;border-bottom:1px solid var(--bd);padding-bottom:4px"><b>${esc(c)} <span class="mu flgn">${L.filter(x=>sel.includes(x.id)).length}/${L.length}</span></b><span><button type="button" class="g chip" onclick="flGrp(this,1)">تحديد الكل</button> <button type="button" class="g chip" onclick="flGrp(this,0)">مسح</button></span></div>
+    ${L.map(x=>`<label class="fli" data-n="${esc(impNorm(x.name)+" "+impNorm(x.committee))}" style="display:flex;gap:6px;align-items:center;margin:3px 0;color:var(--tx)"><input type="checkbox" class="fl" value="${x.id}" style="width:auto" ${sel.includes(x.id)?"checked":""}>${esc(nm2(x.name))}</label>`).join("")}</div>`}).join("")}</div>`}
+const flCountTxt=(n,t)=>`اتحدد <b>${n}</b> من ${t} عضو`;
+function flCount(){
+  const all=document.querySelectorAll(".fl"),n=[...all].filter(x=>x.checked).length,c=document.getElementById("flc");
+  if(c)c.innerHTML=flCountTxt(n,all.length);
+  document.querySelectorAll(".flg").forEach(g=>{const a=g.querySelectorAll(".fl"),s=g.querySelector(".flgn");if(s)s.textContent=[...a].filter(x=>x.checked).length+"/"+a.length})}
+function flGrp(btn,v){const g=btn.closest(".flg");if(!g)return;g.querySelectorAll(".fli").forEach(e=>{if(e.style.display!=="none"){const i=e.querySelector("input");if(i)i.checked=!!v}});flCount();try{draftSave()}catch(e){}}
+/* ---------- استيراد المتابعة (HR ← أعضاء) من شيت ---------- */
+const flSplit=c=>String(c==null?"":c).split(/[\n\r,،؛;|\/]+/).map(x=>x.replace(/^\s*(?:[\d\u0660-\u0669]+\s*[-.)\u060C:]|[•▪●*-])\s*/,"").trim()).filter(Boolean);
+function flFind(n){
+  const q=impNorm(n);if(!q)return[];const P=D.members;
+  let h=P.filter(x=>impNorm(x.name)===q);
+  if(!h.length)h=P.filter(x=>impNorm(nm2(x.name))===q);
+  if(!h.length&&q.length>=6)h=P.filter(x=>impNorm(x.name).startsWith(q));
+  return h}
+function flBuild(rows){
+  const pairs=[],bad=[],seen=new Set(),cell=(r,i)=>String(r[i]==null?"":r[i]).trim();let hrTxt="",start=0;
+  if(rows.length){const r=rows[0];if(![cell(r,0),...flSplit(cell(r,1))].some(n=>n&&flFind(n).length))start=1}
+  let hr=null,hrErr="";
+  rows.slice(start).forEach((r,i)=>{
+    const line=i+start+1,a=cell(r,0),b=cell(r,1),c=cell(r,2);
+    if(a){hrTxt=a;hr=null;hrErr="";const h=flFind(a);
+      if(!h.length)hrErr="الـ HR مش موجود في الأعضاء";
+      else{const hh=h.filter(x=>x.committee==="HR");if(!hh.length)hrErr="مش في لجنة HR (لجنته "+h[0].committee+")";else if(hh.length>1)hrErr="أكتر من HR بنفس الاسم، اكتب الاسم أكمل";else hr=hh[0]}}
+    if(!b)return;
+    const names=flSplit(b),coms=flSplit(c);
+    names.forEach((n,k)=>{
+      const com=coms.length===names.length?coms[k]:coms.length===1?coms[0]:"",tag=`سطر ${line}: ${n}`;
+      if(!hrTxt){bad.push(tag+" ← مفيش اسم HR فوقه");return}
+      if(!hr){bad.push(tag+" ← "+hrTxt+": "+hrErr);return}
+      let h=flFind(n);
+      if(!h.length){bad.push(tag+" ← مش موجود في الأعضاء");return}
+      if(com){const f=h.filter(x=>impNorm(x.committee)===impNorm(com));if(!f.length){bad.push(tag+" ← موجود في لجنة "+h[0].committee+" مش "+com);return}h=f}
+      if(h.length>1){bad.push(tag+" ← اسم مشترك بين "+h.length+" أعضاء، اكتب الاسم أكمل أو حدد اللجنة");return}
+      const m=h[0];if(m.id===hr.id){bad.push(tag+" ← نفس الـ HR");return}
+      const key=hr.id+"|"+m.id;if(seen.has(key))return;seen.add(key);
+      pairs.push({hr:hr.id,hrName:hr.name,mem:m.id,memName:m.name,com:m.committee,line})})});
+  return{pairs,bad}}
+async function flImpFile(file){
+  if(!file)return;
+  try{
+    const sheets=/\.xlsx$/i.test(file.name)?await xlsxSheets(await file.arrayBuffer()):[{rows:csvParse(await file.text())}];
+    const res=sheets.map(s=>flBuild(s.rows||[])),pairs=[],bad=[],seen=new Set();
+    res.forEach(r=>{r.pairs.forEach(p=>{const k=p.hr+"|"+p.mem;if(!seen.has(k)){seen.add(k);pairs.push(p)}});bad.push(...r.bad)});
+    S.flImp={pairs,bad,mode:(S.flImp&&S.flImp.mode)||"add"};render();
+  }catch(e){alert("مقدرتش أقرا الملف")}
+}
+function flTemplate(){csvDl([["اسم الـ HR","الأعضاء اللي بيتابعهم (كل اسم في سطر أو بينهم فاصلة)","لجان الأعضاء (اختياري، بنفس ترتيب الأسماء)"],["أحمد محمد","سارة علي, منى حسن, كريم يوسف","PR, SM, OR"],["نور خالد","هدى سامي","PR"],["","محمود عادل","SM"]],"follows-template.csv")}
+async function flImpGo(){
+  const I=S.flImp;if(!I||I.busy||!I.pairs.length)return;
+  I.busy=true;I.err="";render();
+  try{
+    const by=new Map();I.pairs.forEach(p=>{if(!by.has(p.hr))by.set(p.hr,[]);by.get(p.hr).push(p.mem)});
+    let added=0,removed=0;
+    for(const[hr,mems]of by){
+      const cur=D.follows.filter(f=>f.manager_id===hr).map(f=>f.member_id);
+      if(I.mode==="replace"){const rm=cur.filter(x=>!mems.includes(x));if(rm.length){const d=await sb.from("follows").delete().eq("manager_id",hr).in("member_id",rm);if(d.error)throw d.error;removed+=rm.length}}
+      const add=mems.filter(x=>!cur.includes(x));
+      for(let i=0;i<add.length;i+=100){const r=await sb.from("follows").insert(add.slice(i,i+100).map(m=>({manager_id:hr,member_id:m})));if(r.error)throw r.error}
+      added+=add.length}
+    await load();S.flImp=Object.assign({},I,{busy:false,done:{added,removed,hrs:by.size}});render();toast("اتحفظت المتابعة ✓","ok")
+  }catch(e){I.busy=false;I.err=e.message||String(e);render()}
+}
+function flImpHtml(){
+  const I=S.flImp||{pairs:[],bad:[],mode:"add"},by=new Map();
+  I.pairs.forEach(p=>{if(!by.has(p.hr))by.set(p.hr,{name:p.hrName,L:[]});by.get(p.hr).L.push(p)});
+  const cur=h=>new Set(D.follows.filter(f=>f.manager_id===h).map(f=>f.member_id)),dn=I.done;
+  const cards=[...by.entries()].sort((a,b)=>nm2(a[1].name).localeCompare(nm2(b[1].name),"ar")).map(([h,g])=>{
+    const c=cur(h),ids=new Set(g.L.map(p=>p.mem)),nw=g.L.filter(p=>!c.has(p.mem)).length,ex=g.L.length-nw,gone=I.mode==="replace"?[...c].filter(x=>!ids.has(x)).length:0;
+    return`<div class="lb" style="align-items:flex-start;padding:8px 10px"><div style="flex:1;min-width:0"><b>${esc(nm2(g.name))}</b> <span class="mu">HR · ${g.L.length} عضو</span> <span class="pill up" style="font-size:11px">جديد ${nw}</span>${ex?` <span class="pill st" style="font-size:11px">موجود ${ex}</span>`:""}${gone?` <span class="pill dn" style="font-size:11px">هيتشال ${gone}</span>`:""}
+    <div class="mu" style="font-size:12px;margin-top:3px">${g.L.slice().sort((a,b)=>nm2(a.memName).localeCompare(nm2(b.memName),"ar")).map(p=>esc(nm2(p.memName))+" ("+esc(p.com)+")").join("، ")}</div></div></div>`}).join("");
+  return`<div class="ov"><div class="card"><div class="row" style="justify-content:space-between"><b style="font-size:17px">🔗 استيراد المتابعة من شيت</b><button class="g ico" onclick="S.modal=null;S.flImp=null;render()">✕</button></div>
+  <p class="mu" style="margin:6px 0;font-size:13px">ملف Excel (xlsx) أو CSV بـ 3 أعمدة: <b>اسم الـ HR</b> | <b>الأعضاء اللي بيتابعهم</b> (كل اسم في سطر داخل الخانة أو بينهم فاصلة، أو اسم في كل صف وسيب خانة الـ HR فاضية تحت أول واحد) | <b>اللجان</b> (اختياري، بنفس ترتيب الأسماء، أو لجنة واحدة للكل). اللجنة بتساعد لو في اسمين متشابهين. الصف الأول لو عناوين بيتجاهل تلقائي.</p>
+  <div class="row"><label class="btn" style="margin:0;color:#fff">📁 اختيار الملف<input type="file" hidden accept=".xlsx,.csv,.txt,text/csv" onchange="flImpFile(this.files[0]);this.value=''"></label><button class="g" onclick="flTemplate()">⬇ نموذج جاهز</button></div>
+  ${I.err?`<p class="err">${esc(I.err)}</p>`:""}
+  ${dn?`<div class="card" style="margin:10px 0;padding:12px"><b>✓ تم</b><div class="mu">اتضاف ${dn.added} متابعة لـ ${dn.hrs} HR${dn.removed?` · اتشال ${dn.removed}`:""}</div></div>`:""}
+  ${I.pairs.length||I.bad.length?`<div class="row" style="margin:10px 0"><span class="pill up">${by.size} HR</span><span class="pill up">${I.pairs.length} متابعة جاهزة</span>${I.bad.length?`<span class="pill dn">فيه مشكلة ${I.bad.length}</span>`:""}</div>
+  <label style="margin:0 0 6px">طريقة الحفظ</label><select onchange="S.flImp.mode=this.value;render()"><option value="add" ${I.mode==="add"?"selected":""}>إضافة فوق المتابعات الحالية (آمن)</option><option value="replace" ${I.mode==="replace"?"selected":""}>استبدال متابعات كل HR في الملف بالموجود فيه</option></select>
+  <div style="max-height:34vh;overflow:auto;border:1px solid var(--bd);border-radius:12px;margin-top:10px">${cards||'<p class="mu" style="padding:10px;margin:0">مفيش متابعات صالحة.</p>'}</div>
+  ${I.bad.length?`<div style="margin-top:10px;max-height:20vh;overflow:auto;background:rgba(248,113,113,.1);border-radius:12px;padding:8px 10px"><b style="font-size:13px;color:var(--bad)">مش هيتحفظوا:</b>${I.bad.slice(0,100).map(x=>`<div style="color:var(--bad);font-size:12px;margin-top:3px">❌ ${esc(x)}</div>`).join("")}${I.bad.length>100?`<div class="mu" style="font-size:12px">وكمان ${I.bad.length-100}…</div>`:""}</div>`:""}`:""}
+  <div class="row" style="margin-top:12px"><button ${I.pairs.length&&!I.busy?"":"disabled"} onclick="flImpGo()">${I.busy?"جاري الحفظ…":`حفظ ${I.pairs.length} متابعة`}</button><button class="g" onclick="S.modal=null;S.flImp=null;render()">${dn?"إغلاق":"إلغاء"}</button></div></div></div>`}
 async function saveMem(id){
   const v=s=>$(s).value.trim(),row={email:v("#me").toLowerCase(),name:v("#mn"),role:v("#mr")||"Member",committee:v("#mc")},isB=row.role==="Board",bcs=chipsVal("mbcs");
   if(!row.email||!row.name||!row.committee){$("#mm").textContent="الإيميل والاسم واللجنة مطلوبين";return}
@@ -2365,7 +2455,7 @@ function memDraftCollect(){return{me:$("#me").value,mn:$("#mn").value,mr:$("#mr"
 function applyMemDraft(){
   let raw=null;try{raw=localStorage.getItem("tm-draft:mem:"+(S.modal.id||"new"))}catch(e){}
   if(!raw)return;
-  try{const o=JSON.parse(raw).data;["me","mn","mr","mc"].forEach(k=>{if(o[k]!=null&&$("#"+k))$("#"+k).value=o[k]});document.querySelectorAll(".fl").forEach(x=>x.checked=o.fl.includes(x.value));document.querySelectorAll("#mbcs .bcm").forEach(x=>x.classList.toggle("on",(o.bc||[]).includes(x.dataset.c)));if($("#mbp")&&o.bp!=null)$("#mbp").value=o.bp;togFl();togRole();const ds=document.getElementById("ds");if(ds)ds.textContent="↺ تم استرجاع مسودتك"}catch(e){}
+  try{const o=JSON.parse(raw).data;["me","mn","mr","mc"].forEach(k=>{if(o[k]!=null&&$("#"+k))$("#"+k).value=o[k]});document.querySelectorAll(".fl").forEach(x=>x.checked=o.fl.includes(x.value));flCount();document.querySelectorAll("#mbcs .bcm").forEach(x=>x.classList.toggle("on",(o.bc||[]).includes(x.dataset.c)));if($("#mbp")&&o.bp!=null)$("#mbp").value=o.bp;togFl();togRole();const ds=document.getElementById("ds");if(ds)ds.textContent="↺ تم استرجاع مسودتك"}catch(e){}
 }
 function draftSave(e){
   if(!S.modal||!me||(e&&e.target&&e.target.id==="rm"))return;
