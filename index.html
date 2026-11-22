@@ -1142,7 +1142,7 @@ function cardsView(){
   ${isAdm()?`<div class="card"><b>نماذج الـ Word</b><p class="mu" style="margin:6px 0">ارفع نموذج كل لجنة مرة واحدة، والنموذج بيتحفظ.</p>${up}</div>`:""}`;
 }
 
-const TRASH_KIND={member:"عضو",warning:"إنذار",album:"فعالية",photo:"صورة"};
+const TRASH_KIND={member:"عضو",warning:"إنذار",album:"فعالية",photo:"صورة",record:"تقييم"};
 async function trashPut(kind,label,payload){const r=await sb.from("trash").insert({kind,label:String(label||""),payload,deleted_by:me?me.id:null});if(r.error)throw r.error}
 async function trashMembers(ids){
   const sel=async(t,col)=>{const r=await sb.from(t).select("*").in(col,ids);if(r.error)throw r.error;return r.data||[]};
@@ -1158,6 +1158,9 @@ async function trashRestore(id){
   else if(t.kind==="warning")await ins("warnings",p.warnings);
   else if(t.kind==="album"){await ins("event_albums",p.albums);await ins("event_photos",p.photos)}
   else if(t.kind==="photo")await ins("event_photos",p.photos);
+  else if(t.kind==="record"){const rows=p.records||[],ex=rows.filter(r=>{const m=D.members.find(x=>x.id===r.member_id);return m&&m.rec&&m.rec[r.month]!==undefined}).length;
+    if(ex&&!confirm(ex+" تقييم موجود دلوقتي لنفس الشهر — هيتبدّل بالمستعاد. تكمل؟"))return;
+    const r=await sb.from("records").upsert(rows,{onConflict:"member_id,month"});if(r.error)return alert("تعذرت الاستعادة: "+r.error.message)}
   const d=await sb.from("trash").delete().eq("id",id);if(d.error)throw d.error;
   toast("اتعادت ✓","ok");await load();render();
 }
@@ -2557,11 +2560,20 @@ async function delComMonth(ci){
   if(!c||!k)return alert("اختار الشهر الأول");
   const ms=D.members.filter(m=>m.committee===c&&m.rec&&m.rec[k]!==undefined);
   if(!ms.length)return alert("مفيش تقييمات للجنة دي في الشهر ده");
-  if(!confirm("هتحذف تقييم "+ml(k)+" لـ "+ms.length+" عضو في لجنة "+c+(D.ann.includes(k)?"\n⚠ الشهر ده معلن للأعضاء":"")+"\nتقدر تتراجع بزرار ↶ بعد الحذف."))return;
-  const x=await sb.from("records").delete().eq("month",k).in("member_id",ms.map(m=>m.id));
+  if(!confirm("هتحذف تقييم "+ml(k)+" لـ "+ms.length+" عضو في لجنة "+c+(D.ann.includes(k)?"\n⚠ الشهر ده معلن للأعضاء":"")+"\nهيروح سلة المحذوفات وتقدر تستعيده."))return;
+  const g=await sb.from("records").select("*").eq("month",k).in("member_id",ms.map(m=>m.id));if(g.error)return alert(g.error.message);
+  const rows=g.data||[];if(!rows.length)return alert("مفيش تقييمات للجنة دي في الشهر ده");
+  try{await trashPut("record","تقييم لجنة "+c+" — "+ml(k)+" ("+rows.length+" عضو)",{records:rows})}catch(e){return alert(e.message)}
+  const x=await sb.from("records").delete().eq("month",k).in("member_id",rows.map(r=>r.member_id));
   if(x.error)return alert(x.error.message);
-  await reload(["records"],"حذف تقييم لجنة "+c+" — "+ml(k));render();toast("اتحذف تقييم "+ms.length+" عضو ✓","ok")}
-async function delRec(id,k){if(!confirm("حذف تقييم الشهر ده؟"))return;const x=await sb.from("records").delete().eq("member_id",id).eq("month",k);if(x.error)return alert(x.error.message);await reload(["records"],"حذف تقييم شهر");render()}
+  await reload(["records"]);render();toast("اتنقل لسلة المحذوفات: "+rows.length+" تقييم ✓","ok")}
+async function delRec(id,k){
+  if(!confirm("حذف تقييم الشهر ده؟ هيروح سلة المحذوفات وتقدر تستعيده."))return;
+  const g=await sb.from("records").select("*").eq("member_id",id).eq("month",k);if(g.error)return alert(g.error.message);
+  const rows=g.data||[],m=D.members.find(x=>x.id===id);
+  if(rows.length){try{await trashPut("record","تقييم "+(m?nm(m.name):"")+" — "+ml(k),{records:rows})}catch(e){return alert(e.message)}}
+  const x=await sb.from("records").delete().eq("member_id",id).eq("month",k);if(x.error)return alert(x.error.message);
+  await reload(["records"]);render();toast("اتنقل لسلة المحذوفات ✓","ok")}
 
 /* ---------- الحفظ التلقائي للمسودات ---------- */
 function clearDraft(id,mo){try{localStorage.removeItem(dk(id,mo))}catch(e){}}
