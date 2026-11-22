@@ -15,11 +15,11 @@
 :root[data-theme="light"]{--card:rgba(255,255,255,.62);--tx:#131a33;--mu:#59628a;--bd:rgba(19,26,51,.12);--pr:#2f4fdc;--pr2:#5b3fd6;--ok:#10b981;--bad:#ef4444;--warn:#d97706;--inp:#fff;--bg:#eef1fb;--o1:rgba(238,241,251,.28);--o2:rgba(238,241,251,.5)}
 *{box-sizing:border-box}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
-body{margin:0;min-height:100vh;color:var(--tx);font-family:"Segoe UI",Tahoma,"Noto Sans Arabic",sans-serif;line-height:1.5;background:linear-gradient(rgba(0,0,0,.3),rgba(0,0,0,.3)),linear-gradient(var(--o1),var(--o2)),url(bg.jpg) center/cover fixed no-repeat var(--bg)}
+body{margin:0;min-height:100vh;color:var(--tx);font-family:"Segoe UI",Tahoma,"Noto Sans Arabic",sans-serif;line-height:1.5;background:var(--bg)}body::before{content:"";position:fixed;top:0;right:0;bottom:0;left:0;z-index:-1;pointer-events:none;background:linear-gradient(rgba(0,0,0,.3),rgba(0,0,0,.3)),linear-gradient(var(--o1),var(--o2)),url(bg.jpg) center/cover no-repeat var(--bg);transform:translateZ(0)}
 .w{max-width:780px;margin:0 auto;padding:max(14px,env(safe-area-inset-top)) 14px 24px}
 .top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px;flex-wrap:wrap}
 .logo{font-weight:800;font-size:18px}
-.card{background:var(--card);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);border:1px solid var(--bd);border-radius:18px;padding:16px;margin-bottom:12px;box-shadow:0 8px 30px rgba(0,0,0,.18)}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:18px;padding:16px;margin-bottom:12px;box-shadow:0 8px 30px rgba(0,0,0,.18)}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
 .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
@@ -71,7 +71,7 @@ body{background:#fff!important}
 #rpt{display:block!important}
 *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
-.ft{text-align:center;direction:ltr;font-size:12px;letter-spacing:.3px;color:var(--mu);opacity:.85;padding:18px 12px 26px}@media print{.ft{display:none}}
+.ft{text-align:center;direction:ltr;font-size:12px;letter-spacing:.3px;color:var(--mu);opacity:.85;padding:18px 12px 26px}@media print{.ft{display:none}body::before{display:none}}
 .chip{padding:8px 16px;border-radius:999px;font-weight:700}.chip.on{background:linear-gradient(135deg,var(--pr),var(--pr2));color:#fff;border-color:transparent}
 
 .edx{position:fixed;inset:0;z-index:60;background:var(--bg);display:flex;flex-direction:column;color:var(--tx)}
@@ -129,7 +129,7 @@ input:focus,select:focus{outline:none;border-color:var(--pr);box-shadow:0 0 0 3p
 .pg-in{animation:pgin .3s var(--ease)}
 /* الشريط السفلي */
 .nav{position:fixed;inset:auto 0 0 0;z-index:15;display:flex;justify-content:center;padding:0 10px calc(10px + env(safe-area-inset-bottom));pointer-events:none}
-.nav-in{pointer-events:auto;display:flex;gap:3px;width:100%;max-width:540px;background:rgba(14,19,42,.82);background:color-mix(in srgb,var(--bg) 84%,transparent);-webkit-backdrop-filter:blur(18px) saturate(1.5);backdrop-filter:blur(18px) saturate(1.5);border:1px solid var(--bd);border-radius:26px;padding:6px;box-shadow:0 14px 40px rgba(0,0,0,.42)}
+.nav-in{pointer-events:auto;display:flex;gap:3px;width:100%;max-width:540px;background:rgba(14,19,42,.82);background:color-mix(in srgb,var(--bg) 84%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border:1px solid var(--bd);border-radius:26px;padding:6px;box-shadow:0 14px 40px rgba(0,0,0,.42)}
 .nav button{flex:1;min-width:0;background:none;box-shadow:none;color:var(--mu);display:flex;flex-direction:column;align-items:center;gap:0;padding:7px 2px 6px;border-radius:20px;font-size:11px;font-weight:700;position:relative;transition:background .25s var(--ease),color .2s,transform .14s}
 .nav button i{font-style:normal;font-size:21px;line-height:1.15;transition:transform .25s var(--ease)}
 .nav button span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
@@ -2322,7 +2322,7 @@ function flFind(n){
   if(!h.length&&q.length>=6)h=P.filter(x=>impNorm(x.name).startsWith(q));
   return h}
 function flBuild(rows){
-  const pairs=[],bad=[],seen=new Set(),cell=(r,i)=>String(r[i]==null?"":r[i]).trim();let hrTxt="",start=0;
+  const pairs=[],bad=[],amb=[],seen=new Set(),cell=(r,i)=>String(r[i]==null?"":r[i]).trim();let hrTxt="",start=0;
   if(rows.length){const r=rows[0];if(![cell(r,0),...flSplit(cell(r,1))].some(n=>n&&flFind(n).length))start=1}
   let hr=null,hrErr="";
   rows.slice(start).forEach((r,i)=>{
@@ -2339,26 +2339,31 @@ function flBuild(rows){
       let h=flFind(n);
       if(!h.length){bad.push(tag+" ← مش موجود في الأعضاء");return}
       if(com){const f=h.filter(x=>impNorm(x.committee)===impNorm(com));if(!f.length){bad.push(tag+" ← موجود في لجنة "+h[0].committee+" مش "+com);return}h=f}
-      if(h.length>1){bad.push(tag+" ← اسم مشترك بين "+h.length+" أعضاء، اكتب الاسم أكمل أو حدد اللجنة");return}
+      if(h.length>1){amb.push({line,n,hr:hr.id,hrName:hr.name,cands:h.map(x=>x.id),pick:""});return}
       const m=h[0];if(m.id===hr.id){bad.push(tag+" ← نفس الـ HR");return}
       const key=hr.id+"|"+m.id;if(seen.has(key))return;seen.add(key);
       pairs.push({hr:hr.id,hrName:hr.name,mem:m.id,memName:m.name,com:m.committee,line})})});
-  return{pairs,bad}}
+  return{pairs,bad,amb}}
 async function flImpFile(file){
   if(!file)return;
   try{
     const sheets=/\.xlsx$/i.test(file.name)?await xlsxSheets(await file.arrayBuffer()):[{rows:csvParse(await file.text())}];
-    const res=sheets.map(s=>flBuild(s.rows||[])),pairs=[],bad=[],seen=new Set();
-    res.forEach(r=>{r.pairs.forEach(p=>{const k=p.hr+"|"+p.mem;if(!seen.has(k)){seen.add(k);pairs.push(p)}});bad.push(...r.bad)});
-    S.flImp={pairs,bad,mode:(S.flImp&&S.flImp.mode)||"add"};render();
+    const res=sheets.map(s=>flBuild(s.rows||[])),pairs=[],bad=[],amb=[],seen=new Set();
+    res.forEach(r=>{r.pairs.forEach(p=>{const k=p.hr+"|"+p.mem;if(!seen.has(k)){seen.add(k);pairs.push(p)}});bad.push(...r.bad);amb.push(...r.amb)});
+    S.flImp={pairs,bad,amb,mode:(S.flImp&&S.flImp.mode)||"add"};render();
   }catch(e){alert("مقدرتش أقرا الملف")}
 }
+function flAll(I){
+  const out=I.pairs.slice(),seen=new Set(out.map(p=>p.hr+"|"+p.mem));
+  (I.amb||[]).forEach(a=>{if(!a.pick)return;const m=D.members.find(x=>x.id===a.pick);if(!m||m.id===a.hr)return;const k=a.hr+"|"+m.id;if(seen.has(k))return;seen.add(k);out.push({hr:a.hr,hrName:a.hrName,mem:m.id,memName:m.name,com:m.committee,line:a.line})});
+  return out}
+function flPick(i,v){const a=S.flImp&&S.flImp.amb&&S.flImp.amb[i];if(!a)return;a.pick=v;render()}
 function flTemplate(){csvDl([["اسم الـ HR","الأعضاء اللي بيتابعهم (كل اسم في سطر أو بينهم فاصلة)","لجان الأعضاء (اختياري، بنفس ترتيب الأسماء)"],["أحمد محمد","سارة علي, منى حسن, كريم يوسف","PR, SM, OR"],["نور خالد","هدى سامي","PR"],["","محمود عادل","SM"]],"follows-template.csv")}
 async function flImpGo(){
-  const I=S.flImp;if(!I||I.busy||!I.pairs.length)return;
+  const I=S.flImp,ALL=I?flAll(I):[];if(!I||I.busy||!ALL.length)return;
   I.busy=true;I.err="";render();
   try{
-    const by=new Map();I.pairs.forEach(p=>{if(!by.has(p.hr))by.set(p.hr,[]);by.get(p.hr).push(p.mem)});
+    const by=new Map();ALL.forEach(p=>{if(!by.has(p.hr))by.set(p.hr,[]);by.get(p.hr).push(p.mem)});
     let added=0,removed=0;
     for(const[hr,mems]of by){
       const cur=D.follows.filter(f=>f.manager_id===hr).map(f=>f.member_id);
@@ -2370,8 +2375,8 @@ async function flImpGo(){
   }catch(e){I.busy=false;I.err=e.message||String(e);render()}
 }
 function flImpHtml(){
-  const I=S.flImp||{pairs:[],bad:[],mode:"add"},by=new Map();
-  I.pairs.forEach(p=>{if(!by.has(p.hr))by.set(p.hr,{name:p.hrName,L:[]});by.get(p.hr).L.push(p)});
+  const I=S.flImp||{pairs:[],bad:[],amb:[],mode:"add"},by=new Map(),ALL=flAll(I),open=(I.amb||[]).filter(a=>!a.pick).length;
+  ALL.forEach(p=>{if(!by.has(p.hr))by.set(p.hr,{name:p.hrName,L:[]});by.get(p.hr).L.push(p)});
   const cur=h=>new Set(D.follows.filter(f=>f.manager_id===h).map(f=>f.member_id)),dn=I.done;
   const cards=[...by.entries()].sort((a,b)=>nm2(a[1].name).localeCompare(nm2(b[1].name),"ar")).map(([h,g])=>{
     const c=cur(h),ids=new Set(g.L.map(p=>p.mem)),nw=g.L.filter(p=>!c.has(p.mem)).length,ex=g.L.length-nw,gone=I.mode==="replace"?[...c].filter(x=>!ids.has(x)).length:0;
@@ -2382,11 +2387,12 @@ function flImpHtml(){
   <div class="row"><label class="btn" style="margin:0;color:#fff">📁 اختيار الملف<input type="file" hidden accept=".xlsx,.csv,.txt,text/csv" onchange="flImpFile(this.files[0]);this.value=''"></label><button class="g" onclick="flTemplate()">⬇ نموذج جاهز</button></div>
   ${I.err?`<p class="err">${esc(I.err)}</p>`:""}
   ${dn?`<div class="card" style="margin:10px 0;padding:12px"><b>✓ تم</b><div class="mu">اتضاف ${dn.added} متابعة لـ ${dn.hrs} HR${dn.removed?` · اتشال ${dn.removed}`:""}</div></div>`:""}
-  ${I.pairs.length||I.bad.length?`<div class="row" style="margin:10px 0"><span class="pill up">${by.size} HR</span><span class="pill up">${I.pairs.length} متابعة جاهزة</span>${I.bad.length?`<span class="pill dn">فيه مشكلة ${I.bad.length}</span>`:""}</div>
+  ${ALL.length||I.bad.length||(I.amb||[]).length?`<div class="row" style="margin:10px 0"><span class="pill up">${by.size} HR</span><span class="pill up">${ALL.length} متابعة جاهزة</span>${open?`<span class="pill st">محتاج اختيار ${open}</span>`:""}${I.bad.length?`<span class="pill dn">فيه مشكلة ${I.bad.length}</span>`:""}</div>
   <label style="margin:0 0 6px">طريقة الحفظ</label><select onchange="S.flImp.mode=this.value;render()"><option value="add" ${I.mode==="add"?"selected":""}>إضافة فوق المتابعات الحالية (آمن)</option><option value="replace" ${I.mode==="replace"?"selected":""}>استبدال متابعات كل HR في الملف بالموجود فيه</option></select>
-  <div style="max-height:34vh;overflow:auto;border:1px solid var(--bd);border-radius:12px;margin-top:10px">${cards||'<p class="mu" style="padding:10px;margin:0">مفيش متابعات صالحة.</p>'}</div>
+  <div style="max-height:34vh;overflow:auto;border:1px solid var(--bd);border-radius:12px;margin-top:10px">${cards||'<p class="mu" style="padding:10px;margin:0">مفيش متابعات صالحة لحد دلوقتي.</p>'}</div>
+  ${(I.amb||[]).length?`<div style="margin-top:10px;max-height:28vh;overflow:auto;border:1px solid var(--warn);border-radius:12px;padding:8px 10px"><b style="font-size:13px">أسماء متشابهة، اختار العضو الصح (اللي مش هتختاره مش هيتحفظ):</b>${I.amb.map((a,i)=>`<div style="margin-top:8px"><div style="font-size:13px">سطر ${a.line}: <b>${esc(a.n)}</b> <span class="mu">← HR: ${esc(nm2(a.hrName))}</span></div><select onchange="flPick(${i},this.value)"><option value="">— اختار —</option>${a.cands.map(id=>{const x=D.members.find(z=>z.id===id)||{};return`<option value="${id}" ${a.pick===id?"selected":""}>${esc(nm(x.name))} · ${esc(x.committee||"")}${x.email?" · "+esc(x.email):""}</option>`}).join("")}</select></div>`).join("")}</div>`:""}
   ${I.bad.length?`<div style="margin-top:10px;max-height:20vh;overflow:auto;background:rgba(248,113,113,.1);border-radius:12px;padding:8px 10px"><b style="font-size:13px;color:var(--bad)">مش هيتحفظوا:</b>${I.bad.slice(0,100).map(x=>`<div style="color:var(--bad);font-size:12px;margin-top:3px">❌ ${esc(x)}</div>`).join("")}${I.bad.length>100?`<div class="mu" style="font-size:12px">وكمان ${I.bad.length-100}…</div>`:""}</div>`:""}`:""}
-  <div class="row" style="margin-top:12px"><button ${I.pairs.length&&!I.busy?"":"disabled"} onclick="flImpGo()">${I.busy?"جاري الحفظ…":`حفظ ${I.pairs.length} متابعة`}</button><button class="g" onclick="S.modal=null;S.flImp=null;render()">${dn?"إغلاق":"إلغاء"}</button></div></div></div>`}
+  <div class="row" style="margin-top:12px"><button ${ALL.length&&!I.busy?"":"disabled"} onclick="flImpGo()">${I.busy?"جاري الحفظ…":`حفظ ${ALL.length} متابعة`}</button><button class="g" onclick="S.modal=null;S.flImp=null;render()">${dn?"إغلاق":"إلغاء"}</button></div></div></div>`}
 async function saveMem(id){
   const v=s=>$(s).value.trim(),row={email:v("#me").toLowerCase(),name:v("#mn"),role:v("#mr")||"Member",committee:v("#mc")},isB=row.role==="Board",bcs=chipsVal("mbcs");
   if(!row.email||!row.name||!row.committee){$("#mm").textContent="الإيميل والاسم واللجنة مطلوبين";return}
