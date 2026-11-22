@@ -25,6 +25,7 @@ jobs:
           cp manifest.webmanifest www/ 2>/dev/null || true
           cp icon-*.png www/ 2>/dev/null || true
           cp apple-touch-icon.png www/ 2>/dev/null || true
+          cp bg.jpg logo.png www/ 2>/dev/null || true
 
       - name: Install and add Android
         run: |
