@@ -436,7 +436,7 @@ const ago=t=>{if(!t)return"لم يدخل بعد";const s=(Date.now()-new Date(t)
 const dk=(id,mo)=>`tm-draft:${id}:${mo}`;
 const isHRHead=()=>!!(me&&D.board.some(b=>b.member_id===me.id&&isHeadPos(b.position)&&evCom(b).includes("HR")));
 const myFollows=()=>{const ids=new Set(D.follows.filter(f=>f.manager_id===(me&&me.id)).map(f=>f.member_id)),ec=myEvalCom(),hr=isHRHead();return D.members.filter(x=>ids.has(x.id)||(ec.includes(x.committee)&&!(me&&x.id===me.id)&&(x.role!=="Board"||hr)))};
-const tabBar=l=>{NAV=l;return""};
+const tabBar=l=>{if(me&&!me.is_admin&&isSMHead()){l=l.filter(x=>x[0]!=="tec");const i=l.findIndex(x=>x[0]==="leaders");if(i>=0)l[i]=["tec","TEC"];else l.push(["tec","TEC"]);if(S.tab==="leaders")S.tab="tec"}NAV=l;return""};
 
 async function load(){
   const[a,b,w,n,su,fo,bd]=await Promise.all([sb.from("members").select("*"),sb.from("records").select("*"),sb.from("warnings").select("*"),sb.from("announced").select("month"),sb.from("signups").select("*").order("created_at"),sb.from("follows").select("*"),sb.from("board").select("*").order("sort")]);
