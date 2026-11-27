@@ -215,6 +215,7 @@ table.tb td,table.tb th{text-align:start}.tb .av{width:30px;height:30px;border-r
 img.crest{display:block;object-fit:cover;background:#000;border-radius:50%;padding:0;box-shadow:0 10px 30px rgba(0,0,0,.5)}
 .tlogo{width:46px;height:46px;border-radius:50%;object-fit:cover;background:#000;flex:none;box-shadow:0 4px 14px rgba(0,0,0,.45)}
 .tkt{display:inline-block;font-weight:800;font-variant-numeric:tabular-nums;direction:ltr;padding:4px 12px;border-radius:999px;font-size:14px;white-space:nowrap}.tkt.g{background:rgba(34,197,94,.16);color:#22c55e}.tkt.y{background:rgba(245,158,11,.18);color:#f59e0b}.tkt.r{background:rgba(239,68,68,.18);color:#ef4444}.tkt.z{background:rgba(148,163,184,.18);color:#94a3b8}
+.tkh{font-weight:800;font-size:15px;margin:18px 0 6px}.tkb{background:rgba(127,127,127,.09);border-radius:12px;padding:10px 12px;margin:8px 0;overflow-wrap:anywhere}.tkr{border-top:1px solid var(--bd);padding:12px 0}.tkp{background:rgba(127,127,127,.07);border-radius:12px;padding:10px 12px;margin:8px 0}.tkc{padding-bottom:12px}
 </style>
 </head>
 <body>
@@ -1533,36 +1534,41 @@ async function tkSweep(){
     rows.forEach(x=>{const e=D.ev.find(z=>z.id===x.event_id);if(e)evSyncSoon(x.member_id,evMo(e.d))});
     render()
   }catch(e){console.warn(e)}finally{TK_SW=false}}
-function tkNew(){S.tab="events";S.evf={id:null,kind:"tk",title:"",d:today(),com:[...COM4],sub:true,dl:tkLocal(Date.now()+3*864e5),det:""};render()}
+function tkNew(){S.tab="events";S.evf={id:null,kind:"tk",title:"",d:today(),com:[...COM4],sub:true,st:"link",dl:tkLocal(Date.now()+3*864e5),det:""};render()}
 function tkEdit(id){S.tab="events";evForm(id)}
 async function tkSubmit(eid){
   const e=D.ev.find(x=>x.id===eid);if(!e||!me)return;
-  const c=((document.getElementById("tkc_"+eid)||{}).value||"").trim(),l=((document.getElementById("tkl_"+eid)||{}).value||"").trim(),s=tkSubOf(eid,me.id);
+  const isT=e.submit_type==="text",c=isT?((document.getElementById("tkc_"+eid)||{}).value||"").trim():"",l=isT?"":((document.getElementById("tkl_"+eid)||{}).value||"").trim(),s=tkSubOf(eid,me.id);
   if(!tkOpenFor(e,s)){toast("الديدلاين خلص","err");render();return}
-  if(!c&&!l){toast("اكتب نص أو حط لينك","err");return}
+  if(!c&&!l){toast(isT?"اكتب تسليمك الأول":"حط لينك التسليم","err");return}
   if(l&&!/^https?:\/\//i.test(l)){toast("اللينك لازم يبدأ بـ https://","err");return}
-  const body={content:c||null,link:l||null,state:"pending"},r=s?await sb.from("task_subs").update(body).eq("id",s.id).select().single():await sb.from("task_subs").insert(Object.assign({event_id:eid,member_id:me.id},body)).select().single();
+  const r=await sb.from("task_subs").upsert({event_id:eid,member_id:me.id,content:c||null,link:l||null,state:"pending"},{onConflict:"event_id,member_id"}).select().single();
   if(r.error){toast(/row-level|policy/i.test(r.error.message)?"الديدلاين خلص أو التسليم اتقفل":r.error.message,"err");await tkRefresh();render();return}
   D.tk.subs=tkSubs().filter(x=>x.id!==r.data.id).concat(r.data);toast("اتسلّم ✓","ok");render()}
 async function tkDecide(sid,act){
   const s=tkSubs().find(x=>x.id===sid);if(!s)return;
   const e=D.ev.find(x=>x.id===s.event_id),m=D.members.find(x=>x.id===s.member_id);if(!e||!m)return;
-  if(act==="revise"&&tkNow()>=tkEnd(e,s)){toast("الديدلاين خلص: اختار قبول أو رفض نهائي","err");return}
-  const nEl=document.getElementById("tkn_"+sid),note=nEl?nEl.value.trim():"";
-  const patch={state:act==="accept"?"accepted":act==="reject"?"rejected":"revise",note:note||null,reviewed_by:me.id,reviewed_at:new Date().toISOString()};
+  const nEl=document.getElementById("tkn_"+sid),note=nEl?nEl.value.trim():"",qEl=document.getElementById("tkq_"+sid);
+  let qv=null;
+  if(act==="accept"){
+    if(!qEl||qEl.value===""||isNaN(+qEl.value)||+qEl.value<0||+qEl.value>5){toast("اكتب الجودة من 0 لـ 5 قبل القبول","err");if(qEl)qEl.focus();return}
+    qv=+qEl.value}
+  const over=tkNow()>=tkEnd(e,s),patch={state:act==="accept"?"accepted":act==="reject"?"rejected":"revise",note:note||null,reviewed_by:me.id,reviewed_at:new Date().toISOString()};
+  if(act==="revise"&&over)patch.extended_until=new Date(tkNow()+864e5).toISOString();
   const u=await sb.from("task_subs").update(patch).eq("id",sid);
   if(u.error){toast(u.error.message,"err");return}
-  Object.assign(s,patch);
+  Object.assign(s,patch);S.tkr=null;
   const cur=D.att.find(a=>a.event_id===e.id&&a.member_id===m.id);
   if(act==="revise"){
     if(cur){const d=await sb.from("attendance").delete().eq("event_id",e.id).eq("member_id",m.id);if(!d.error){D.att=D.att.filter(a=>a!==cur);evSyncSoon(m.id,evMo(e.d))}}
   }else{
-    const qEl=document.getElementById("tkq_"+sid),qv=qEl&&qEl.value!==""?Math.max(0,Math.min(5,+qEl.value)):null,onTime=new Date(s.updated_at||s.created_at||Date.now()).getTime()<=tkDl(e);
-    const row={event_id:e.id,member_id:m.id,status:act==="accept"?"present":"absent",q:act==="accept"?(qv!=null?qv:cur?cur.q:null):null,l:act==="accept"&&onTime,by_member:me.id,updated_at:new Date().toISOString()};
+    const onTime=new Date(s.updated_at||s.created_at||Date.now()).getTime()<=tkDl(e);
+    const row={event_id:e.id,member_id:m.id,status:act==="accept"?"present":"absent",q:act==="accept"?qv:null,l:act==="accept"&&onTime,by_member:me.id,updated_at:new Date().toISOString()};
     const r=await sb.from("attendance").upsert(row,{onConflict:"event_id,member_id"});
     if(r.error){toast("اتحفظ القرار بس التسجيل فشل: "+r.error.message,"err");render();return}
     D.att=D.att.filter(a=>a!==cur).concat(row);evSyncSoon(m.id,evMo(e.d))}
-  toast(act==="accept"?"اتقبل واتسجل ✓":act==="reject"?"اترفض واتسجل صفر":"اتبعت للعضو طلب تعديل","ok");render()}
+  toast(act==="accept"?"اتقبل واتسجل ✓":act==="reject"?"اترفض واتسجل صفر":over?"رجع للعضو للتعديل (اتمدّد 24 ساعة)":"رجع للعضو للتعديل","ok");render()}
+const tkEditOpen=sid=>{S.tkr=S.tkr===sid?null:sid;render()};
 async function tkExtend(eid,mid){
   const e=D.ev.find(x=>x.id===eid);if(!e)return;
   const until=new Date(Math.max(tkNow(),tkDl(e))+864e5).toISOString(),r=await sb.from("task_subs").upsert({event_id:eid,member_id:mid,extended_until:until,state:"revise",reviewed_by:me.id,reviewed_at:new Date().toISOString()},{onConflict:"event_id,member_id"}).select().single();
@@ -1575,6 +1581,18 @@ async function tkDelSub(sid){
   if(!confirm("مسح التسليم ده؟"))return;
   const r=await sb.from("task_subs").delete().eq("id",sid);if(r.error){toast(r.error.message,"err");return}
   D.tk.subs=tkSubs().filter(x=>x.id!==sid);render()}
+function tkExport(eid,all){
+  const e=D.ev.find(x=>x.id===eid);if(!e)return;
+  const cc=S.tkc&&COM4.includes(S.tkc)?S.tkc:COM4[0],
+  mems=(isAdm()?D.members.filter(m=>evApplies(e,m)&&(all||m.committee===cc)):evMems(e)).slice().sort((a,b)=>String(a.committee).localeCompare(String(b.committee))||nm(a.name).localeCompare(nm(b.name))),
+  AM=evAM(),stt={pending:"بانتظار المراجعة",accepted:"مقبول",revise:"رجع للتعديل",rejected:"مرفوض نهائي"},rec={present:"تم",absent:"لم يتم",ex_ok:"اعتذار مقبول",ex_no:"اعتذار غير مقبول"},
+  fm=t=>t?tkLocal(new Date(t).getTime()).replace("T"," "):"",sf=v=>{v=v==null?"":String(v);return/^[=+\-@]/.test(v)?"'"+v:v},
+  by=id=>{const x=D.members.find(m=>m.id===id);return x?nm(x.name):""};
+  const rows=[["الاسم","اللجنة","التاسك","نوع التسليم","الديدلاين","حالة التسليم","وقت التسليم","في الميعاد","التسليم","الجودة /5","ملاحظة المراجع","راجعه","وقت المراجعة","التسجيل في الحضور"]];
+  mems.forEach(m=>{const s=tkSubOf(e.id,m.id),has=tkHas(s),a=AM[e.id+"|"+m.id],t=has?new Date(s.updated_at||s.created_at).getTime():0;
+    rows.push([sf(nm(m.name)),m.committee,sf(e.title),e.submit_type==="text"?"نص":"لينك",fm(e.deadline),has?stt[s.state]:"لم يسلّم",has?fm(t):"",has?(t<=tkDl(e)?"أيوه":"متأخر (ممدّد)"):"",has?sf(s.content||s.link||""):"",a&&a.q!=null?a.q:"",has&&s.note?sf(s.note):"",has&&s.reviewed_by?by(s.reviewed_by):"",has&&s.reviewed_at?fm(s.reviewed_at):"",a?(rec[a.status]||a.status):""])});
+  if(rows.length<2){toast("مفيش أعضاء للتصدير","err");return}
+  csvDl(rows,"task-"+String(e.title).replace(/[\\\/:*?"<>|]+/g,"_").slice(0,40)+".csv")}
 function tasksView(){
   if(!D.tk||!D.tk.ok)return`<div class="card"><p class="mu">بحمّل التاسكات…</p></div>`;
   const err=D.tk.err?`<div class="card" style="border-color:#ef4444"><b>مشكلة في تحميل التاسكات</b><p class="mu">${esc(D.tk.err)}<br>لو دي أول مرة، لازم تشغّل ملف الـSQL الخاص بالتاسكات في Supabase.</p></div>`:"";
@@ -1584,37 +1602,46 @@ function tkMyHtml(){
   const L=D.ev.filter(e=>tkIsTask(e)&&evApplies(e,me)),op=[],dn=[];
   L.forEach(e=>(tkOpenFor(e,tkSubOf(e.id,me.id))?op:dn).push(e));
   op.sort((a,b)=>tkDl(a)-tkDl(b));dn.sort((a,b)=>tkDl(b)-tkDl(a));
-  const card=e=>{const s=tkSubOf(e.id,me.id),o=tkOpenFor(e,s),has=tkHas(s),lock=!!s&&(s.state==="accepted"||s.state==="rejected");
-    return`<div class="card" style="margin:8px 0"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><b>${EVI.tk} ${esc(e.title)}</b><div class="mu" style="font-size:12px">الديدلاين: ${esc(tkDlTxt(tkEnd(e,s)))}</div></div>${o?tkTimer(e,s):`<span class="tkt z">انتهى</span>`}</div>
-${e.details?`<p style="white-space:pre-wrap;margin:8px 0">${esc(e.details)}</p>`:""}
-${s&&s.state==="revise"&&o&&has?`<div style="background:rgba(245,158,11,.12);border:1px solid #f59e0b;border-radius:12px;padding:8px 12px;margin:8px 0"><b>↺ مطلوب منك تعديل</b>${s.note?`<div>${esc(s.note)}</div>`:""}</div>`:""}
-${o&&!lock?`<label>التسليم (نص)</label><textarea id="tkc_${e.id}" rows="3" placeholder="اكتب تسليمك هنا">${esc(s&&s.content||"")}</textarea><label>لينك (اختياري)</label><input id="tkl_${e.id}" placeholder="https://..." value="${esc(s&&s.link||"")}"><div class="row" style="margin-top:8px"><button onclick="tkSubmit('${e.id}')">${has?"تحديث التسليم":"تسليم"}</button>${has?`<span class="mu">✓ تم التسليم، تقدر تعدّله لحد الديدلاين</span>`:""}</div>`:has?`<div class="mu" style="margin-top:6px">✓ تم التسليم</div>`:`<div class="mu" style="margin-top:6px">🔒 التسليم اتقفل</div>`}</div>`};
+  const card=e=>{const s=tkSubOf(e.id,me.id),o=tkOpenFor(e,s),has=tkHas(s),canEdit=o&&(!has||(s&&s.state==="revise"));
+    return`<div class="card tkc" style="margin:8px 0"><div class="row" style="justify-content:space-between;align-items:flex-start;gap:8px"><div style="flex:1;min-width:0"><b style="font-size:16px">${EVI.tk} ${esc(e.title)}</b><div class="mu" style="font-size:12px;margin-top:2px">⏰ ${esc(tkDlTxt(tkEnd(e,s)))}</div></div>${o?tkTimer(e,s):`<span class="tkt z">انتهى</span>`}</div>
+${e.details?`<div class="tkb" style="white-space:pre-wrap">${esc(e.details)}</div>`:""}
+${s&&s.state==="revise"&&o?`<div style="background:rgba(245,158,11,.12);border:1px solid #f59e0b;border-radius:12px;padding:8px 12px;margin:8px 0"><b>↺ مطلوب منك تعديل</b>${s.note?`<div style="margin-top:2px">${esc(s.note)}</div>`:""}</div>`:""}
+${canEdit?`${e.submit_type==="text"?`<label>تسليمك (نص)</label><textarea id="tkc_${e.id}" rows="4" placeholder="اكتب تسليمك هنا">${esc(s&&s.content||"")}</textarea>`:`<label>لينك التسليم</label><input id="tkl_${e.id}" placeholder="https://..." value="${esc(s&&s.link||"")}">`}<div class="row" style="margin-top:10px"><button onclick="tkSubmit('${e.id}')">${has?"إرسال التعديل":"تسليم"}</button></div>`
+:has?`<div class="mu" style="margin-top:8px;font-weight:700">✓ تم التسليم</div>`
+:`<div class="mu" style="margin-top:8px">🔒 التسليم اتقفل</div>`}</div>`};
   if(!L.length)return emptyCard("📝","مفيش تاسكات عليك دلوقتي","أول ما يتضاف تاسك هيظهر هنا ومعاه تايمر الديدلاين.");
-  return op.map(card).join("")+(dn.length?`<div class="mu" style="margin:14px 0 6px">تاسكات خلصت</div>`+dn.slice(0,6).map(card).join(""):"")}
+  return(op.length?`<div class="tkh">🟢 مفتوحة (${op.length})</div>`+op.map(card).join(""):"")+(dn.length?`<div class="tkh">⚫ خلصت (${dn.length})</div>`+dn.slice(0,6).map(card).join(""):"")}
 function tkRevHtml(){
-  const L=D.ev.filter(e=>tkIsTask(e)&&evMems(e).length).sort((a,b)=>tkDl(b)-tkDl(a));
-  return`<h3 style="margin:20px 0 6px">📥 مراجعة التسليمات</h3>`+(L.length?L.map(e=>tkRevCard(e,evMems(e),false)).join(""):emptyCard("📥","مفيش تاسكات للمراجعة","مفيش تاسكات بتسليم على الأعضاء اللي بتتابعهم."))}
+  const L=D.ev.filter(e=>tkIsTask(e)&&evMems(e).length);
+  return`<div class="tkh" style="margin-top:22px">📥 مراجعة التسليمات</div>`+(L.length?tkSections(L.map(e=>[e,evMems(e)]),false):emptyCard("📥","مفيش تاسكات للمراجعة","مفيش تاسكات بتسليم على الأعضاء اللي بتتابعهم."))}
+function tkSections(pairs,adm){
+  const op=pairs.filter(x=>tkNow()<tkDl(x[0])).sort((a,b)=>tkDl(a[0])-tkDl(b[0])),dn=pairs.filter(x=>tkNow()>=tkDl(x[0])).sort((a,b)=>tkDl(b[0])-tkDl(a[0]));
+  return(op.length?`<div class="tkh">🟢 مفتوحة (${op.length})</div>`+op.map(x=>tkRevCard(x[0],x[1],adm)).join(""):"")+(dn.length?`<div class="tkh">⚫ منتهية (${dn.length})</div>`+dn.map(x=>tkRevCard(x[0],x[1],adm)).join(""):"")}
 function tkAdminHtml(){
   const c=S.tkc&&COM4.includes(S.tkc)?S.tkc:COM4[0],inC=(e,k)=>tkIsTask(e)&&(!(e.committees||[]).length||e.committees.includes(k)),
   pend=k=>D.ev.filter(e=>inC(e,k)).reduce((a,e)=>a+tkSubs().filter(s=>s.event_id===e.id&&s.state==="pending"&&tkHas(s)&&(D.members.find(m=>m.id===s.member_id)||{}).committee===k).length,0);
-  const tabs=`<div class="row" style="margin-bottom:10px;gap:6px;flex-wrap:wrap">${COM4.map(k=>`<button class="g chip ${k===c?"on":""}" onclick="S.tkc='${k}';render()">${k}${pend(k)?` <span class="pill" style="background:#f59e0b;color:#000">${pend(k)}</span>`:""}</button>`).join("")}</div>`;
-  const L=D.ev.filter(e=>inC(e,c)).sort((a,b)=>tkDl(b)-tkDl(a));
-  return tabs+(L.length?L.map(e=>tkRevCard(e,D.members.filter(m=>m.committee===c&&evApplies(e,m)),true)).join(""):emptyCard("📝","مفيش تاسكات للجنة "+c,"ضيف تاسك بتسليم من زرار تاسك جديد."))}
+  const tabs=`<div class="row" style="margin-bottom:12px;gap:6px;flex-wrap:wrap">${COM4.map(k=>`<button class="g chip ${k===c?"on":""}" onclick="S.tkc='${k}';render()">${k}${pend(k)?` <span class="pill" style="background:#f59e0b;color:#000">${pend(k)}</span>`:""}</button>`).join("")}</div>`;
+  const L=D.ev.filter(e=>inC(e,c));
+  return tabs+(L.length?tkSections(L.map(e=>[e,D.members.filter(m=>m.committee===c&&evApplies(e,m))]),true):emptyCard("📝","مفيش تاسكات للجنة "+c,"ضيف تاسك بتسليم من زرار تاسك جديد."))}
 function tkRevCard(e,mems,adm){
-  const subs=mems.map(m=>[m,tkSubOf(e.id,m.id)]),over=tkNow()>=tkDl(e),open=S.tko===e.id,AM=evAM(),
-  n=st=>subs.filter(x=>x[1]&&x[1].state===st&&tkHas(x[1])).length,none=subs.filter(x=>!tkHas(x[1])).length,
+  const subs=mems.map(m=>[m,tkSubOf(e.id,m.id)]),over=tkNow()>=tkDl(e),open=S.tko===e.id,AM=evAM(),F=S.tkf||"all",
+  kind=x=>tkHas(x[1])?x[1].state:"none",cnt=k=>subs.filter(x=>kind(x)===k).length,
   pill=(t,c)=>`<span class="pill" style="background:${c}22;color:${c}">${t}</span>`;
-  const ST={pending:["بانتظار المراجعة","#f59e0b"],accepted:["مقبول ✓","#22c55e"],revise:["طلب تعديل ↺","#38bdf8"],rejected:["مرفوض نهائي ✕","#ef4444"]};
-  const rows=open?subs.map(([m,s])=>{
-    const has=tkHas(s),st=has?ST[s.state]:null,ext=s&&s.extended_until&&tkNow()<new Date(s.extended_until).getTime(),at=AM[e.id+"|"+m.id];
-    const lbl=st?pill(st[0],st[1]):ext?pill("ممدّد لحد "+tkDlTxt(new Date(s.extended_until)),"#38bdf8"):pill(over?"لم يسلّم":"لسه ما سلّمش","#94a3b8");
-    return`<div style="border-top:1px solid var(--bd);padding:10px 0"><div class="row" style="justify-content:space-between;gap:8px">${avatar(m)}<div style="flex:1;min-width:110px"><b style="font-size:14px">${esc(nm(m.name))}</b><div class="mu" style="font-size:11px">${esc(m.committee)}${at?" · مسجّل: "+({present:"تم",absent:"لم يتم",ex_ok:"½",ex_no:"¼"}[at.status]||at.status):""}</div></div>${lbl}</div>
-${has?`${s.content?`<p style="white-space:pre-wrap;margin:8px 0">${esc(s.content)}</p>`:""}${s.link?`<p style="margin:6px 0"><a href="${esc(s.link)}" target="_blank" rel="noopener noreferrer">🔗 ${esc(s.link.length>60?s.link.slice(0,57)+"…":s.link)}</a></p>`:""}<div class="mu" style="font-size:11px">اتسلّم ${esc(tkDlTxt(s.updated_at||s.created_at))}</div>
-<div class="row" style="margin-top:8px;gap:6px;flex-wrap:wrap"><input id="tkn_${s.id}" placeholder="ملاحظة (اختياري)" value="${esc(s.note||"")}" style="flex:1;min-width:140px">${hasQ(m.committee,"tk")?`<input type="number" id="tkq_${s.id}" min="0" max="5" step="0.5" placeholder="الجودة /5" value="${at&&at.q!=null?at.q:""}" style="width:100px">`:""}</div>
-<div class="row" style="margin-top:6px;gap:6px;flex-wrap:wrap"><button onclick="tkDecide('${s.id}','accept')">✓ قبول</button>${over?"":`<button class="g" onclick="tkDecide('${s.id}','revise')">↺ طلب تعديل</button>`}<button class="g" style="color:#ef4444" onclick="tkDecide('${s.id}','reject')">✕ رفض نهائي</button>${adm?`<button class="g" onclick="tkDelSub('${s.id}')">🗑</button>`:""}</div>`:""}
-${over||!has?`<div class="row" style="margin-top:6px"><button class="g chip" style="font-size:12px" onclick="tkExtend('${e.id}','${m.id}')">⏱ مدّد 24 ساعة</button></div>`:""}</div>`}).join(""):"";
-  return`<div class="card" style="margin:8px 0"><div class="row" style="justify-content:space-between;cursor:pointer;align-items:flex-start" onclick="S.tko=S.tko==='${e.id}'?null:'${e.id}';render()"><div><b>${EVI.tk} ${esc(e.title)}</b><div class="mu" style="font-size:12px">الديدلاين: ${esc(tkDlTxt(tkDl(e)))}</div></div>${over?`<span class="tkt z">انتهى</span>`:tkTimer(e,null)}</div>
-<div class="row" style="margin-top:8px;gap:6px;flex-wrap:wrap">${pill("بانتظار "+n("pending"),"#f59e0b")}${pill("مقبول "+n("accepted"),"#22c55e")}${pill("تعديل "+n("revise"),"#38bdf8")}${pill("مرفوض "+n("rejected"),"#ef4444")}${pill("لم يسلّم "+none,"#94a3b8")}${adm?`<button class="g chip" style="font-size:12px" onclick="tkEdit('${e.id}')">✏️ تعديل</button><button class="g chip" style="font-size:12px" onclick="evDel('${e.id}')">🗑 حذف</button>`:""}</div>${rows}${open?"":`<div class="mu" style="font-size:12px;margin-top:6px">دوس على التاسك عشان تشوف التسليمات</div>`}</div>`}
+  const ST={pending:["بانتظار المراجعة","#f59e0b"],accepted:["مقبول ✓","#22c55e"],revise:["رجع للتعديل ↺","#38bdf8"],rejected:["مرفوض نهائي ✕","#ef4444"],none:["لم يسلّم","#94a3b8"]},RK={pending:0,revise:1,accepted:2,rejected:3,none:4};
+  const fl=[["all","الكل"],["pending","بانتظار"],["accepted","مقبول"],["revise","تعديل"],["rejected","مرفوض"],["none","لم يسلّم"]];
+  const row=(m,s)=>{
+    const has=tkHas(s),k=has?s.state:"none",ext=s&&s.extended_until&&tkNow()<new Date(s.extended_until).getTime(),at=AM[e.id+"|"+m.id],panel=has&&(s.state==="pending"||S.tkr===s.id),qTxt=at&&at.q!=null?at.q:null;
+    const lbl=pill(ext&&!has?"ممدّد لحد "+tkDlTxt(new Date(s.extended_until)):(k==="none"&&!over?"لسه ما سلّمش":ST[k][0]),ST[k][1]);
+    return`<div class="tkr"><div class="row" style="justify-content:space-between;gap:8px">${avatar(m)}<div style="flex:1;min-width:110px"><b style="font-size:14px">${esc(nm(m.name))}</b><div class="mu" style="font-size:11px">${esc(m.committee)}${at?" · مسجّل: "+({present:"تم",absent:"لم يتم",ex_ok:"½",ex_no:"¼"}[at.status]||at.status):""}</div></div>${lbl}</div>
+${has?`<div class="tkb">${s.content?`<div style="white-space:pre-wrap">${esc(s.content)}</div>`:""}${s.link?`<div style="margin-top:4px"><a href="${esc(s.link)}" target="_blank" rel="noopener noreferrer">🔗 ${esc(s.link.length>60?s.link.slice(0,57)+"…":s.link)}</a></div>`:""}<div class="mu" style="font-size:11px;margin-top:4px">اتسلّم ${esc(tkDlTxt(s.updated_at||s.created_at))}</div></div>`:""}
+${has&&!panel?`<div class="row" style="gap:8px;align-items:center">${s.state==="accepted"?`<span class="mu">الجودة: <b>${qTxt!=null?qTxt:"—"}</b>/5</span>`:""}${s.note?`<span class="mu">📝 ${esc(s.note)}</span>`:""}<button class="g chip" style="font-size:12px" onclick="tkEditOpen('${s.id}')">✏️ تعديل القرار</button></div>`:""}
+${panel?`<div class="tkp"><div class="row" style="gap:6px;flex-wrap:wrap"><div><label style="margin:0">الجودة /5 <span style="color:#ef4444">*</span></label><input type="number" id="tkq_${s.id}" min="0" max="5" step="0.5" placeholder="0 - 5" value="${qTxt!=null?qTxt:""}" style="width:110px"></div><div style="flex:1;min-width:150px"><label style="margin:0">ملاحظة (اختياري)</label><input id="tkn_${s.id}" placeholder="ملاحظة للعضو" value="${esc(s.note||"")}"></div></div>
+<div class="row" style="margin-top:8px;gap:6px;flex-wrap:wrap"><button onclick="tkDecide('${s.id}','accept')">✓ قبول وتسجيل</button><button class="g" onclick="tkDecide('${s.id}','revise')">↺ رجّع للتعديل</button><button class="g" style="color:#ef4444" onclick="tkDecide('${s.id}','reject')">✕ رفض نهائي</button>${s.state!=="pending"?`<button class="g" onclick="tkEditOpen('${s.id}')">إلغاء</button>`:""}${adm?`<button class="g" onclick="tkDelSub('${s.id}')">🗑</button>`:""}</div></div>`:""}
+${(over||!has)&&!panel?`<div class="row" style="margin-top:6px"><button class="g chip" style="font-size:12px" onclick="tkExtend('${e.id}','${m.id}')">⏱ مدّد 24 ساعة</button></div>`:""}</div>`};
+  const list=subs.filter(x=>F==="all"||kind(x)===F).sort((a,b)=>RK[kind(a)]-RK[kind(b)]);
+  const body=open?`<div class="row" style="gap:6px;flex-wrap:wrap;margin:10px 0 2px">${fl.map(([k,l])=>`<button class="g chip ${F===k?"on":""}" style="font-size:12px;padding:4px 10px" onclick="S.tkf='${k}';render()">${l}${k==="all"?"":" "+cnt(k)}</button>`).join("")}</div>`+(list.length?list.map(x=>row(x[0],x[1])).join(""):`<div class="mu" style="padding:12px 0">مفيش حد في الفلتر ده.</div>`):"";
+  return`<div class="card tkc" style="margin:8px 0"><div class="row" style="justify-content:space-between;cursor:pointer;align-items:flex-start;gap:8px" onclick="S.tko=S.tko==='${e.id}'?null:'${e.id}';S.tkf='all';render()"><div style="flex:1;min-width:0"><b style="font-size:16px">${EVI.tk} ${esc(e.title)}</b><div class="mu" style="font-size:12px;margin-top:2px">⏰ ${esc(tkDlTxt(tkDl(e)))} · التسليم: ${e.submit_type==="text"?"📝 نص":"🔗 لينك"} · ${subs.length} عضو</div></div>${over?`<span class="tkt z">انتهى</span>`:tkTimer(e,null)}</div>
+<div class="row" style="margin-top:8px;gap:6px;flex-wrap:wrap">${pill("بانتظار "+cnt("pending"),"#f59e0b")}${pill("مقبول "+cnt("accepted"),"#22c55e")}${pill("تعديل "+cnt("revise"),"#38bdf8")}${pill("مرفوض "+cnt("rejected"),"#ef4444")}${pill("لم يسلّم "+cnt("none"),"#94a3b8")}<span style="flex:1"></span><button class="g chip" style="font-size:12px" onclick="tkExport('${e.id}',false)">⬇ Excel</button>${adm?`<button class="g chip" style="font-size:12px" onclick="tkExport('${e.id}',true)">⬇ كل اللجان</button><button class="g chip" style="font-size:12px" onclick="tkEdit('${e.id}')">✏️ تعديل</button><button class="g chip" style="font-size:12px" onclick="evDel('${e.id}')">🗑 حذف</button>`:""}</div>${body}${open?"":`<div class="mu" style="font-size:12px;margin-top:6px">دوس على التاسك عشان تشوف التسليمات</div>`}</div>`}
 
 /* ---------- الأحداث والحضور (نزولات / تاسكات / سيشنات / اجتماعات) ---------- */
 const EVI={sh:"🚶",tk:"✅",se:"🎓",mt:"👥"};
@@ -1650,14 +1677,14 @@ async function evSync(mid,mo,quiet){const m=D.members.find(x=>x.id===mid);if(!m)
   if(x.error){if(!quiet){S.evMsg="تعذر تحديث تقييم "+nm(m.name)+": "+x.error.message;if(S.tab==="events")render()}return}
   m.rec[mo]=r}
 async function evResync(eid,mos){const mids=[...new Set(D.att.filter(a=>a.event_id===eid).map(a=>a.member_id))];await Promise.all(mids.flatMap(mid=>[...new Set(mos)].map(mo=>evSync(mid,mo))))}
-function evForm(id){const e=id&&D.ev.find(x=>x.id===id);S.evf=e?{id:e.id,kind:e.kind,title:e.title,d:e.d,com:(e.committees||[]).length?[...e.committees]:[...COM4],sub:!!e.submit_open,dl:e.deadline?tkLocal(new Date(e.deadline).getTime()):tkLocal(Date.now()+3*864e5),det:e.details||""}:{id:null,kind:"sh",title:"",d:today(),com:[...COM4],sub:false,dl:tkLocal(Date.now()+3*864e5),det:""};render()}
+function evForm(id){const e=id&&D.ev.find(x=>x.id===id);S.evf=e?{id:e.id,kind:e.kind,title:e.title,d:e.d,com:(e.committees||[]).length?[...e.committees]:[...COM4],sub:!!e.submit_open,st:e.submit_type||"link",dl:e.deadline?tkLocal(new Date(e.deadline).getTime()):tkLocal(Date.now()+3*864e5),det:e.details||""}:{id:null,kind:"sh",title:"",d:today(),com:[...COM4],sub:false,st:"link",dl:tkLocal(Date.now()+3*864e5),det:""};render()}
 const evTogC=c=>{const a=S.evf.com;S.evf.com=a.includes(c)?a.filter(x=>x!==c):[...a,c];render()};
 const evOpen=id=>{S.evo=S.evo===id?null:id;render()};
 async function evSave(){const f=S.evf,m=$("#evfm");if(!f.title.trim()||!f.d){m.textContent="اكتب الاسم والتاريخ";return}
   if(!f.com.length){m.textContent="اختار لجنة واحدة على الأقل";return}
   const tkOn=f.kind==="tk"&&!!f.sub;if(tkOn&&!f.dl){m.textContent="حدد الديدلاين";return}
   const row={kind:f.kind,title:f.title.trim(),d:f.d,committees:f.com.length===COM4.length?[]:f.com},old=f.id&&D.ev.find(x=>x.id===f.id),oldMems=old?evAffected(old):[];
-  if(tkOn||(old&&old.submit_open))Object.assign(row,{submit_open:tkOn,deadline:tkOn?new Date(f.dl).toISOString():null,details:tkOn?((f.det||"").trim()||null):null});
+  if(tkOn||(old&&old.submit_open))Object.assign(row,{submit_open:tkOn,submit_type:tkOn?(f.st==="text"?"text":"link"):"link",deadline:tkOn?new Date(f.dl).toISOString():null,details:tkOn?((f.det||"").trim()||null):null});
   const r=f.id?await sb.from("events").update(row).eq("id",f.id):await sb.from("events").insert(Object.assign({created_by:me.id},row));
   if(r.error){m.textContent=r.error.message;return}
   S.evf=null;S.evm=evMo(f.d);await loadEv();
@@ -1692,7 +1719,7 @@ function evPanel(e,mem,AM){
 function evFormHtml(){const f=S.evf;return`<div class="card" style="border-color:var(--pr)"><b>${f.id?"تعديل الحدث":"حدث جديد"}</b>
   <label>النوع</label><select onchange="S.evf.kind=this.value;render()">${KEYS.map(([k,n])=>`<option value="${k}" ${f.kind===k?"selected":""}>${EVI[k]||"•"} ${n}</option>`).join("")}</select>
   <label>الاسم / الوصف</label><input value="${esc(f.title)}" oninput="S.evf.title=this.value" placeholder="مثال: نزولة مستشفى أبو الريش">
-  <label>التاريخ</label><input type="date" value="${esc(f.d)}" oninput="S.evf.d=this.value">${f.kind==="tk"?`<label style="display:flex;gap:6px;align-items:center;color:var(--tx)"><input type="checkbox" style="width:auto" ${f.sub?"checked":""} onchange="S.evf.sub=this.checked;render()"> تسليم من الأعضاء عبر الموقع (بديدلاين)</label>${f.sub?`<label>الديدلاين (التاريخ والوقت)</label><input type="datetime-local" value="${esc(f.dl)}" oninput="S.evf.dl=this.value"><label>تفاصيل التاسك (اختياري)</label><textarea rows="3" oninput="S.evf.det=this.value">${esc(f.det||"")}</textarea>`:""}`:""}
+  <label>التاريخ</label><input type="date" value="${esc(f.d)}" oninput="S.evf.d=this.value">${f.kind==="tk"?`<label style="display:flex;gap:6px;align-items:center;color:var(--tx)"><input type="checkbox" style="width:auto" ${f.sub?"checked":""} onchange="S.evf.sub=this.checked;render()"> تسليم من الأعضاء عبر الموقع (بديدلاين)</label>${f.sub?`<label>الديدلاين (التاريخ والوقت)</label><input type="datetime-local" value="${esc(f.dl)}" oninput="S.evf.dl=this.value"><label>التسليم يكون على</label><select onchange="S.evf.st=this.value"><option value="link" ${f.st!=="text"?"selected":""}>🔗 لينك</option><option value="text" ${f.st==="text"?"selected":""}>📝 نص</option></select><label>تفاصيل التاسك (اختياري)</label><textarea rows="3" oninput="S.evf.det=this.value">${esc(f.det||"")}</textarea>`:""}`:""}
   <label>اللجان المشاركة</label><div class="row">${COM4.map(c=>`<button type="button" class="g chip ${f.com.includes(c)?"on":""}" onclick="evTogC('${c}')">${c}</button>`).join("")}</div>
   <p class="err" id="evfm"></p><div class="row"><button onclick="evSave()">حفظ</button><button class="g" onclick="S.evf=null;render()">إلغاء</button>${f.id?`<button class="d" onclick="evDel('${f.id}')">حذف</button>`:""}</div></div>`}
 function eventsView(){
@@ -2181,7 +2208,7 @@ async function impSheetsFrom(f){
 async function impFile(f){
   if(!f)return;const year=(S.imp&&S.imp.year)||new Date().getFullYear();S.imp={fn:f.name,rows:[],months:[],busy:false,err:"",year,file:f,done:null,sheets:[]};
   try{S.imp.sheets=await impSheetsFrom(f)}
-  catch(e){S.imp.err="مقدرتش أقرا الملف ("+String(e&&e.message||e)+"). اتأكد إنه xlsx أو CSV، ولو xlsx اتأكد إن النت شغال وجرّب تاني.";render();return}
+  catch(e){const nf=(e&&e.name==="NotFoundError")||/could not be found|not found/i.test(String(e&&e.message||e));S.imp.err=nf?"الموبايل مش قادر يوصل للملف (غالباً اختارته من درايف أو من \"الأخيرة\" أو اتعدّل بعد ما اخترته). نزّله على الموبايل واختاره من Downloads أو تطبيق الملفات، وجرّب تاني.":"مقدرتش أقرا الملف ("+String(e&&e.message||e)+"). اتأكد إنه xlsx أو CSV، ولو xlsx اتأكد إن النت شغال وجرّب تاني.";render();return}
   try{impCompute(S.imp)}catch(e){S.imp.err="حصل خطأ وانا بحلل الملف: "+String(e&&e.message||e)}
   render()}
 function impYear(v){if(!S.imp)return;S.imp.year=Math.max(2000,Math.min(2100,+v||new Date().getFullYear()));if(S.imp.sheets&&S.imp.sheets.length)impCompute(S.imp);render()}
@@ -2241,7 +2268,7 @@ function impHtml(){
   const dn=I.done;
   return`<div class="ov"><div class="card"><div class="row" style="justify-content:space-between"><b style="font-size:17px">⬆ استيراد أعضاء من شيت</b><button class="g ico" onclick="S.modal=null;S.imp=null;render()">✕</button></div>
   <p class="mu" style="margin:6px 0;font-size:13px">ملف Excel (xlsx) أو CSV. لو الملف فيه أكتر من شيت، كل شيت بيتقري، ولو اسم الشيت شهر (زي أكتوبر أو Oct) بيتحسب تقييماته على الشهر ده. الأعمدة: <b>الاسم، الإيميل، كلمة السر، اللجنة، المنصب، الصورة (لينك درايف، اختياري)</b> وبعدهم أعمدة التقييم الإجمالي لأي شهر، زي <b>شهر 9</b> أو <b>شهر 11</b> أو <b>2026-11</b> أو اسم الشهر، وتقدر تضيف أي عدد من الشهور. كلهم اختياري ما عدا الإيميل (والاسم واللجنة للعضو الجديد). <b>ولو الملف فيه الاسم والتقييم بس (من غير إيميل)</b>، بيتعرف على العضو بالاسم، ولو الاسم مختلف شوية بيطلعلك أقرب الأسماء تختار منها.</p>
-  <div class="row"><label class="btn" style="margin:0;color:#fff">📁 اختيار الملف<input type="file" hidden accept=".xlsx,.csv,.txt,text/csv" onchange="impFile(this.files[0]);this.value=''"></label><button class="g" onclick="impTemplate()">⬇ نموذج جاهز</button>
+  <div class="row"><label class="btn" style="margin:0;color:#fff">📁 اختيار الملف<input type="file" hidden accept=".xlsx,.csv,.txt,text/csv" onchange="const i=this;Promise.resolve(impFile(i.files[0])).finally(()=>{i.value=''})"></label><button class="g" onclick="impTemplate()">⬇ نموذج جاهز</button>
   <label style="display:flex;gap:6px;align-items:center;margin:0">سنة التقييمات<input type="number" style="width:90px;min-height:38px" value="${I.year||new Date().getFullYear()}" onchange="impYear(this.value)"></label></div>
   ${I.err?`<p class="err">${esc(I.err)}</p>`:""}
   ${dn?`<div class="card" style="margin:10px 0;padding:12px"><b>النتيجة</b><div class="mu">اتضاف ${dn.members} عضو · ${dn.accounts} حساب · ${dn.scores} تقييم</div>${dn.fails.map(x=>`<div style="color:var(--bad);font-size:13px;margin-top:4px">❌ ${esc(x)}</div>`).join("")}</div>`:""}
@@ -2716,7 +2743,7 @@ function flImpHtml(){
     <div class="mu" style="font-size:12px;margin-top:3px">${g.L.slice().sort((a,b)=>nm2(a.memName).localeCompare(nm2(b.memName),"ar")).map(p=>esc(nm2(p.memName))+" ("+esc(p.com)+")").join("، ")}</div></div></div>`}).join("");
   return`<div class="ov"><div class="card"><div class="row" style="justify-content:space-between"><b style="font-size:17px">🔗 استيراد المتابعة من شيت</b><button class="g ico" onclick="S.modal=null;S.flImp=null;render()">✕</button></div>
   <p class="mu" style="margin:6px 0;font-size:13px">ملف Excel (xlsx) أو CSV بـ 3 أعمدة: <b>اسم الـ HR</b> | <b>الأعضاء اللي بيتابعهم</b> (كل اسم في سطر داخل الخانة أو بينهم فاصلة، أو اسم في كل صف وسيب خانة الـ HR فاضية تحت أول واحد) | <b>اللجان</b> (اختياري، بنفس ترتيب الأسماء، أو لجنة واحدة للكل). اللجنة بتساعد لو في اسمين متشابهين. الصف الأول لو عناوين بيتجاهل تلقائي.</p>
-  <div class="row"><label class="btn" style="margin:0;color:#fff">📁 اختيار الملف<input type="file" hidden accept=".xlsx,.csv,.txt,text/csv" onchange="flImpFile(this.files[0]);this.value=''"></label><button class="g" onclick="flTemplate()">⬇ نموذج جاهز</button></div>
+  <div class="row"><label class="btn" style="margin:0;color:#fff">📁 اختيار الملف<input type="file" hidden accept=".xlsx,.csv,.txt,text/csv" onchange="const i=this;Promise.resolve(flImpFile(i.files[0])).finally(()=>{i.value=''})"></label><button class="g" onclick="flTemplate()">⬇ نموذج جاهز</button></div>
   ${I.err?`<p class="err">${esc(I.err)}</p>`:""}
   ${dn?`<div class="card" style="margin:10px 0;padding:12px"><b>✓ تم</b><div class="mu">اتضاف ${dn.added} متابعة لـ ${dn.hrs} HR${dn.removed?` · اتشال ${dn.removed}`:""}</div></div>`:""}
   ${ALL.length||I.bad.length||(I.amb||[]).length?`<div class="row" style="margin:10px 0"><span class="pill up">${by.size} HR</span><span class="pill up">${ALL.length} متابعة جاهزة</span>${open?`<span class="pill st">محتاج اختيار ${open}</span>`:""}${I.bad.length?`<span class="pill dn">فيه مشكلة ${I.bad.length}</span>`:""}</div>
