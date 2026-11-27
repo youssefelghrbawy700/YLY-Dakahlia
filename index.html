@@ -1385,7 +1385,7 @@ function photosView(){
   PH=grp(g).map(m=>({n:m.name,u:m.avatar_url,id:m.id})).concat(g==="Board"?D.board.filter(b=>!grp("Board").some(m=>m.id===b.member_id)).map(b=>({n:b.name,u:bPhoto(b)})):[]);
   return`<div class="tabs">${COM.map(c=>`<button class="${c===g?"on":""}" onclick="S.pg='${c}';render()">${c} (${grp(c).filter(m=>m.avatar_url).length}/${grp(c).length})</button>`).join("")}</div>
   ${(()=>{const k=S.phsrt||"def";if(k==="name")PH.sort((a,b)=>nm(a.n).localeCompare(nm(b.n),"ar"));else if(k==="miss")PH.sort((a,b)=>(a.u?1:0)-(b.u?1:0));else if(k==="has")PH.sort((a,b)=>(b.u?1:0)-(a.u?1:0));else if(k==="score"){const sc=x=>{const m=x.id&&D.members.find(z=>z.id===x.id);return m?score(m):-1};PH.sort((a,b)=>sc(b)-sc(a))}return sortBar("phsrt",[["def","الافتراضي"],["name","الاسم"],["score","التقييم ↓"],["miss","ناقص صورة أولًا"],["has","عنده صورة أولًا"]],k)})()}
-  <div class="grid3">${PH.map((x,i)=>`<div class="card" style="padding:8px;text-align:center;cursor:${x.u?"pointer":"default"}" ${x.u?`onclick="S.modal={t:'photo',i:${i}};render()"`:""}>${x.u?`<img src="${esc(x.u)}" loading="lazy" decoding="async" alt="" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px;display:block">`:`<div class="av" style="width:100%;height:auto;aspect-ratio:1;border-radius:12px;font-size:28px">${esc((x.n||"?")[0])}</div>`}<div style="font-size:12px;margin-top:6px">${esc(nm(x.n))}</div>${x.id&&isAdm()?`<label class="btn g" style="margin:6px 0 0;padding:5px 8px;font-size:12px;color:var(--tx);display:block" onclick="event.stopPropagation()">📷 ${x.u?"تغيير":"رفع"}<input type="file" hidden accept="image/*" onchange="adminAvatar('${x.id}',this.files[0]);this.value=''"></label>`:""}</div>`).join("")||'<p class="mu">لا يوجد.</p>'}</div>`;
+  <div class="grid3">${PH.map((x,i)=>`<div class="card" style="padding:8px;text-align:center;cursor:${x.u?"pointer":"default"}" ${x.u?`onclick="S.modal={t:'photo',i:${i}};render()"`:""}>${x.u?imgT(x.u,"","width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px;display:block"):`<div class="av" style="width:100%;height:auto;aspect-ratio:1;border-radius:12px;font-size:28px">${esc((x.n||"?")[0])}</div>`}<div style="font-size:12px;margin-top:6px">${esc(nm(x.n))}</div>${x.id&&isAdm()?`<label class="btn g" style="margin:6px 0 0;padding:5px 8px;font-size:12px;color:var(--tx);display:block" onclick="event.stopPropagation()">📷 ${x.u?"تغيير":"رفع"}<input type="file" hidden accept="image/*" onchange="adminAvatar('${x.id}',this.files[0]);this.value=''"></label>`:""}</div>`).join("")||'<p class="mu">لا يوجد.</p>'}</div>`;
 }
 function announceView(){const all=[...new Set(D.members.flatMap(m=>months(m)))].sort().reverse();
   return`<div class="card"><b>📢 إعلان تقييم الشهر</b><p class="mu">تقييمات أي شهر بتفضل مخفية عن الأعضاء لحد ما تعلنها من هنا، وبتظهر لكل الأعضاء في نفس الوقت.</p>${all.map(k=>{const on=D.ann.includes(k),n=D.members.filter(m=>m.rec[k]).length;return`<div class="lb"><span style="flex:1"><b>${ml(k)}</b> <span class="mu">· ${n} تقييم من ${D.members.length}</span></span>${on?`<span class="pill up">معلن</span><button class="g" onclick="announce('${k}',false)">سحب الإعلان</button>`:`<span class="pill st">غير معلن</span><button onclick="announce('${k}',true)">📢 إعلان</button>`}</div>`}).join("")||'<p class="mu">سجّل تقييمات أولاً.</p>'}</div>`;}
@@ -1994,9 +1994,13 @@ function impBuild(rows,year,defMonth){
     let byName=false,nameErr="";
     if(!email&&name){let h=flFind(name);
       if(h.length>1&&comRaw){const f=h.filter(x=>impNorm(x.committee)===impNorm(comRaw));if(f.length)h=f}
-      if(h.length===1){email=String(h[0].email||"").toLowerCase();byName=true}
+      const exact=h.length===1&&flX(h[0].name)===flX(name);
+      if(exact){email=String(h[0].email||"").toLowerCase();byName=true}
+      else if(h.length===1){const o=flFuzzy(name).filter(x=>x.id!==h[0].id),c=[h[0],...o];
+        if(hasS0&&!err.length)amb.push({line:i+start+1,name,scores,cands:c.map(x=>x.id),pick:h[0].id,fuzzy:2});
+        else out.push({line:i+start+1,mode:"skip",name,email:"",password:"",committee:"",role:"Member",scores,photo:"",birth:null,err:hasS0?err.join(" · "):"مفيش تقييم في الصف"});return}
       else{const c=h.length?h:flFuzzy(name);
-        if(c.length){if(hasS0&&!err.length)amb.push({line:i+start+1,name,scores,cands:c.map(x=>x.id),pick:"",fuzzy:!h.length});else if(!hasS0)out.push({line:i+start+1,mode:"skip",name,email:"",password:"",committee:"",role:"Member",scores,photo:"",birth:null,err:"مفيش تقييم في الصف"});else out.push({line:i+start+1,mode:"skip",name,email:"",password:"",committee:"",role:"Member",scores,photo:"",birth:null,err:err.join(" · ")});return}
+        if(c.length){if(hasS0&&!err.length)amb.push({line:i+start+1,name,scores,cands:c.map(x=>x.id),pick:"",fuzzy:h.length?0:1});else if(!hasS0)out.push({line:i+start+1,mode:"skip",name,email:"",password:"",committee:"",role:"Member",scores,photo:"",birth:null,err:"مفيش تقييم في الصف"});else out.push({line:i+start+1,mode:"skip",name,email:"",password:"",committee:"",role:"Member",scores,photo:"",birth:null,err:err.join(" · ")});return}
         nameErr="الاسم مش موجود في الأعضاء (ولو عضو جديد لازم تكتب إيميله)"}}
     const exist=have.get(email),hasS=Object.keys(scores).length>0;let mode="new";
     if(nameErr)err.push(nameErr);
@@ -2025,14 +2029,24 @@ function impCompute(I){
   const m=impMerge(parts);I.rows=m.rows;I.months=m.months;I.amb=m.amb||[];I.sheetCount=parts.length;
   I.err=(I.rows.length||I.amb.length)?"":"الملف فاضي أو شكله مش مفهوم.";
 }
+const IMP_SHEETJS="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+async function impSheetJS(buf){
+  await loadLib(IMP_SHEETJS,"XLSX");
+  const wb=window.XLSX.read(buf,{type:"array"});
+  return wb.SheetNames.map(n=>({name:n,rows:window.XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,raw:false,defval:""}).map(r=>r.map(x=>String(x==null?"":x).trim())).filter(r=>r.some(x=>x!==""))}));
+}
+async function impSheetsFrom(f){
+  const buf=await f.arrayBuffer(),h=new Uint8Array(buf.slice(0,4));
+  if(!buf.byteLength)throw new Error("الملف فاضي");
+  if(h[0]===0x50&&h[1]===0x4b){try{return await xlsxSheets(buf)}catch(e){return await impSheetJS(buf)}}
+  if((h[0]===0xd0&&h[1]===0xcf)||/\.xls$/i.test(f.name))return await impSheetJS(buf);
+  return[{name:"",rows:csvParse(new TextDecoder().decode(buf))}];
+}
 async function impFile(f){
   if(!f)return;const year=(S.imp&&S.imp.year)||new Date().getFullYear();S.imp={fn:f.name,rows:[],months:[],busy:false,err:"",year,file:f,done:null,sheets:[]};
-  try{
-    if(/\.xlsx$/i.test(f.name))S.imp.sheets=await xlsxSheets(await f.arrayBuffer());
-    else if(/\.xls$/i.test(f.name)){S.imp.err="الملف بصيغة xls القديمة. افتحه في Excel واحفظه بصيغة xlsx أو CSV وارفعه تاني.";render();return}
-    else S.imp.sheets=[{name:"",rows:csvParse(await f.text())}];
-    impCompute(S.imp);
-  }catch(e){S.imp.err="مقدرتش أقرا الملف. اتأكد إنه xlsx أو CSV."}
+  try{S.imp.sheets=await impSheetsFrom(f)}
+  catch(e){S.imp.err="مقدرتش أقرا الملف ("+String(e&&e.message||e)+"). اتأكد إنه xlsx أو CSV، ولو xlsx اتأكد إن النت شغال وجرّب تاني.";render();return}
+  try{impCompute(S.imp)}catch(e){S.imp.err="حصل خطأ وانا بحلل الملف: "+String(e&&e.message||e)}
   render()}
 function impYear(v){if(!S.imp)return;S.imp.year=Math.max(2000,Math.min(2100,+v||new Date().getFullYear()));if(S.imp.sheets&&S.imp.sheets.length)impCompute(S.imp);render()}
 function impTemplate(){const y=new Date().getFullYear();csvDl([["الاسم","الإيميل","كلمة السر","اللجنة","المنصب","شهر 9","شهر 10"],["أحمد محمد","ahmed@example.com","Pass1234","PR","Member","85","90"],["سارة علي","sara@example.com","Pass5678","HR","Member","78","88"]],"members-template.csv")}
@@ -2068,7 +2082,7 @@ function impAll(I){
   return out}
 function impPick(i,v){const a=S.imp&&S.imp.amb&&S.imp.amb[i];if(!a)return;a.pick=v;render()}
 function impAmbHtml(I){const A=I.amb||[];if(!A.length)return"";
-  return`<div style="margin-top:10px;max-height:30vh;overflow:auto;border:1px solid var(--warn);border-radius:12px;padding:8px 10px"><b style="font-size:13px">أسماء مش مطابقة بالظبط، اختار العضو الصح (اللي مش هتختاره مش هيتحفظ):</b>${A.map((a,i)=>`<div style="margin-top:8px"><div style="font-size:13px">سطر ${a.line}: <b>${esc(a.name)}</b> <span class="mu">${Object.keys(a.scores).map(k=>k.slice(5)+": "+a.scores[k]).join(" · ")}</span>${a.fuzzy?` <span class="pill st" style="font-size:10px">أقرب أسماء</span>`:""}</div><select onchange="impPick(${i},this.value)"><option value="">— اختار —</option>${a.cands.map(id=>{const x=D.members.find(z=>z.id===id)||{};return`<option value="${id}" ${a.pick===id?"selected":""}>${esc(nm(x.name))} · ${esc(x.committee||"")}</option>`}).join("")}</select></div>`).join("")}</div>`}
+  return`<div style="margin-top:10px;max-height:30vh;overflow:auto;border:1px solid var(--warn);border-radius:12px;padding:8px 10px"><b style="font-size:13px">أسماء محتاجة تتأكد منها (${A.filter(x=>!x.pick).length} لسه مختارتش). اختار العضو الصح، واللي هتسيبه "متحفظش" مش هيتسجل له تقييم:</b>${A.map((a,i)=>`<div style="margin-top:8px"><div style="font-size:13px">سطر ${a.line}: <b>${esc(a.name)}</b> <span class="mu">${Object.keys(a.scores).map(k=>k.slice(5)+": "+a.scores[k]).join(" · ")}</span><span class="pill st" style="font-size:10px">${a.fuzzy===2?"تطابق تقريبي، اتأكد":a.fuzzy===1?"أقرب أسماء":"أكتر من عضو بنفس الاسم"}</span></div><select onchange="impPick(${i},this.value)"><option value="">— متحفظش / لسه —</option>${a.cands.map(id=>{const x=D.members.find(z=>z.id===id)||{};return`<option value="${id}" ${a.pick===id?"selected":""}>${esc(nm(x.name))} · ${esc(x.committee||"")}</option>`}).join("")}</select></div>`).join("")}</div>`}
 async function impGo(){
   const I=S.imp,ok=impAll(I);if(!ok.length||I.busy)return;I.busy=true;render();
   const res={members:0,accounts:0,scores:0,fails:[]},fbEmails=[],ids=new Map(D.members.map(m=>[m.email.toLowerCase(),m.id]));
@@ -2720,8 +2734,8 @@ function designsView(){
 async function dReload(){D.dr=undefined;await load();await loadTpl();render()}
 function dNext(i,d){const x=D_LIST[i],L=tplList().map(t=>t.id),cur=L.indexOf(dTplId(x)),id=L[(cur+d+L.length)%L.length];DS[dKey(x)]=id;dSave();document.getElementById("dl"+i).textContent=tplById(id).name;dDraw(i)}
 function dAll(id){D_LIST.forEach((x,i)=>{DS[dKey(x)]=id;document.getElementById("dl"+i).textContent=tplById(id).name});if(D_LIST[0])DS[D_LIST[0].mo+"|*"]=id;dSave();dDrawAll()}
-function dRedraw(i){const u=D_LIST[i].m.avatar_url;if(u){delete IMGC[u];delete IMGS[u]}dDraw(i)}
-function dDrawAll(){D_LIST.forEach((_,i)=>dDraw(i))}
+function dRedraw(i){const u=D_LIST[i].m.avatar_url;if(u){const t=thumb(u);delete IMGC[u];delete IMGS[u];delete IMGC[t];delete IMGS[t]}dDraw(i)}
+let _ddT=0;async function dDrawAll(){const t=++_ddT;for(let i=0;i<D_LIST.length;i++){if(t!==_ddT)return;try{await dDraw(i)}catch(e){}}}
 function dCanva(i,btn){const x=D_LIST[i],T=tplById(dTplId(x));if(T&&T.t&&T.t.canva_url){window.open(T.t.canva_url,"_blank");return}window.open("https://www.canva.com/","_blank");dDown(i,btn)}
 function dImg(u){
   if(!u)return Promise.resolve(null);
@@ -2731,7 +2745,8 @@ function dImg(u){
     a.src=u}));
 }
 async function dPaint(c,x,scale){
-  const img=await dImg(x.m.avatar_url),id=dTplId(x),T=tplById(id);
+  const au=x.m.avatar_url;let img=null;if(au&&scale<=1.01&&thumb(au)!==au)img=await dImg(thumb(au));if(!img)img=await dImg(au);
+  const id=dTplId(x),T=tplById(id);
   c.width=c.height=1080*scale;const ctx=c.getContext("2d");ctx.setTransform(scale,0,0,scale,0,0);ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality="high";
   const o={name:nm2(x.m.name),c:x.c,r:x.r,mo:x.mo,img,adj:PADJ(x.m.id)},sc=T.t?tplScene(T.t):builtinScene(+id.slice(1));
   try{await scenePre(sc,o);sceneDraw(ctx,sc,o)}catch(e){console.error(e)}
