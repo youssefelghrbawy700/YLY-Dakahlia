@@ -1196,7 +1196,7 @@ async function trashRestore(id){
   else if(t.kind==="photo")await ins("event_photos",p.photos);
   else if(t.kind==="record"){const rows=p.records||[],ex=rows.filter(r=>{const m=D.members.find(x=>x.id===r.member_id);return m&&m.rec&&m.rec[r.month]!==undefined}).length;
     if(ex&&!confirm(ex+" تقييم موجود دلوقتي لنفس الشهر — هيتبدّل بالمستعاد. تكمل؟"))return;
-    const r=await sb.from("records").upsert(rows,{onConflict:"member_id,month"});if(r.error)return alert("تعذرت الاستعادة: "+r.error.message)}
+    const r=await sb.from("records").upsert(rows,{onConflict:"member_id,month"});if(r.error)return alert("تعذرت الاستعادة: "+r.error.message);await tombSet(rows.map(x=>[x.member_id,x.month]),false)}
   const d=await sb.from("trash").delete().eq("id",id);if(d.error)throw d.error;
   toast("اتعادت ✓","ok");await load();render();
 }
@@ -1524,7 +1524,7 @@ async function tkSweep(){
     const AM=evAM(),rows=[];
     D.ev.filter(e=>tkIsTask(e)&&tkNow()>=tkDl(e)).forEach(e=>{evMems(e).forEach(m=>{
       const s=tkSubOf(e.id,m.id);
-      if(AM[e.id+"|"+m.id]||tkHas(s))return;
+      if(AM[e.id+"|"+m.id]||tkHas(s)||isTomb(m.id,evMo(e.d)))return;
       if(s&&s.extended_until&&tkNow()<new Date(s.extended_until).getTime())return;
       rows.push({event_id:e.id,member_id:m.id,status:"absent",q:null,l:false,by_member:me.id,updated_at:new Date().toISOString()})})});
     if(!rows.length)return;
@@ -1672,7 +1672,7 @@ function evMerge(m,mo){
   r.ex=Object.values(r.exc||{}).reduce((a,l)=>a+l.length,0);return r}
 const EVT={};
 function evSyncSoon(mid,mo,q){clearTimeout(EVT[mid+mo]);EVT[mid+mo]=setTimeout(()=>evSync(mid,mo,q),500)}
-async function evSync(mid,mo,quiet){const m=D.members.find(x=>x.id===mid);if(!m)return;const r=evMerge(m,mo);
+async function evSync(mid,mo,quiet,auto){const m=D.members.find(x=>x.id===mid);if(!m)return;if(!auto&&isTomb(mid,mo))tombSet([[mid,mo]],false);const r=evMerge(m,mo);
   const x=await sb.from("records").upsert({member_id:mid,month:mo,data:r},{onConflict:"member_id,month"});
   if(x.error){if(!quiet){S.evMsg="تعذر تحديث تقييم "+nm(m.name)+": "+x.error.message;if(S.tab==="events")render()}return}
   m.rec[mo]=r}
@@ -1835,8 +1835,8 @@ const evSig=r=>JSON.stringify([r.sh,r.tk,r.se,r.mt,r.log,r.exc,r.evk,r.ex]);
 async function evReconcile(){
   if(RECB||!canMark())return;RECB=true;let n=0;
   try{const mine=isAdm()?D.members:myFollows(),jobs=[],mos=[...new Set(D.ev.map(e=>evMo(e.d)))];
-    mos.forEach(mo=>mine.forEach(m=>{if(!D.ev.some(e=>evMo(e.d)===mo&&evApplies(e,m)))return;
-      if(evSig(m.rec[mo]||{})!==evSig(evMerge(m,mo))){n++;jobs.push(evSync(m.id,mo,true))}}));
+    mos.forEach(mo=>mine.forEach(m=>{if(!D.ev.some(e=>evMo(e.d)===mo&&evApplies(e,m))||isTomb(m.id,mo))return;
+      if(evSig(m.rec[mo]||{})!==evSig(evMerge(m,mo))){n++;jobs.push(evSync(m.id,mo,true,true))}}));
     await Promise.all(jobs)}catch(e){console.error(e)}
   RECB=false;if(n)render()}
 let _jq=null;
@@ -2458,6 +2458,13 @@ function edPreset(i){edStart({sc:PRESETS[i].make(),name:PRESETS[i].name})}
 const CYC=()=>{const c=D.cfg&&+D.cfg.cycle_day;return c>=1&&c<=28?c:26};
 function evMo(d){const[y,m,dd]=String(d).slice(0,10).split("-").map(Number),c=CYC();if(c>1&&dd>=c){const n=new Date(y,m,1);return n.getFullYear()+"-"+pad2(n.getMonth()+1)}return y+"-"+pad2(m)}
 async function loadCfg(){const r=await sb.from("app_settings").select("*");D.cfg={};if(!r.error)(r.data||[]).forEach(x=>{D.cfg[x.key]=x.value})}
+/* تقييم اتحذف يفضل محذوف: علامات "اتحذف" (شخص|شهر) محفوظة في app_settings عشان المزامنة التلقائية (الأحداث والتاسكات) ماترجعوش */
+const tombList=()=>{let v=D.cfg&&D.cfg.rec_tombs;try{if(typeof v==="string")v=JSON.parse(v)}catch(e){v=[]}return Array.isArray(v)?v:[]};
+const isTomb=(mid,mo)=>tombList().includes(mid+"|"+mo);
+async function tombSet(pairs,add){
+  try{const cur=new Set(tombList());pairs.forEach(p=>{const k=p[0]+"|"+p[1];add?cur.add(k):cur.delete(k)});
+    const arr=[...cur].slice(-3000),val=JSON.stringify(arr);D.cfg=D.cfg||{};D.cfg.rec_tombs=val;
+    const r=await sb.from("app_settings").upsert({key:"rec_tombs",value:val},{onConflict:"key"});if(r.error)console.warn(r.error.message)}catch(e){console.warn(e)}}
 async function loadSS(){S.ssLoaded=1;const r=await sb.from("sheet_sync").select("committee,token,enabled");D.ss={};S.ssErr=r.error?r.error.message:null;if(!r.error)(r.data||[]).forEach(x=>{D.ss[x.committee]=x});render()}
 async function ssRotate(c){if(D.ss&&D.ss[c]&&!confirm("تجديد الرمز هيوقف الشيت الحالي لحد ما تلزق الكود الجديد فيه. تكمل؟"))return;
   const r=await sb.rpc("sheet_token_rotate",{p_committee:c});if(r.error){alert(r.error.message);return}toast("اتعمل رمز جديد للجنة "+c+" ✓","ok");loadSS()}
@@ -2800,14 +2807,14 @@ async function delComMonth(ci){
   try{await trashPut("record","تقييم لجنة "+c+" — "+ml(k)+" ("+rows.length+" عضو)",{records:rows})}catch(e){return alert(e.message)}
   const x=await sb.from("records").delete().eq("month",k).in("member_id",rows.map(r=>r.member_id));
   if(x.error)return alert(x.error.message);
-  await reload(["records"]);render();toast("اتنقل لسلة المحذوفات: "+rows.length+" تقييم ✓","ok")}
+  await tombSet(rows.map(r=>[r.member_id,k]),true);await reload(["records"]);render();toast("اتنقل لسلة المحذوفات: "+rows.length+" تقييم ✓","ok")}
 async function delRec(id,k){
   if(!confirm("حذف تقييم الشهر ده؟ هيروح سلة المحذوفات وتقدر تستعيده."))return;
   const g=await sb.from("records").select("*").eq("member_id",id).eq("month",k);if(g.error)return alert(g.error.message);
   const rows=g.data||[],m=D.members.find(x=>x.id===id);
   if(rows.length){try{await trashPut("record","تقييم "+(m?nm(m.name):"")+" — "+ml(k),{records:rows})}catch(e){return alert(e.message)}}
   const x=await sb.from("records").delete().eq("member_id",id).eq("month",k);if(x.error)return alert(x.error.message);
-  await reload(["records"]);render();toast("اتنقل لسلة المحذوفات ✓","ok")}
+  await tombSet([[id,k]],true);await reload(["records"]);render();toast("اتنقل لسلة المحذوفات ✓","ok")}
 
 /* ---------- الحفظ التلقائي للمسودات ---------- */
 function clearDraft(id,mo){try{localStorage.removeItem(dk(id,mo))}catch(e){}}
