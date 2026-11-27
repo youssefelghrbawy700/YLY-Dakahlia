@@ -214,6 +214,7 @@ table.tb td,table.tb th{text-align:start}.tb .av{width:30px;height:30px;border-r
 .tb tbody tr:hover,.tb tr[data-mid]:hover{background:var(--inp)}
 img.crest{display:block;object-fit:cover;background:#000;border-radius:50%;padding:0;box-shadow:0 10px 30px rgba(0,0,0,.5)}
 .tlogo{width:46px;height:46px;border-radius:50%;object-fit:cover;background:#000;flex:none;box-shadow:0 4px 14px rgba(0,0,0,.45)}
+.tkt{display:inline-block;font-weight:800;font-variant-numeric:tabular-nums;direction:ltr;padding:4px 12px;border-radius:999px;font-size:14px;white-space:nowrap}.tkt.g{background:rgba(34,197,94,.16);color:#22c55e}.tkt.y{background:rgba(245,158,11,.18);color:#f59e0b}.tkt.r{background:rgba(239,68,68,.18);color:#ef4444}.tkt.z{background:rgba(148,163,184,.18);color:#94a3b8}
 </style>
 </head>
 <body>
@@ -477,13 +478,13 @@ setTimeout(evReconcile,0);if(isAdm())setTimeout(()=>{try{sb.rpc("backup_if_due")
   const c=await sb.rpc("my_warning_count");myWarn=c.data||0;
   if(me&&!touched){touched=true;startPing()}
   else{const st=await sb.rpc("my_signup_status");S.signup=st.data||null}
-  const AT=["home","members","req","committees","evals","dash","announce","seen","hr","hrmap","board","photos","albums","birthdays","cards","trash","designs","events","att","security","sheets"];
+  const AT=["home","members","req","committees","evals","dash","announce","seen","hr","hrmap","board","photos","albums","birthdays","cards","trash","designs","events","att","security","sheets","tasks"];
   if(me&&LASTME!==me.id){LASTME=me.id;S.more=false;S.nt=false;S.landed=false;UN.st=[];UN.rd=[]}
   if(isAdm()&&!S.landed){S.landed=1;S.tab="home"}
   else if(isAdm()&&!AT.includes(S.tab))S.tab="home";
   else if(isMgr()&&!S.landed){S.landed=1;S.tab="follow"}
-  else if(isMgr()&&!["follow","evals","hrmap","announce","me","leaders","events","bcom","designs","photos","albums","cards","tec"].includes(S.tab))S.tab="follow";
-  else if(me&&!isAdm()&&!isMgr()&&!["me","leaders","bcom","designs","events","photos","tec"].includes(S.tab))S.tab="me";
+  else if(isMgr()&&!["follow","evals","hrmap","announce","me","leaders","events","bcom","designs","photos","albums","cards","tec","tasks"].includes(S.tab))S.tab="follow";
+  else if(me&&!isAdm()&&!isMgr()&&!["me","leaders","bcom","designs","events","photos","tec","tasks"].includes(S.tab))S.tab="me";
   if(!restored){restored=true;try{const o=JSON.parse(localStorage.getItem("tm-open-modal")||"null");
     if(o&&me&&["rec","mem"].includes(o.t)&&(isAdm()||(o.t==="rec"&&D.follows.some(f=>f.manager_id===me.id&&f.member_id===o.id)))&&(!o.id||D.members.find(x=>x.id===o.id)))S.modal=o}catch(e){}}
   loaded=true;
@@ -1391,13 +1392,14 @@ function announceView(){const all=[...new Set(D.members.flatMap(m=>months(m)))].
   return`<div class="card"><b>📢 إعلان تقييم الشهر</b><p class="mu">تقييمات أي شهر بتفضل مخفية عن الأعضاء لحد ما تعلنها من هنا، وبتظهر لكل الأعضاء في نفس الوقت.</p>${all.map(k=>{const on=D.ann.includes(k),n=D.members.filter(m=>m.rec[k]).length;return`<div class="lb"><span style="flex:1"><b>${ml(k)}</b> <span class="mu">· ${n} تقييم من ${D.members.length}</span></span>${on?`<span class="pill up">معلن</span><button class="g" onclick="announce('${k}',false)">سحب الإعلان</button>`:`<span class="pill st">غير معلن</span><button onclick="announce('${k}',true)">📢 إعلان</button>`}</div>`}).join("")||'<p class="mu">سجّل تقييمات أولاً.</p>'}</div>`;}
 function adminView(){
   const pend=D.signups.filter(s=>s.status==="pending").length;
-  const tabs=[["home","الرئيسية"],["members","الأعضاء"],["req","🆕 الطلبات"+(pend?` (${pend})`:"")],["committees","اللجان"],["evals","📊 التقييمات"],["dash","لوحة الشرف"],["announce","📢 الإعلان"],["seen","👁 الدخول"],["hr","✅ تسجيلات HR"],["hrmap","🔗 توزيع HR"],["events","📅 الأحداث"],["att","📋 سجل الحضور"],["security","🛡 الأمان"],["sheets","🔗 مزامنة الشيتات"],["board","🏛 البورد"],["photos","🖼 الصور"],["albums","📸 صور الفعاليات"],["birthdays","🎂 أعياد الميلاد"],["cards","📄 الكروت"],["trash","🗑 المحذوفات"],["designs","🎨 الديزاينات"]];
+  const tabs=[["home","الرئيسية"],["members","الأعضاء"],["req","🆕 الطلبات"+(pend?` (${pend})`:"")],["committees","اللجان"],["evals","📊 التقييمات"],["dash","لوحة الشرف"],["announce","📢 الإعلان"],["seen","👁 الدخول"],["hr","✅ تسجيلات HR"],["hrmap","🔗 توزيع HR"],["events","📅 الأحداث"],["tasks","📝 التاسكات"],["att","📋 سجل الحضور"],["security","🛡 الأمان"],["sheets","🔗 مزامنة الشيتات"],["board","🏛 البورد"],["photos","🖼 الصور"],["albums","📸 صور الفعاليات"],["birthdays","🎂 أعياد الميلاد"],["cards","📄 الكروت"],["trash","🗑 المحذوفات"],["designs","🎨 الديزاينات"]];
   const sc=D.members.map(score),avg=sc.length?Math.round(sc.reduce((a,b)=>a+b,0)/sc.length):0;
   let sub="";
   if(S.tab==="home")sub=homeView();
   else if(S.tab==="members")sub=`<div class="row" style="margin-bottom:12px"><button onclick="S.modal={t:'mem'};render()">➕ عضو جديد</button><button class="g" onclick="S.modal={t:'imp'};render()">⬆ استيراد</button><button class="g" onclick="S.modal={t:'flimp'};S.flImp=null;render()">🔗 استيراد المتابعة</button><button class="g" onclick="backup()">⬇ Excel</button></div>`+(pend?`<div class="card" style="border-color:var(--warn)"><div class="row"><b style="flex:1">🆕 ${pend} طلب تسجيل جديد</b><button onclick="S.tab='req';render()">مراجعة</button></div></div>`:"")+`<div class="grid"><div class="card" style="cursor:pointer" onclick="S.mflt='all';S.mcf='all';S.mq='';render()"><div class="mu">إجمالي الأعضاء</div><div class="big">${D.members.length}</div></div><div class="card" style="cursor:pointer" onclick="navGo('dash')"><div class="mu">متوسط التقييم</div><div class="big">${avg}</div></div></div><div style="height:12px"></div>`+(()=>{const nb=D.members.filter(m=>m.role!=="Board"),bd=D.members.filter(m=>m.role==="Board"),cs=comms().filter(c=>nb.some(m=>m.committee===c)),cf=cs.includes(S.mcf)||S.mcf==="__b"?S.mcf:"all";return`<div class="tabs"><button class="${cf==="all"?"on":""}" onclick="S.mcf='all';render()">الكل (${nb.length})</button>${cs.map(c=>`<button class="${cf===c?"on":""}" onclick="S.mcf='${esc(c)}';render()">${esc(c)} (${nb.filter(m=>m.committee===c).length})</button>`).join("")}${bd.length?`<button class="${cf==="__b"?"on":""}" onclick="S.mcf='__b';render()">🏛 البورد (${bd.length})</button>`:""}</div><div class="row" style="gap:8px;margin:10px 0;flex-wrap:wrap"><input id="mq" placeholder="🔎 بحث بالاسم أو اللجنة أو الدور" value="${esc(S.mq||"")}" oninput="S.mq=this.value;$('#mlist').innerHTML=mlistHtml()" style="flex:1;min-width:160px"><select onchange="S.mflt=this.value;render()">${[["all","كل الأعضاء"],["need","محتاجين متابعة (أقل من 75% أو نازل)"],["warn","عندهم إنذارات"],["low","تقدير C أو أقل (آخر شهر)"],["noeval","مالهومش تقييم آخر شهر"]].map(([v,t])=>`<option value="${v}" ${(S.mflt||"all")===v?"selected":""}>${t}</option>`).join("")}</select><select onchange="S.msrt=this.value;render()">${MSRT.map(([v,t])=>`<option value="${v}" ${(S.msrt||"name_asc")===v?"selected":""}>${t}</option>`).join("")}</select></div>${tvSeg()}<div id="bulkbar">${bulkHtml()}</div><div id="mlist">${mlistHtml()}</div>`})();
   else if(S.tab==="evals")sub=evalsView();
   else if(S.tab==="events")sub=eventsView();
+  else if(S.tab==="tasks")sub=tasksView();
   else if(S.tab==="att")sub=attView();
   else if(S.tab==="security")sub=secView();
   else if(S.tab==="sheets")sub=sheetsView();
@@ -1478,9 +1480,141 @@ function mgrList(mine){
 function mgFilter(v){S.mq=v;const q=impNorm(v);let n=0;document.querySelectorAll(".mgr").forEach(e=>{const ok=(q?e.dataset.n.includes(q):e.dataset.t===S.mgc)&&(!S.mgf||e.dataset.x==="1");e.style.display=ok?"":"none";if(ok)n++});const c=document.getElementById("mgc");if(c)c.textContent=q||S.mgf?n+" نتيجة":""}
 function mgrView(){
   const mine=myFollows();
-  return topbar()+tabBar([["follow","متابعة الأعضاء"]].concat(evalsTabs(),hhTabs(),[["me","حسابي"],["leaders","👥 المسؤولون"]],isBoardAcc()?[["bcom","📊 لجنتي"]]:[],dTab(),evTab(),phTab(),ctTabs(),tecTab()))+
-  (S.tab==="me"?memberView(me,true):S.tab==="leaders"?leadersView(me.committee):S.tab==="events"&&evOk()?eventsView():S.tab==="designs"&&canDesign()?designsView():S.tab==="photos"&&canDesign()?photosView():S.tab==="albums"&&canDesign()?albumsView():S.tab==="cards"&&ctOk()?cardsView():S.tab==="hrmap"&&isHRHead()?hrMapView():S.tab==="announce"&&isHRHead()?announceView():S.tab==="evals"&&evalsTabs().length?evalsView():S.tab==="tec"&&isSMHead()?tecView():S.tab==="bcom"&&isBoardAcc()?bcomView():`<p class="mu">بتتابع ${mine.length} عضو</p>`+(mgrList(mine)||emptyCard("👥","لسه مفيش أعضاء متابَعين","الأدمن هيحدّدلك الأعضاء اللي هتتابعهم.")));
+  return topbar()+tabBar([["follow","متابعة الأعضاء"]].concat(evalsTabs(),hhTabs(),[["me","حسابي"],["leaders","👥 المسؤولون"]],isBoardAcc()?[["bcom","📊 لجنتي"]]:[],tkTab(),dTab(),evTab(),phTab(),ctTabs(),tecTab()))+
+  (S.tab==="me"?memberView(me,true):S.tab==="leaders"?leadersView(me.committee):S.tab==="tasks"?tasksView():S.tab==="events"&&evOk()?eventsView():S.tab==="designs"&&canDesign()?designsView():S.tab==="photos"&&canDesign()?photosView():S.tab==="albums"&&canDesign()?albumsView():S.tab==="cards"&&ctOk()?cardsView():S.tab==="hrmap"&&isHRHead()?hrMapView():S.tab==="announce"&&isHRHead()?announceView():S.tab==="evals"&&evalsTabs().length?evalsView():S.tab==="tec"&&isSMHead()?tecView():S.tab==="bcom"&&isBoardAcc()?bcomView():`<p class="mu">بتتابع ${mine.length} عضو</p>`+(mgrList(mine)||emptyCard("👥","لسه مفيش أعضاء متابَعين","الأدمن هيحدّدلك الأعضاء اللي هتتابعهم.")));
 }
+
+/* ===== التاسكات: تسليم من الأعضاء + مراجعة (قبول / طلب تعديل / رفض نهائي) ===== */
+let TK_OFF=0,TK_LOAD=false,TK_SW=false,TK_C=0;const TK_SEEN={},TK_DONE={};
+const tkSubs=()=>(D.tk&&D.tk.subs)||[];
+const tkNow=()=>Date.now()+TK_OFF;
+const tkIsTask=e=>!!(e&&e.kind==="tk"&&e.submit_open&&e.deadline);
+const tkDl=e=>new Date(e.deadline).getTime();
+const tkSubOf=(eid,mid)=>tkSubs().find(s=>s.event_id===eid&&s.member_id===mid);
+const tkEnd=(e,s)=>Math.max(tkDl(e),s&&s.extended_until?new Date(s.extended_until).getTime():0);
+const tkOpenFor=(e,s)=>tkNow()<tkEnd(e,s);
+const tkHas=s=>!!(s&&((s.content||"").trim()||(s.link||"").trim()));
+const tkTab=()=>(me&&!me.is_admin)?[["tasks","📝 التاسكات"]]:[];
+const tkLocal=ms=>{const d=new Date(ms),p=n=>String(n).padStart(2,"0");return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate())+"T"+p(d.getHours())+":"+p(d.getMinutes())};
+const tkDlTxt=ms=>new Date(ms).toLocaleString("ar-EG",{dateStyle:"medium",timeStyle:"short"});
+function tkFmt(ms){if(ms<=0)return"انتهى";const s=Math.floor(ms/1000),d=Math.floor(s/86400),h=Math.floor(s%86400/3600),m=Math.floor(s%3600/60),x=s%60,p=n=>String(n).padStart(2,"0");return(d?d+" يوم ":"")+p(h)+":"+p(m)+":"+p(x)}
+const tkCls=ms=>ms<=0?"z":ms<3*36e5?"r":ms<864e5?"y":"g";
+const tkTimer=(e,s)=>{const end=tkEnd(e,s),ms=end-tkNow();return`<span class="tkt ${tkCls(ms)}" data-end="${end}" data-k="${e.id}">${tkFmt(ms)}</span>`};
+function tkTick(){
+  document.querySelectorAll(".tkt[data-end]").forEach(el=>{const ms=+el.dataset.end-tkNow(),k=el.dataset.k+"|"+el.dataset.end;
+    el.textContent=tkFmt(ms);el.className="tkt "+tkCls(ms);
+    if(ms>0)TK_SEEN[k]=1;else if(TK_SEEN[k]&&!TK_DONE[k]){TK_DONE[k]=1;setTimeout(()=>{render();if(isAdm()||canMark())tkSweep()},400)}});
+  if(S.tab==="tasks"&&D.tk&&D.tk.ok&&++TK_C%45===0)tkRefresh()}
+setInterval(tkTick,1000);
+async function loadTk(){
+  try{const t=await sb.rpc("server_now");if(t&&t.data)TK_OFF=new Date(t.data).getTime()-Date.now()}catch(e){}
+  const r=await sb.from("task_subs").select("*");
+  D.tk={subs:r.data||[],ok:true,err:r.error?r.error.message:""};
+  render();if(!r.error&&(isAdm()||canMark()))tkSweep()}
+async function tkRefresh(){
+  if(!session||!me)return;const r=await sb.from("task_subs").select("*");if(r.error)return;
+  const sig=a=>JSON.stringify((a||[]).map(x=>[x.id,x.state,x.updated_at,x.extended_until,x.note])),ch=sig(tkSubs())!==sig(r.data);
+  D.tk={subs:r.data||[],ok:true,err:""};
+  if(ch&&!(document.activeElement&&/INPUT|TEXTAREA/.test(document.activeElement.tagName)))render()}
+/* بعد الديدلاين: اللي ما سلّمش يتسجل له "لم يتم" (صفر) تلقائي، واللي سلّم ينتظر المراجعة */
+async function tkSweep(){
+  if(TK_SW||!me)return;TK_SW=true;
+  try{
+    const AM=evAM(),rows=[];
+    D.ev.filter(e=>tkIsTask(e)&&tkNow()>=tkDl(e)).forEach(e=>{evMems(e).forEach(m=>{
+      const s=tkSubOf(e.id,m.id);
+      if(AM[e.id+"|"+m.id]||tkHas(s))return;
+      if(s&&s.extended_until&&tkNow()<new Date(s.extended_until).getTime())return;
+      rows.push({event_id:e.id,member_id:m.id,status:"absent",q:null,l:false,by_member:me.id,updated_at:new Date().toISOString()})})});
+    if(!rows.length)return;
+    const r=await sb.from("attendance").upsert(rows,{onConflict:"event_id,member_id",ignoreDuplicates:true});
+    if(r.error){console.warn(r.error.message);return}
+    D.att=D.att.concat(rows);
+    rows.forEach(x=>{const e=D.ev.find(z=>z.id===x.event_id);if(e)evSyncSoon(x.member_id,evMo(e.d))});
+    render()
+  }catch(e){console.warn(e)}finally{TK_SW=false}}
+function tkNew(){S.tab="events";S.evf={id:null,kind:"tk",title:"",d:today(),com:[...COM4],sub:true,dl:tkLocal(Date.now()+3*864e5),det:""};render()}
+function tkEdit(id){S.tab="events";evForm(id)}
+async function tkSubmit(eid){
+  const e=D.ev.find(x=>x.id===eid);if(!e||!me)return;
+  const c=((document.getElementById("tkc_"+eid)||{}).value||"").trim(),l=((document.getElementById("tkl_"+eid)||{}).value||"").trim(),s=tkSubOf(eid,me.id);
+  if(!tkOpenFor(e,s)){toast("الديدلاين خلص","err");render();return}
+  if(!c&&!l){toast("اكتب نص أو حط لينك","err");return}
+  if(l&&!/^https?:\/\//i.test(l)){toast("اللينك لازم يبدأ بـ https://","err");return}
+  const body={content:c||null,link:l||null,state:"pending"},r=s?await sb.from("task_subs").update(body).eq("id",s.id).select().single():await sb.from("task_subs").insert(Object.assign({event_id:eid,member_id:me.id},body)).select().single();
+  if(r.error){toast(/row-level|policy/i.test(r.error.message)?"الديدلاين خلص أو التسليم اتقفل":r.error.message,"err");await tkRefresh();render();return}
+  D.tk.subs=tkSubs().filter(x=>x.id!==r.data.id).concat(r.data);toast("اتسلّم ✓","ok");render()}
+async function tkDecide(sid,act){
+  const s=tkSubs().find(x=>x.id===sid);if(!s)return;
+  const e=D.ev.find(x=>x.id===s.event_id),m=D.members.find(x=>x.id===s.member_id);if(!e||!m)return;
+  if(act==="revise"&&tkNow()>=tkEnd(e,s)){toast("الديدلاين خلص: اختار قبول أو رفض نهائي","err");return}
+  const nEl=document.getElementById("tkn_"+sid),note=nEl?nEl.value.trim():"";
+  const patch={state:act==="accept"?"accepted":act==="reject"?"rejected":"revise",note:note||null,reviewed_by:me.id,reviewed_at:new Date().toISOString()};
+  const u=await sb.from("task_subs").update(patch).eq("id",sid);
+  if(u.error){toast(u.error.message,"err");return}
+  Object.assign(s,patch);
+  const cur=D.att.find(a=>a.event_id===e.id&&a.member_id===m.id);
+  if(act==="revise"){
+    if(cur){const d=await sb.from("attendance").delete().eq("event_id",e.id).eq("member_id",m.id);if(!d.error){D.att=D.att.filter(a=>a!==cur);evSyncSoon(m.id,evMo(e.d))}}
+  }else{
+    const qEl=document.getElementById("tkq_"+sid),qv=qEl&&qEl.value!==""?Math.max(0,Math.min(5,+qEl.value)):null,onTime=new Date(s.updated_at||s.created_at||Date.now()).getTime()<=tkDl(e);
+    const row={event_id:e.id,member_id:m.id,status:act==="accept"?"present":"absent",q:act==="accept"?(qv!=null?qv:cur?cur.q:null):null,l:act==="accept"&&onTime,by_member:me.id,updated_at:new Date().toISOString()};
+    const r=await sb.from("attendance").upsert(row,{onConflict:"event_id,member_id"});
+    if(r.error){toast("اتحفظ القرار بس التسجيل فشل: "+r.error.message,"err");render();return}
+    D.att=D.att.filter(a=>a!==cur).concat(row);evSyncSoon(m.id,evMo(e.d))}
+  toast(act==="accept"?"اتقبل واتسجل ✓":act==="reject"?"اترفض واتسجل صفر":"اتبعت للعضو طلب تعديل","ok");render()}
+async function tkExtend(eid,mid){
+  const e=D.ev.find(x=>x.id===eid);if(!e)return;
+  const until=new Date(Math.max(tkNow(),tkDl(e))+864e5).toISOString(),r=await sb.from("task_subs").upsert({event_id:eid,member_id:mid,extended_until:until,state:"revise",reviewed_by:me.id,reviewed_at:new Date().toISOString()},{onConflict:"event_id,member_id"}).select().single();
+  if(r.error){toast(r.error.message,"err");return}
+  D.tk.subs=tkSubs().filter(x=>x.id!==r.data.id).concat(r.data);
+  const cur=D.att.find(a=>a.event_id===eid&&a.member_id===mid&&a.status==="absent");
+  if(cur){const d=await sb.from("attendance").delete().eq("event_id",eid).eq("member_id",mid);if(!d.error){D.att=D.att.filter(a=>a!==cur);evSyncSoon(mid,evMo(e.d))}}
+  toast("اتمدّد 24 ساعة للعضو","ok");render()}
+async function tkDelSub(sid){
+  if(!confirm("مسح التسليم ده؟"))return;
+  const r=await sb.from("task_subs").delete().eq("id",sid);if(r.error){toast(r.error.message,"err");return}
+  D.tk.subs=tkSubs().filter(x=>x.id!==sid);render()}
+function tasksView(){
+  if(!D.tk||!D.tk.ok)return`<div class="card"><p class="mu">بحمّل التاسكات…</p></div>`;
+  const err=D.tk.err?`<div class="card" style="border-color:#ef4444"><b>مشكلة في تحميل التاسكات</b><p class="mu">${esc(D.tk.err)}<br>لو دي أول مرة، لازم تشغّل ملف الـSQL الخاص بالتاسكات في Supabase.</p></div>`:"";
+  const top=`<div class="row" style="margin-bottom:10px;justify-content:space-between"><b style="font-size:18px">📝 التاسكات</b><div class="row">${isAdm()||canEv()?`<button onclick="tkNew()">➕ تاسك جديد</button>`:""}<button class="g" onclick="tkRefresh().then(render)">🔄</button></div></div>`;
+  return top+err+(isAdm()?tkAdminHtml():tkMyHtml()+(canMark()?tkRevHtml():""))}
+function tkMyHtml(){
+  const L=D.ev.filter(e=>tkIsTask(e)&&evApplies(e,me)),op=[],dn=[];
+  L.forEach(e=>(tkOpenFor(e,tkSubOf(e.id,me.id))?op:dn).push(e));
+  op.sort((a,b)=>tkDl(a)-tkDl(b));dn.sort((a,b)=>tkDl(b)-tkDl(a));
+  const card=e=>{const s=tkSubOf(e.id,me.id),o=tkOpenFor(e,s),has=tkHas(s),lock=!!s&&(s.state==="accepted"||s.state==="rejected");
+    return`<div class="card" style="margin:8px 0"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><b>${EVI.tk} ${esc(e.title)}</b><div class="mu" style="font-size:12px">الديدلاين: ${esc(tkDlTxt(tkEnd(e,s)))}</div></div>${o?tkTimer(e,s):`<span class="tkt z">انتهى</span>`}</div>
+${e.details?`<p style="white-space:pre-wrap;margin:8px 0">${esc(e.details)}</p>`:""}
+${s&&s.state==="revise"&&o&&has?`<div style="background:rgba(245,158,11,.12);border:1px solid #f59e0b;border-radius:12px;padding:8px 12px;margin:8px 0"><b>↺ مطلوب منك تعديل</b>${s.note?`<div>${esc(s.note)}</div>`:""}</div>`:""}
+${o&&!lock?`<label>التسليم (نص)</label><textarea id="tkc_${e.id}" rows="3" placeholder="اكتب تسليمك هنا">${esc(s&&s.content||"")}</textarea><label>لينك (اختياري)</label><input id="tkl_${e.id}" placeholder="https://..." value="${esc(s&&s.link||"")}"><div class="row" style="margin-top:8px"><button onclick="tkSubmit('${e.id}')">${has?"تحديث التسليم":"تسليم"}</button>${has?`<span class="mu">✓ تم التسليم، تقدر تعدّله لحد الديدلاين</span>`:""}</div>`:has?`<div class="mu" style="margin-top:6px">✓ تم التسليم</div>`:`<div class="mu" style="margin-top:6px">🔒 التسليم اتقفل</div>`}</div>`};
+  if(!L.length)return emptyCard("📝","مفيش تاسكات عليك دلوقتي","أول ما يتضاف تاسك هيظهر هنا ومعاه تايمر الديدلاين.");
+  return op.map(card).join("")+(dn.length?`<div class="mu" style="margin:14px 0 6px">تاسكات خلصت</div>`+dn.slice(0,6).map(card).join(""):"")}
+function tkRevHtml(){
+  const L=D.ev.filter(e=>tkIsTask(e)&&evMems(e).length).sort((a,b)=>tkDl(b)-tkDl(a));
+  return`<h3 style="margin:20px 0 6px">📥 مراجعة التسليمات</h3>`+(L.length?L.map(e=>tkRevCard(e,evMems(e),false)).join(""):emptyCard("📥","مفيش تاسكات للمراجعة","مفيش تاسكات بتسليم على الأعضاء اللي بتتابعهم."))}
+function tkAdminHtml(){
+  const c=S.tkc&&COM4.includes(S.tkc)?S.tkc:COM4[0],inC=(e,k)=>tkIsTask(e)&&(!(e.committees||[]).length||e.committees.includes(k)),
+  pend=k=>D.ev.filter(e=>inC(e,k)).reduce((a,e)=>a+tkSubs().filter(s=>s.event_id===e.id&&s.state==="pending"&&tkHas(s)&&(D.members.find(m=>m.id===s.member_id)||{}).committee===k).length,0);
+  const tabs=`<div class="row" style="margin-bottom:10px;gap:6px;flex-wrap:wrap">${COM4.map(k=>`<button class="g chip ${k===c?"on":""}" onclick="S.tkc='${k}';render()">${k}${pend(k)?` <span class="pill" style="background:#f59e0b;color:#000">${pend(k)}</span>`:""}</button>`).join("")}</div>`;
+  const L=D.ev.filter(e=>inC(e,c)).sort((a,b)=>tkDl(b)-tkDl(a));
+  return tabs+(L.length?L.map(e=>tkRevCard(e,D.members.filter(m=>m.committee===c&&evApplies(e,m)),true)).join(""):emptyCard("📝","مفيش تاسكات للجنة "+c,"ضيف تاسك بتسليم من زرار تاسك جديد."))}
+function tkRevCard(e,mems,adm){
+  const subs=mems.map(m=>[m,tkSubOf(e.id,m.id)]),over=tkNow()>=tkDl(e),open=S.tko===e.id,AM=evAM(),
+  n=st=>subs.filter(x=>x[1]&&x[1].state===st&&tkHas(x[1])).length,none=subs.filter(x=>!tkHas(x[1])).length,
+  pill=(t,c)=>`<span class="pill" style="background:${c}22;color:${c}">${t}</span>`;
+  const ST={pending:["بانتظار المراجعة","#f59e0b"],accepted:["مقبول ✓","#22c55e"],revise:["طلب تعديل ↺","#38bdf8"],rejected:["مرفوض نهائي ✕","#ef4444"]};
+  const rows=open?subs.map(([m,s])=>{
+    const has=tkHas(s),st=has?ST[s.state]:null,ext=s&&s.extended_until&&tkNow()<new Date(s.extended_until).getTime(),at=AM[e.id+"|"+m.id];
+    const lbl=st?pill(st[0],st[1]):ext?pill("ممدّد لحد "+tkDlTxt(new Date(s.extended_until)),"#38bdf8"):pill(over?"لم يسلّم":"لسه ما سلّمش","#94a3b8");
+    return`<div style="border-top:1px solid var(--bd);padding:10px 0"><div class="row" style="justify-content:space-between;gap:8px">${avatar(m)}<div style="flex:1;min-width:110px"><b style="font-size:14px">${esc(nm(m.name))}</b><div class="mu" style="font-size:11px">${esc(m.committee)}${at?" · مسجّل: "+({present:"تم",absent:"لم يتم",ex_ok:"½",ex_no:"¼"}[at.status]||at.status):""}</div></div>${lbl}</div>
+${has?`${s.content?`<p style="white-space:pre-wrap;margin:8px 0">${esc(s.content)}</p>`:""}${s.link?`<p style="margin:6px 0"><a href="${esc(s.link)}" target="_blank" rel="noopener noreferrer">🔗 ${esc(s.link.length>60?s.link.slice(0,57)+"…":s.link)}</a></p>`:""}<div class="mu" style="font-size:11px">اتسلّم ${esc(tkDlTxt(s.updated_at||s.created_at))}</div>
+<div class="row" style="margin-top:8px;gap:6px;flex-wrap:wrap"><input id="tkn_${s.id}" placeholder="ملاحظة (اختياري)" value="${esc(s.note||"")}" style="flex:1;min-width:140px">${hasQ(m.committee,"tk")?`<input type="number" id="tkq_${s.id}" min="0" max="5" step="0.5" placeholder="الجودة /5" value="${at&&at.q!=null?at.q:""}" style="width:100px">`:""}</div>
+<div class="row" style="margin-top:6px;gap:6px;flex-wrap:wrap"><button onclick="tkDecide('${s.id}','accept')">✓ قبول</button>${over?"":`<button class="g" onclick="tkDecide('${s.id}','revise')">↺ طلب تعديل</button>`}<button class="g" style="color:#ef4444" onclick="tkDecide('${s.id}','reject')">✕ رفض نهائي</button>${adm?`<button class="g" onclick="tkDelSub('${s.id}')">🗑</button>`:""}</div>`:""}
+${over||!has?`<div class="row" style="margin-top:6px"><button class="g chip" style="font-size:12px" onclick="tkExtend('${e.id}','${m.id}')">⏱ مدّد 24 ساعة</button></div>`:""}</div>`}).join(""):"";
+  return`<div class="card" style="margin:8px 0"><div class="row" style="justify-content:space-between;cursor:pointer;align-items:flex-start" onclick="S.tko=S.tko==='${e.id}'?null:'${e.id}';render()"><div><b>${EVI.tk} ${esc(e.title)}</b><div class="mu" style="font-size:12px">الديدلاين: ${esc(tkDlTxt(tkDl(e)))}</div></div>${over?`<span class="tkt z">انتهى</span>`:tkTimer(e,null)}</div>
+<div class="row" style="margin-top:8px;gap:6px;flex-wrap:wrap">${pill("بانتظار "+n("pending"),"#f59e0b")}${pill("مقبول "+n("accepted"),"#22c55e")}${pill("تعديل "+n("revise"),"#38bdf8")}${pill("مرفوض "+n("rejected"),"#ef4444")}${pill("لم يسلّم "+none,"#94a3b8")}${adm?`<button class="g chip" style="font-size:12px" onclick="tkEdit('${e.id}')">✏️ تعديل</button><button class="g chip" style="font-size:12px" onclick="evDel('${e.id}')">🗑 حذف</button>`:""}</div>${rows}${open?"":`<div class="mu" style="font-size:12px;margin-top:6px">دوس على التاسك عشان تشوف التسليمات</div>`}</div>`}
 
 /* ---------- الأحداث والحضور (نزولات / تاسكات / سيشنات / اجتماعات) ---------- */
 const EVI={sh:"🚶",tk:"✅",se:"🎓",mt:"👥"};
@@ -1516,12 +1650,14 @@ async function evSync(mid,mo,quiet){const m=D.members.find(x=>x.id===mid);if(!m)
   if(x.error){if(!quiet){S.evMsg="تعذر تحديث تقييم "+nm(m.name)+": "+x.error.message;if(S.tab==="events")render()}return}
   m.rec[mo]=r}
 async function evResync(eid,mos){const mids=[...new Set(D.att.filter(a=>a.event_id===eid).map(a=>a.member_id))];await Promise.all(mids.flatMap(mid=>[...new Set(mos)].map(mo=>evSync(mid,mo))))}
-function evForm(id){const e=id&&D.ev.find(x=>x.id===id);S.evf=e?{id:e.id,kind:e.kind,title:e.title,d:e.d,com:(e.committees||[]).length?[...e.committees]:[...COM4]}:{id:null,kind:"sh",title:"",d:today(),com:[...COM4]};render()}
+function evForm(id){const e=id&&D.ev.find(x=>x.id===id);S.evf=e?{id:e.id,kind:e.kind,title:e.title,d:e.d,com:(e.committees||[]).length?[...e.committees]:[...COM4],sub:!!e.submit_open,dl:e.deadline?tkLocal(new Date(e.deadline).getTime()):tkLocal(Date.now()+3*864e5),det:e.details||""}:{id:null,kind:"sh",title:"",d:today(),com:[...COM4],sub:false,dl:tkLocal(Date.now()+3*864e5),det:""};render()}
 const evTogC=c=>{const a=S.evf.com;S.evf.com=a.includes(c)?a.filter(x=>x!==c):[...a,c];render()};
 const evOpen=id=>{S.evo=S.evo===id?null:id;render()};
 async function evSave(){const f=S.evf,m=$("#evfm");if(!f.title.trim()||!f.d){m.textContent="اكتب الاسم والتاريخ";return}
   if(!f.com.length){m.textContent="اختار لجنة واحدة على الأقل";return}
+  const tkOn=f.kind==="tk"&&!!f.sub;if(tkOn&&!f.dl){m.textContent="حدد الديدلاين";return}
   const row={kind:f.kind,title:f.title.trim(),d:f.d,committees:f.com.length===COM4.length?[]:f.com},old=f.id&&D.ev.find(x=>x.id===f.id),oldMems=old?evAffected(old):[];
+  if(tkOn||(old&&old.submit_open))Object.assign(row,{submit_open:tkOn,deadline:tkOn?new Date(f.dl).toISOString():null,details:tkOn?((f.det||"").trim()||null):null});
   const r=f.id?await sb.from("events").update(row).eq("id",f.id):await sb.from("events").insert(Object.assign({created_by:me.id},row));
   if(r.error){m.textContent=r.error.message;return}
   S.evf=null;S.evm=evMo(f.d);await loadEv();
@@ -1554,9 +1690,9 @@ function evPanel(e,mem,AM){
     <div class="row" style="gap:4px">${[["present",tk?"تم":"حضر"],["absent",tk?"لم يتم":"غاب"],["ex_ok","½ مقبول"],["ex_no","¼ غير مقبول"]].map(([st,l])=>`<button class="g chip ${s===st?"on":""}" style="padding:4px 9px;font-size:12px;border-radius:8px" onclick="evMark('${e.id}','${m.id}','${st}')">${l}</button>`).join("")}</div>
     ${q?`<div class="row" style="width:100%;gap:8px"><input type="number" id="q_${e.id}_${m.id}" min="0" max="5" step="0.5" placeholder="الجودة /5" value="${a.q??""}" style="width:110px" onchange="evQL('${e.id}','${m.id}')"><label style="display:flex;gap:5px;align-items:center;margin:0;color:var(--tx)"><input type="checkbox" id="l_${e.id}_${m.id}" style="width:auto" ${a.l?"checked":""} onchange="evQL('${e.id}','${m.id}')"> سلّم في الديدلاين</label></div>`:""}</div>`}).join("")+`</div>`}
 function evFormHtml(){const f=S.evf;return`<div class="card" style="border-color:var(--pr)"><b>${f.id?"تعديل الحدث":"حدث جديد"}</b>
-  <label>النوع</label><select onchange="S.evf.kind=this.value">${KEYS.map(([k,n])=>`<option value="${k}" ${f.kind===k?"selected":""}>${EVI[k]||"•"} ${n}</option>`).join("")}</select>
+  <label>النوع</label><select onchange="S.evf.kind=this.value;render()">${KEYS.map(([k,n])=>`<option value="${k}" ${f.kind===k?"selected":""}>${EVI[k]||"•"} ${n}</option>`).join("")}</select>
   <label>الاسم / الوصف</label><input value="${esc(f.title)}" oninput="S.evf.title=this.value" placeholder="مثال: نزولة مستشفى أبو الريش">
-  <label>التاريخ</label><input type="date" value="${esc(f.d)}" oninput="S.evf.d=this.value">
+  <label>التاريخ</label><input type="date" value="${esc(f.d)}" oninput="S.evf.d=this.value">${f.kind==="tk"?`<label style="display:flex;gap:6px;align-items:center;color:var(--tx)"><input type="checkbox" style="width:auto" ${f.sub?"checked":""} onchange="S.evf.sub=this.checked;render()"> تسليم من الأعضاء عبر الموقع (بديدلاين)</label>${f.sub?`<label>الديدلاين (التاريخ والوقت)</label><input type="datetime-local" value="${esc(f.dl)}" oninput="S.evf.dl=this.value"><label>تفاصيل التاسك (اختياري)</label><textarea rows="3" oninput="S.evf.det=this.value">${esc(f.det||"")}</textarea>`:""}`:""}
   <label>اللجان المشاركة</label><div class="row">${COM4.map(c=>`<button type="button" class="g chip ${f.com.includes(c)?"on":""}" onclick="evTogC('${c}')">${c}</button>`).join("")}</div>
   <p class="err" id="evfm"></p><div class="row"><button onclick="evSave()">حفظ</button><button class="g" onclick="S.evf=null;render()">إلغاء</button>${f.id?`<button class="d" onclick="evDel('${f.id}')">حذف</button>`:""}</div></div>`}
 function eventsView(){
@@ -1737,8 +1873,8 @@ async function scnHandle(raw){
   SC.busy=false}
 /* ---------- واجهة: تنقل سفلي / انتقالات / إشعارات / تحديث ناعم ---------- */
 let CUR_ADJ=null,NAV=null,RKEY="",MKEY="",DEFI=null,LASTME=null;
-const NI={home:"🏠",members:"👥",req:"🆕",committees:"🧩",dash:"🏆",announce:"📢",seen:"👁",hr:"✅",events:"📅",att:"📋",security:"🛡",sheets:"🔗",board:"🏛",photos:"🖼",designs:"🎨",follow:"👥",me:"👤",leaders:"🛡",bcom:"📊",evals:"📊",tec:"🧪",hrmap:"🔗"};
-const NLB={home:"الرئيسية",members:"الأعضاء",req:"الطلبات",committees:"اللجان",dash:"لوحة الشرف",announce:"الإعلان",seen:"الدخول",hr:"تسجيلات HR",events:"الأحداث",att:"سجل الحضور",security:"الأمان",sheets:"الشيتات",board:"البورد",photos:"الصور",designs:"الديزاينات",follow:"المتابعة",me:"حسابي",leaders:"المسؤولون",bcom:"لجنتي",evals:"التقييمات",tec:"TEC",hrmap:"توزيع HR"};
+const NI={home:"🏠",members:"👥",req:"🆕",committees:"🧩",dash:"🏆",announce:"📢",seen:"👁",hr:"✅",events:"📅",att:"📋",security:"🛡",sheets:"🔗",board:"🏛",photos:"🖼",designs:"🎨",follow:"👥",me:"👤",leaders:"🛡",bcom:"📊",evals:"📊",tec:"🧪",hrmap:"🔗",tasks:"📝"};
+const NLB={home:"الرئيسية",members:"الأعضاء",req:"الطلبات",committees:"اللجان",dash:"لوحة الشرف",announce:"الإعلان",seen:"الدخول",hr:"تسجيلات HR",events:"الأحداث",att:"سجل الحضور",security:"الأمان",sheets:"الشيتات",board:"البورد",photos:"الصور",designs:"الديزاينات",follow:"المتابعة",me:"حسابي",leaders:"المسؤولون",bcom:"لجنتي",evals:"التقييمات",tec:"TEC",hrmap:"توزيع HR",tasks:"التاسكات"};
 const ADM_MAIN=["home","members","events","req"];
 const navSplit=()=>{const ids=(NAV||[]).map(t=>t[0]);if(!isAdm()&&ids.length<=4)return[ids,[]];let pins=null;try{pins=JSON.parse(localStorage.getItem("tm-pins:"+(me&&me.id))||"null")}catch(e){}pins=Array.isArray(pins)?pins.filter(x=>ids.includes(x)).slice(0,4):[];const m=pins.length?pins:(isAdm()?ADM_MAIN.filter(x=>ids.includes(x)):ids.slice(0,4));return[m,ids.filter(x=>!m.includes(x))]};
 function navHtml(){
@@ -1749,7 +1885,7 @@ function navGo(id,fresh){if(id==="security")S.auLoaded=0;if(id==="sheets")S.ssLo
   try{if(OVH){OVH=false;if(id===S.tab){_ign++;history.back()}else history.replaceState({tab:id},"")}else if(id!==S.tab){if(!(history.state&&history.state.tab))history.replaceState({tab:S.tab},"");history.pushState({tab:id},"")}}catch(e){}
   S.tab=id;S.more=false;render()}
 const MM_EXTRA={albums:["📸","صور الفعاليات"],birthdays:["🎂","أعياد الميلاد"],cards:["📄","الكروت"],trash:["🗑","المحذوفات"]};
-const MM_GROUPS=[["👥 الأعضاء",["members","req","committees","board","leaders"]],["📊 التقييم والحضور",["evals","dash","hr","hrmap","att","events"]],["📢 المحتوى",["announce","photos","albums","birthdays","cards","designs"]],["⚙️ النظام",["security","sheets","seen","trash"]]];
+const MM_GROUPS=[["👥 الأعضاء",["members","req","committees","board","leaders"]],["📊 التقييم والحضور",["evals","dash","hr","hrmap","att","events","tasks"]],["📢 المحتوى",["announce","photos","albums","birthdays","cards","designs"]],["⚙️ النظام",["security","sheets","seen","trash"]]];
 function moreHtml(){
   if(!S.more||!NAV||!me)return"";const[main,rest]=navSplit(),canPin=(NAV||[]).length>4,all=canPin?[...main,...rest]:rest,ios=/iphone|ipad/i.test(navigator.userAgent)&&!navigator.standalone;
   const used=new Set(),btn=id=>`<button class="mm-btn" onclick="navGo('${id}')">${canPin?`<span class="pin" onclick="event.stopPropagation();pinTog('${id}')">${main.includes(id)?"⭐":"☆"}</span>`:""}<i>${NI[id]||(MM_EXTRA[id]||[])[0]||"•"}</i><span>${NLB[id]||(MM_EXTRA[id]||[])[1]||id}</span></button>`;
@@ -3282,8 +3418,8 @@ function render(){
   else if(!isAdm()&&!me.avatar_url)h=avatarGate();
   else if(isAdm())h=adminView();
   else if(isMgr())h=mgrView();
-  else if(isBoardAcc())h=topbar()+tabBar([["bcom","📊 تقييمات لجنتي"],["me","حسابي"],["leaders","👥 مسؤولو اللجنة"]].concat(dTab(),evTab(),phTab(),ctTabs(),tecTab()))+(S.tab==="me"?memberView(me,true):S.tab==="leaders"?leadersView(me.committee):S.tab==="events"&&evOk()?eventsView():S.tab==="designs"&&canDesign()?designsView():S.tab==="photos"&&canDesign()?photosView():S.tab==="albums"&&canDesign()?albumsView():S.tab==="cards"&&ctOk()?cardsView():S.tab==="tec"&&isSMHead()?tecView():bcomView());
-  else h=topbar()+tabBar([["me","حسابي"],["leaders","👥 مسؤولو اللجنة"]].concat(dTab(),evTab(),phTab(),ctTabs(),tecTab()))+(S.tab==="tec"&&isSMHead()?tecView():S.tab==="leaders"?leadersView(me.committee):S.tab==="events"&&evOk()?eventsView():S.tab==="designs"&&canDesign()?designsView():S.tab==="photos"&&canDesign()?photosView():S.tab==="albums"&&canDesign()?albumsView():S.tab==="cards"&&ctOk()?cardsView():memberView(me,true));
+  else if(isBoardAcc())h=topbar()+tabBar([["bcom","📊 تقييمات لجنتي"],["me","حسابي"],["leaders","👥 مسؤولو اللجنة"]].concat(tkTab(),dTab(),evTab(),phTab(),ctTabs(),tecTab()))+(S.tab==="me"?memberView(me,true):S.tab==="leaders"?leadersView(me.committee):S.tab==="tasks"?tasksView():S.tab==="events"&&evOk()?eventsView():S.tab==="designs"&&canDesign()?designsView():S.tab==="photos"&&canDesign()?photosView():S.tab==="albums"&&canDesign()?albumsView():S.tab==="cards"&&ctOk()?cardsView():S.tab==="tec"&&isSMHead()?tecView():bcomView());
+  else h=topbar()+tabBar([["me","حسابي"],["leaders","👥 مسؤولو اللجنة"]].concat(tkTab(),dTab(),evTab(),phTab(),ctTabs(),tecTab()))+(S.tab==="tec"&&isSMHead()?tecView():S.tab==="leaders"?leadersView(me.committee):S.tab==="tasks"?tasksView():S.tab==="events"&&evOk()?eventsView():S.tab==="designs"&&canDesign()?designsView():S.tab==="photos"&&canDesign()?photosView():S.tab==="albums"&&canDesign()?albumsView():S.tab==="cards"&&ctOk()?cardsView():memberView(me,true));
   const ok=!!(S.modal&&me&&(isAdm()||(canDesign()&&["photo","album","albadd","albedit","albphoto"].includes(S.modal.t))||(isAdm()&&["bdayadd","bdayimp"].includes(S.modal.t))||(isMgr()&&["rec","view","hist"].includes(S.modal.t))||(S.modal.t==="warn"&&myWarnCom().length>0)||(isBoardAcc()&&["view","hist"].includes(S.modal.t))));
   const navH=navHtml(),key=[session?1:0,loaded?1:0,me?me.id:0,S.tab,S.recover?1:0,S.signup||""].join("|"),same=key===RKEY&&!S.hard;RKEY=key;S.hard=false;
   const app=$("#app"),mdl=$("#mdl"),y=window.scrollY,mc0=mdl.querySelector(".card"),my=mc0?mc0.scrollTop:0;
@@ -3298,6 +3434,7 @@ function render(){
   const nc=mdl.querySelector(".card");if(nc&&my)nc.scrollTop=my;
   window.scrollTo(0,same?y:(SCR[S.tab]||0));CURT=S.tab;_rn=true;setTimeout(()=>{_rn=false},80);
   if(session&&me&&S.tab==="designs"&&canDesign()){if(!TPL_OK){TPL_OK=true;loadTpl().then(render)}if(!isAdm()&&D.dr===undefined)drLoad();setTimeout(()=>{dDrawAll();drawPresets()},0)}
+  if(session&&me&&S.tab==="tasks"&&!(D.tk&&D.tk.ok)&&!TK_LOAD){TK_LOAD=true;loadTk().finally(()=>{TK_LOAD=false})}
   if(ok&&S.modal.t==="rec")fillRec(S.modal.id);
   if(ok&&S.modal.t==="mem")applyMemDraft();
   try{if(ok&&["rec","mem"].includes(S.modal.t))localStorage.setItem("tm-open-modal",JSON.stringify(S.modal));else if(!S.modal)localStorage.removeItem("tm-open-modal")}catch(e){}
